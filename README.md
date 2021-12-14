@@ -5,6 +5,5 @@ This directory contains Stan and R code to fit age structured population dynamic
 The project plan is as follows:
 
 * Create a single lake version of the BERTA models from Cahill et al. 2021 so that one can easily run models for a single lake 
-* Adjust the plotting code so that biologists can plot output from these single lake runs
 * Develop the necessary programs to evaluate harvest control rules for a collection of lakes given model fits from part 1 
 * Build capacity within AEP so that they can do these things on their own
