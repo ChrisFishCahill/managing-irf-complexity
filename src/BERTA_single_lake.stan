@@ -2,6 +2,7 @@
 * 'BERTA_single_lake
 * Bayesian Estimation of Recruitment Trends in Alberta
 * Cahill December 2021
+*TODO: Rename Fmat to Fvec
 */
 data {
   int <lower=0> n_surveys;             // number of surveys, i.e., rows of caa matrix
@@ -13,7 +14,7 @@ data {
   vector[n_surveys] effort;            // survey effort in k,t
   int year[n_surveys];                 // year indicator 
   int <lower=0> ages[n_ages];          // helper vector
-  real survey_yrs;                     // years for which to calculate rbar
+  vector[2] survey_yrs;                // years for which to calculate rbar
   int<lower=1> which_year;             // deliniate early vs. late
   real<lower=0> v_prior_early;         // prior, early F
   real<lower=0> v_prior_late;          // prior, late F
@@ -106,174 +107,161 @@ parameters {
   //vector<lower=0, upper=1>[n_lakes] su_stock;          // attempting to estimate stocked fish survival
 }
 transformed parameters {
-  matrix<lower=0>[n_lakes, n_years] F_mat;           // Insantaneous fishing mortality
-  real Nat_array[n_ages, n_years, n_lakes];          // Numbers at age  
-  matrix [n_lakes, n_years] SSB;                     // Spawning stock biomass
+  vector<lower=0>[n_years] F_mat;                    // Insantaneous fishing mortality
+  real Nat_array[n_ages, n_years];                   // Numbers at age  
+  vector [n_years] SSB;                              // Spawning stock biomass
   vector<lower=0>[n_obs] caa_pred;                   // predicted catch at age
-  vector<lower=0>[n_lakes] br;                       // derived stock-recruit b from sbr0, R0
-  matrix<lower=0>[n_lakes, n_years] R2;              // kick out recruits rather than N(a,t,k)
-  matrix[n_lakes, n_ages] Su_Fearly;                 // survivorship including fishing   
-  matrix[n_lakes, n_ages] Su_Flate;                  // survivorship including fishing       
-  vector[n_lakes] sbrf_early;                        // spawning biomass per recruit fished
-  vector[n_lakes] sbrf_late;                         // spawning biomass per recruit fished
-  vector<lower=0>[n_lakes] pinit;                    // how much depletion from R0
-  vector<lower=0>[n_lakes] Rinit;                    // initial recruitment
-  vector[n_surveys] SSB_obs;                         // SSB observed
-  matrix[n_lakes, n_years] pred_N_catch;             // predicted catch N/ha, *not vulN*
-  matrix[n_lakes, n_years] pred_B_catch;             // predicted catch biomass/ha
-  vector<lower=0>[n_lakes] sbr0_kick;                // sbr0 report 
-  vector[n_lakes] ar_mean_kick;                      // report the ar mean 
-  vector<lower=0>[n_lakes] SPR;                      // spawning potential ratio
-  vector<lower=0>[n_lakes] SSB_bar;                  // average ssb survey years
-  vector<lower=0>[n_lakes] SBR;                      // spawning biomass ratio
-  vector<lower=0>[n_lakes] counter_SSB;              // hack value for SBR calcs
-  vector<lower=0>[n_lakes] cr;                       // compensation ratio kick out to check math
+  real<lower=0> br;                                  // derived stock-recruit b from sbr0, R0
+  vector<lower=0>[n_years] R2;                       // kick out recruits rather than N(a,t)
+  vector[n_ages] Su_Fearly;                          // survivorship including fishing--early
+  vector[n_ages] Su_Flate;                           // survivorship including fishing--late    
+  real sbrf_early;                                   // spawning biomass per recruit fished
+  real sbrf_late;                                    // spawning biomass per recruit fished
+  real<lower=0> pinit;                               // how much depletion from R0
+  real<lower=0> Rinit;                               // initial recruitment
+  real SSB_obs;                                      // SSB observed
+  vector[n_years] pred_N_catch;                      // predicted catch N/ha, *not vulN*
+  vector[n_years] pred_B_catch;                      // predicted catch biomass/ha
+  real<lower=0> sbr0_kick;                           // sbr0 report 
+  real ar_mean_kick;                                 // report the ar mean 
+  real<lower=0> SPR;                                 // spawning potential ratio
+  real<lower=0> SSB_bar;                             // average ssb survey years
+  real<lower=0> SBR;                                 // spawning biomass ratio
+  real<lower=0> counter_SSB;                         // hack for SBR calcs
+  real<lower=0> cr;                                  // compensation ratio kick out to check math
   
   // calculate sbrf
-  for(k in 1:n_lakes){
-    sbr0_kick[k] = sbr0[k]; 
-    ar_mean_kick[k] = ar_mean[k]; 
-    sbrf_early[k] = 0; 
-    sbrf_late[k] = 0; 
-    for(a in 1:n_ages){
-      if(a == 1){
-        Su_Fearly[k, a] = 1; 
-        Su_Flate[k, a] = 1; 
+  sbr0_kick = sbr0; 
+  ar_mean_kick = ar_mean; 
+  sbrf_early = 0; 
+  sbrf_late = 0; 
+  for(a in 1:n_ages){
+    if(a == 1){
+      Su_Fearly[a] = 1; 
+      Su_Flate[a] = 1; 
       } else {
-        Su_Fearly[k, a] = Su_Fearly[k, a-1]*exp(-M_a[k,a-1] - v_f_a[k,a-1]*v[k,1]); 
-        Su_Flate[k, a] = Su_Flate[k, a-1]*exp(-M_a[k,a-1] - v_f_a[k,a-1]*v[k,2]); 
+        Su_Fearly[a] = Su_Fearly[a-1]*exp(-M_a[a-1] - v_f_a[a-1]*v[1]); 
+        Su_Flate[a] = Su_Flate[a-1]*exp(-M_a[a-1] - v_f_a[a-1]*v[2]); 
       }
-      sbrf_early[k] += f_a[k,a]*Su_Fearly[k, a]; 
-      sbrf_late[k] += f_a[k,a]*Su_Flate[k, a]; 
+      sbrf_early += f_a[a]*Su_Fearly[a]; 
+      sbrf_late += f_a[a]*Su_Flate[a]; 
     }
-    SPR[k] = sbrf_late[k] / sbr0[k]; 
-  }
+    SPR = sbrf_late / sbr0; 
 
-  // Calculate recruitment b's, Rinit's 
-  for(k in 1:n_lakes){
-    if(rec_model==0){ //ricker b
-    br[k] = (ar[k] + log(sbr0[k])) / (R0[k]*sbr0[k]); 
-    }
-    if(rec_model==1){ //bev-holt b
-    br[k] = (exp(ar[k])*sbr0[k] - 1)/ (R0[k]*sbr0[k]); 
-    }
-    if(Rinit_ctl == 0){
-      Rinit[k] = G[k]*R0[k]; 
-    }
-    if(Rinit_ctl == 1){
-      if(rec_model==0){ // ricker Req
-      Rinit[k] = (ar[k] + log(sbrf_early[k])-log(G[k])) / (br[k]*sbrf_early[k]);
-      }
-      if(rec_model==1){ // bev-holt Req
-      Rinit[k] = (exp(ar[k])*(sbrf_early[k]-1)) / (br[k]*sbrf_early[k]); 
-      }
-    }
-    pinit[k] = Rinit[k] / R0[k]; 
+  // Calculate recruitment b's, Rinit's
+  if(rec_model==0){ //ricker b
+    br = (ar + log(sbr0)) / (R0*sbr0); 
   }
+  if(rec_model==1){ //bev-holt b
+    br = (exp(ar)*sbr0 - 1)/ (R0*sbr0); 
+  }
+  if(Rinit_ctl == 0){
+    Rinit = G*R0; 
+  }
+  if(Rinit_ctl == 1){
+    if(rec_model==0){ // ricker Req
+      Rinit = (ar + log(sbrf_early)-log(G)) / (br*sbrf_early);
+    }
+    if(rec_model==1){ // bev-holt Req
+      Rinit = (exp(ar)*(sbrf_early-1)) / (br*sbrf_early); 
+    }
+  }
+  pinit = Rinit / R0; 
 
   //Initialize F(t) fishing rate vector from start year to 2018
-  for(k in 1:n_lakes){
-    for(t in 1:n_years){
-      if(t < which_year){
-        F_mat[k, t] = v[k, 1];
+  for(t in 1:n_years){
+    if(t < which_year){
+        F_mat[t] = v[1];
       }
       if(t >= which_year){
-        F_mat[k, t] = v[k, 2];
+        F_mat[t] = v[2];
       }
-      SSB[k,t] = 0;  
-      pred_N_catch[k, t] = 0; 
-      pred_B_catch[k, t] = 0;
-    }
+      SSB[t] = 0;  
+      pred_N_catch[t] = 0; 
+      pred_B_catch[t] = 0;
   }
   
-  //Initialize the Nat_array age structure for t = 1,2
-  for(k in 1:n_lakes){
-    cr[k] = exp(ar[k])*sbr0[k]; 
-    for(t in 1:2){
-      Nat_array[1, t, k] =  Rinit[k];
-      if(t == 1){
-        for(a in 2:n_ages){
-          Nat_array[a, t, k] = Nat_array[a-1, t, k]*exp(-M_a[k, a-1] - v_f_a[k, a-1]*F_mat[k, 1]); 
-          SSB[k, t] += Nat_array[a ,t, k]*f_a[k, a];
-          pred_N_catch[k, t] += Nat_array[a ,t, k]*v_f_a[k, a];  
-          pred_B_catch[k, t] += Nat_array[a ,t, k]*v_f_a[k, a]*W_a[k, a];  
+  //Initialize the N(at) array age structure for t = 1,2
+  cr = exp(ar)*sbr0; 
+  for(t in 1:2){
+    Nat_array[1, t] =  Rinit;
+    if(t == 1){
+      for(a in 2:n_ages){
+        Nat_array[a, t] = Nat_array[a-1, t]*exp(-M_a[a-1] - v_f_a[a-1]*F_mat[1]); 
+        SSB[t] += Nat_array[a ,t]*f_a[a];
+        pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a];  
+        pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a];  
         }
-        pred_N_catch[k, t] = pred_N_catch[k, t]*(1-exp(-F_mat[k,1]));
-        pred_B_catch[k, t] = pred_B_catch[k, t]*(1-exp(-F_mat[k,1]));
+        pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_mat[1]));
+        pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_mat[1]));
       }
       if(t == 2){
         for(a in 2:n_ages){
-          Nat_array[a, t, k] = Nat_array[a, 1, k]; 
+          Nat_array[a, t] = Nat_array[a, 1]; 
         }
       }
-      SSB[k, t] = SSB[k, 1]; 
-      pred_N_catch[k, t] = pred_N_catch[k, 1]; 
-      pred_B_catch[k, t] = pred_B_catch[k, 1]; 
+      SSB[t] = SSB[1]; 
+      pred_N_catch[t] = pred_N_catch[1]; 
+      pred_B_catch[t] = pred_B_catch[1]; 
     }
-  }
   
-  //Calculate the N(a,t,lake) array and derived outputs
-  for(k in 1:n_lakes){
-    R2[k,1] = Nat_array[1, 1, k];
-    R2[k,2] = Nat_array[1, 2, k];
+  //Calculate the N(at) array and derived outputs
+  R2[1] = Nat_array[1, 1];
+  R2[2] = Nat_array[1, 2];
     
-    SSB_bar[k] = 0;
-    counter_SSB[k] = 0; 
+  SSB_bar = 0;
+  counter_SSB = 0; 
 
-    for(t in 3:n_years){
-      if(rec_model==0){//ricker
-        Nat_array[1, t, k] = SSB[k, t-2]*exp(ar[k] - br[k]*SSB[k, t-2] + w[k,t-2]);
-      }
-      if(rec_model==1){//beverton-holt
-        Nat_array[1, t, k] = SSB[k, t-2]*exp(ar[k] + w[k,t-2]) / (1 + br[k]*SSB[k, t-2]);
-      }
-      for(a in 2:n_ages){
-        Nat_array[a, t, k] = Nat_array[a-1, t-1, k]*exp(-M_a[k, a-1] - v_f_a[k, a-1]*F_mat[k, t-1]);  
-        SSB[k, t] += Nat_array[a ,t, k]*f_a[k, a];
-        pred_N_catch[k, t] += Nat_array[a ,t, k]*v_f_a[k, a]; 
-        pred_B_catch[k, t] += Nat_array[a ,t, k]*v_f_a[k, a]*W_a[k, a]; 
-      }
-      pred_N_catch[k, t] = pred_N_catch[k, t]*(1-exp(-F_mat[k,t]));
-      pred_B_catch[k, t] = pred_B_catch[k, t]*(1-exp(-F_mat[k,t]));
-      R2[k,t] = Nat_array[1, t, k];
-      //calculate mean SSB across survey years
-      if(t >= survey_yrs[k, 1] && t <= survey_yrs[k, 2]){
-        counter_SSB[k] += 1; 
-        SSB_bar[k] += SSB[k, t];
-      }
+  for(t in 3:n_years){
+    if(rec_model==0){//ricker
+      Nat_array[1, t] = SSB[t-2]*exp(ar - br*SSB[t-2] + w[t-2]);
     }
-    SSB_bar[k] = SSB_bar[k] / counter_SSB[k];
-    SBR[k] = SSB_bar[k] / (R0[k]*sbr0[k]);     
+    if(rec_model==1){//beverton-holt
+      Nat_array[1, t] = SSB[t-2]*exp(ar + w[t-2]) / (1 + br*SSB[t-2]);
+    }
+    for(a in 2:n_ages){
+      Nat_array[a, t] = Nat_array[a-1, t-1]*exp(-M_a[a-1] - v_f_a[a-1]*F_mat[t-1]);  
+      SSB[t] += Nat_array[a ,t]*f_a[a];
+      pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a]; 
+      pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a]; 
+    }
+    pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_mat[t]));
+    pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_mat[t]));
+    R2[t] = Nat_array[1, t];
+    //calculate mean SSB across survey years
+    if(t >= survey_yrs[1] && t <= survey_yrs[2]){
+      counter_SSB += 1; 
+      SSB_bar += SSB[t];
+     }
   }
+    SSB_bar = SSB_bar / counter_SSB;
+    SBR = SSB_bar / (R0*sbr0);     
   
   //Calculate the preds vector
-  //C(k,a,t)=N(a,t,k)*Nnet(k,t)Paged(k,t)*v_a(k,a) 
+  //C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
   for(hack in 1:1){  //naughty hack to initialize j = 0
     int j = 0; 
     for(i in 1:n_surveys){
-      int k_idx = lake[i]; 
       for(a in 1:n_ages){
         j += 1;
         caa_pred[j] = 0; 
-        caa_pred[j] = Nat_array[a, year[i], k_idx]*  //numbers(a,t,k)
+        caa_pred[j] = Nat_array[a, year[i]]*         //numbers(a,t)
         prop_aged[i]*                                //prop_aged
         effort[i]*                                   //survey effort
-        v_a[k_idx, a];                               //vulnerability to gear
+        v_a[a];                                      //vulnerability to gear
       }
       if(get_SSB_obs==1){
-        SSB_obs[i] = SSB_C[i]; 
+        SSB_obs = SSB_C; 
       }
     }
   }
 }
 model {
   //priors:
-  v[,1] ~ normal(v_prior_early, prior_sigma_v[1]); 
-  v[,2] ~ normal(v_prior_late, prior_sigma_v[2]); 
+  v[1] ~ normal(v_prior_early, prior_sigma_v[1]); 
+  v[2] ~ normal(v_prior_late, prior_sigma_v[2]); 
   R0 ~ lognormal(R0_mean, R0_sd); 
-  for(k in 1:n_lakes){
-    ar[k] ~ normal(ar_mean[k], ar_sd);
-  }
+  ar ~ normal(ar_mean, ar_sd);
   G ~ normal(0,prior_sigma_G); 
   to_vector(w) ~ normal(prior_mean_w, prior_sigma_w); 
   
@@ -285,47 +273,45 @@ model {
   //caa_obs ~ neg_binomial_2(caa_pred, phi); 
 }
 generated quantities{
-  vector[n_lakes] Fmsy;           // instantaneous fishing mortality @ MSY                
-  vector[n_lakes] MSY;            // weight yield kg/ha
-  vector[n_lakes] F_ratio;        // Flate / F_msy  
-  vector[n_lakes] F_early_ratio;  // Fearly / F_msy                        
-  vector[n_lakes] b_ratio;        // average ssb survey years / pristine ssb
+  real Fmsy;           // instantaneous fishing mortality @ MSY                
+  real MSY;            // weight yield kg/ha
+  real F_ratio;        // Flate / F_msy  
+  real F_early_ratio;  // Fearly / F_msy                        
+  real b_ratio;        // average ssb survey years / pristine ssb
   
-  //Fmsy[k], MSY[k] subroutine
-  for(k in 1:n_lakes){
-    Fmsy[k] = 0; 
-    MSY[k] = 0; 
-    for(i in 1:length_Fseq){
-      real sbrf = 0; 
-      real ypr = 0; 
-      real su = 1; 
-      real Req = 0; 
-      real Yeq = 0; 
-      for(a in 1:n_ages){
-        sbrf += su*f_a[k,a]; //accumulate spawning biomass per recruit
-        ypr += su*(1-exp(-Fseq[i]*v_f_a[k,a]))*W_a[k,a]; 
-        su = su*exp(-M_a[k,a] - Fseq[i]*v_f_a[k,a]); 
+  //Fmsy, MSY subroutine
+  Fmsy = 0; 
+  MSY = 0; 
+  for(i in 1:length_Fseq){
+    real sbrf = 0; 
+    real ypr = 0; 
+    real su = 1; 
+    real Req = 0; 
+    real Yeq = 0; 
+    for(a in 1:n_ages){
+      sbrf += su*f_a[a]; //accumulate spawning biomass per recruit
+      ypr += su*(1-exp(-Fseq[i]*v_f_a[a]))*W_a[a]; 
+      su = su*exp(-M_a[a] - Fseq[i]*v_f_a[a]); 
       }
       if(rec_model == 0){ //ricker
-        Req = log( exp(ar[k])*(sbrf) ) / (br[k]*sbrf); //Botsford predction of Req for F[i]
+        Req = log( exp(ar)*(sbrf) ) / (br*sbrf); //Botsford predction of Req for F[i]
       }
       if(rec_model == 1){ //bh
-        Req = ( exp(ar[k])*sbrf-1.0 ) / (br[k]*sbrf); 
+        Req = ( exp(ar)*sbrf-1.0 ) / (br*sbrf); 
       }
       Yeq = Req*ypr; //predicted equilibrium yield
-      if(Yeq > MSY[k]){
-        MSY[k] = Yeq; 
+      if(Yeq > MSY){
+        MSY = Yeq; 
         //jitter values to make a purdy histogram:
-        Fmsy[k]=Fseq[i] + 0.01*(uniform_rng(0,1)-0.5); 
+        Fmsy = Fseq[i] + 0.01*(uniform_rng(0,1)-0.5); 
       } else {
         //Yeq for this F is lower than highest value already found,
         //so can exit the subroutine
         continue; 
       }
-    }
-    //Kobe plot hogwash
-    F_early_ratio[k] = v[k,1] / Fmsy[k];
-    F_ratio[k] = v[k,2] / Fmsy[k];
-    b_ratio[k] = SSB_bar[k] / (R0[k]*sbr0[k]);
-  }
+   }
+   //Kobe plot hogwash
+   F_early_ratio = v[1] / Fmsy;
+   F_ratio = v[2] / Fmsy;
+   b_ratio = SSB_bar / (R0*sbr0);
 }
