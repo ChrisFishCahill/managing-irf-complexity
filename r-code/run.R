@@ -18,6 +18,7 @@ m <- rstan::stan_model("src/BERTA_single_lake.stan", verbose = F)
 data <- readRDS("data/BERTA-wide-0-25.rds")
 stocking <- readRDS("data/stocking_matrix_ha.rds")
 
+#----------------------------------------------------------------------
 # create function to run .stan model
 
 get_fit <- function(which_lake = "pigeon lake",
@@ -163,7 +164,8 @@ get_fit <- function(which_lake = "pigeon lake",
   fit
 }
 
-# declare some model index values 
+#----------------------------------------------------------------------
+# declare some indeces for stan model  
 Ages <- 2:20
 t <- 2000 # first survey year
 max_a <- max(Ages)
@@ -172,16 +174,16 @@ initial_yr <- t - max_a + rec_a - 2
 add_year <- initial_yr - 1
 
 # declare HMC run parameters 
-n_iter = 100
-n_chains = 3
+n_iter = 30
+n_chains = 1
 n_warmup = n_iter/2
 names <- unique(data$name)
 
 #----------------------------------------------------------------------
-# test with a single model 
+# test with a single lake / stock-recruitment function  
 
 fit <- get_fit(which_lake = "buck lake", 
-               rec_model = "bev-holt", 
+               rec_model = "ricker", 
                cr_prior = 6, 
                n_iter = n_iter, n_chains = n_chains, 
                n_warmup = n_warmup, 
