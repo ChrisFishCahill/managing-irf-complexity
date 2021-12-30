@@ -2,7 +2,7 @@
 * 'BERTA_single_lake
 * Bayesian Estimation of Recruitment Trends in Alberta
 * Cahill December 2021
-*TODO: Rename Fmat to Fvec
+* TODO: will it compile? 
 */
 data {
   int <lower=0> n_surveys;             // number of surveys, i.e., rows of caa matrix
@@ -98,7 +98,7 @@ transformed data {
   }
 }
 parameters {
-  vector<lower=0>[2] v;                                  // early period F [,1] or late F [,2]
+  vector<lower=0>[2] v;                                  // early period F v[1] or late F v[2]
   real<lower=0> R0;                                      // average unfished recruitment 
   real ar;                                               // stock-recruit a
   vector[n_years-2] w;                                   // recruitment anomalies--first 2 yrs for initiazation
@@ -107,7 +107,7 @@ parameters {
   //vector<lower=0, upper=1>[n_lakes] su_stock;          // attempting to estimate stocked fish survival
 }
 transformed parameters {
-  vector<lower=0>[n_years] F_mat;                    // Insantaneous fishing mortality
+  vector<lower=0>[n_years] F_vec;                    // Insantaneous fishing mortality
   real Nat_array[n_ages, n_years];                   // Numbers at age  
   vector [n_years] SSB;                              // Spawning stock biomass
   vector<lower=0>[n_obs] caa_pred;                   // predicted catch at age
@@ -171,10 +171,10 @@ transformed parameters {
   //Initialize F(t) fishing rate vector from start year to 2018
   for(t in 1:n_years){
     if(t < which_year){
-        F_mat[t] = v[1];
+        F_vec[t] = v[1];
       }
       if(t >= which_year){
-        F_mat[t] = v[2];
+        F_vec[t] = v[2];
       }
       SSB[t] = 0;  
       pred_N_catch[t] = 0; 
@@ -187,13 +187,13 @@ transformed parameters {
     Nat_array[1, t] =  Rinit;
     if(t == 1){
       for(a in 2:n_ages){
-        Nat_array[a, t] = Nat_array[a-1, t]*exp(-M_a[a-1] - v_f_a[a-1]*F_mat[1]); 
+        Nat_array[a, t] = Nat_array[a-1, t]*exp(-M_a[a-1] - v_f_a[a-1]*F_vec[1]); 
         SSB[t] += Nat_array[a ,t]*f_a[a];
         pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a];  
         pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a];  
         }
-        pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_mat[1]));
-        pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_mat[1]));
+        pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_vec[1]));
+        pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_vec[1]));
       }
       if(t == 2){
         for(a in 2:n_ages){
@@ -220,13 +220,13 @@ transformed parameters {
       Nat_array[1, t] = SSB[t-2]*exp(ar + w[t-2]) / (1 + br*SSB[t-2]);
     }
     for(a in 2:n_ages){
-      Nat_array[a, t] = Nat_array[a-1, t-1]*exp(-M_a[a-1] - v_f_a[a-1]*F_mat[t-1]);  
+      Nat_array[a, t] = Nat_array[a-1, t-1]*exp(-M_a[a-1] - v_f_a[a-1]*F_vec[t-1]);  
       SSB[t] += Nat_array[a ,t]*f_a[a];
       pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a]; 
       pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a]; 
     }
-    pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_mat[t]));
-    pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_mat[t]));
+    pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_vec[t]));
+    pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_vec[t]));
     R2[t] = Nat_array[1, t];
     //calculate mean SSB across survey years
     if(t >= survey_yrs[1] && t <= survey_yrs[2]){
