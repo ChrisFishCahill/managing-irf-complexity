@@ -51,8 +51,6 @@ get_fit <- function(which_lake = "pigeon lake",
   proj_stock <- rep(0, 10) 
   run_stocking <- round(c(run_stocking, proj_stock)) #add to stocking data (for plots)
   
-  browser()
-  
   # Set up the Rbar years
   suppressMessages(
     survey_yrs <- run_data %>%
@@ -60,9 +58,10 @@ get_fit <- function(which_lake = "pigeon lake",
       summarise(
         min_yr = min(year) + length(initial_yr:(t - 1)),
         max_yr = max(year) + length(initial_yr:(t - 1))
-      )
+      ) %>%
+      as.numeric()
   )
-  
+ survey_yrs <- survey_yrs[2:3]
   # summarize the life history relationships
   suppressMessages(
     life_hist <- run_data %>%
@@ -74,6 +73,8 @@ get_fit <- function(which_lake = "pigeon lake",
         wl_beta = unique(beta_wl)
       )
   )
+  
+  Fseq <- seq(from = 0.01, to = 1.0, by = 0.01)
   
   # declare the tagged data list for stan
   stan_data <- list(
@@ -88,7 +89,7 @@ get_fit <- function(which_lake = "pigeon lake",
     lake = run_data$lake,
     year = run_data$year + length(initial_yr:(t - 1)),
     ages = Ages,
-    survey_yrs = survey_yrs[, 2:3],
+    survey_yrs = survey_yrs,
     which_year = 1996 - initial_yr + 2, # which integer corresponds to year = 1997
     v_prior_early = 0.3,
     v_prior_late = 0.1,
@@ -113,8 +114,8 @@ get_fit <- function(which_lake = "pigeon lake",
     SSB_penalty = 0,
     prior_sigma_G = 1,
     Rinit_ctl = 0,
-    length_Fseq = length(seq(from = 0.01, to = 1.0, by = 0.01)),
-    Fseq = seq(from = 0.01, to = 1.0, by = 0.001),
+    length_Fseq = length(Fseq),
+    Fseq = Fseq,
     rec_model = ifelse(rec_model == "ricker", 0, 1),
     cr_prior = cr_prior
   )
@@ -126,15 +127,14 @@ get_fit <- function(which_lake = "pigeon lake",
       v = jitter(vk, amount = 0.1),
       R0 = jitter(15, amount = 2),
       G = jitter(1, amount = 0.1),
-      w = jitter(matrix(0,
-        nrow = 1,
-        ncol = stan_data$n_years - 2
-      ), amount = 0.1),
+      w = jitter(rep(0,
+                     stan_data$n_years - 2), 
+                 amount = 0.1),
       sigma_w = jitter(0.5, amount = 0.05),
       ar = jitter(0.5, amount = 0.01)
     )
   }
-  
+
   #run the model
   fit <-
     rstan::sampling(
@@ -168,15 +168,15 @@ initial_yr <- t - max_a + rec_a - 2
 add_year <- initial_yr - 1
 
 # declare HMC run parameters 
-n_iter = 30
-n_chains = 1
+n_iter = 100
+n_chains = 3
 n_warmup = n_iter/2
 names <- unique(data$name)
 
 #----------------------------------------------------------------------
 # run a model 
 
-fit <- get_fit(which_lake = "pigeon lake", 
+fit <- get_fit(which_lake = "buck lake", 
                rec_model = "bev-holt", 
                cr_prior = 6, 
                n_iter = n_iter, n_chains = n_chains, 
