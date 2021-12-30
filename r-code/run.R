@@ -1,5 +1,4 @@
 #Cahill 2021--single lake version of BERTA run.R
-# TODO: add lake name to get_fits()
 # libraries
 library(tidyverse)
 library(rstan)
@@ -11,24 +10,11 @@ rstan::rstan_options(auto_write = TRUE)
 # compile the model
 m <- rstan::stan_model("src/BERTA_single_lake.stan", verbose = F)
 
-# read in the data
+# read in the data from ALL lakes used in Cahill et al. 2021
 data <- readRDS("data/BERTA-wide-0-25.rds")
 stocking <- readRDS("data/stocking_matrix_ha.rds")
 
-# declare some model index values 
-Ages <- 2:20
-t <- 2000 # first survey year
-max_a <- max(Ages)
-rec_a <- min(Ages)
-initial_yr <- t - max_a + rec_a - 2 
-add_year <- initial_yr - 1
-
-# run parameters 
-n_iter = 2000
-n_chains = 1
-n_warmup = n_iter/2
-
-names <- unique(data$name)
+# create function to run .stan model
 
 get_fit <- function(which_lake = "pigeon lake",
                     rec_model = c("bev-holt", "ricker"),
@@ -39,13 +25,11 @@ get_fit <- function(which_lake = "pigeon lake",
                     stocking = stocking, 
                     ...) {
   rec_model <- match.arg(rec_model)
-  which_fit <- 1
   cat(
     crayon::green(
       clisymbols::symbol$tick
     ),
-    fitted = "recruitment model fitted = ", rec_model,
-    "  lakes:", which_lake,
+    fitted = "model fitted = ", which_lake, rec_model, 
     sep = " "
   )
   cat("\n")
@@ -59,14 +43,16 @@ get_fit <- function(which_lake = "pigeon lake",
         drop = TRUE, lex.order = F
       )))
   run_data <- run_data[order(run_data$lake), ]
-
+  
   # stocking stuff was run in different versions, now just for plotting:
-  run_stocking <- stocking[which(rownames(stocking) %in% which_lakes), ]
+  run_stocking <- stocking[which(rownames(stocking) %in% which_lake), ]
   
   # Add ten years of zero for short term projections
-  proj_stock <- matrix(0, nrow = nrow(run_stocking), ncol = 10) 
-  run_stocking <- round(cbind(run_stocking, proj_stock)) #add to stocking data (for plots)
-
+  proj_stock <- rep(0, 10) 
+  run_stocking <- round(c(run_stocking, proj_stock)) #add to stocking data (for plots)
+  
+  browser()
+  
   # Set up the Rbar years
   suppressMessages(
     survey_yrs <- run_data %>%
@@ -170,4 +156,29 @@ get_fit <- function(which_lake = "pigeon lake",
         max_treedepth = 15
       )
     )
+  fit
 }
+
+# declare some model index values 
+Ages <- 2:20
+t <- 2000 # first survey year
+max_a <- max(Ages)
+rec_a <- min(Ages)
+initial_yr <- t - max_a + rec_a - 2 
+add_year <- initial_yr - 1
+
+# declare HMC run parameters 
+n_iter = 30
+n_chains = 1
+n_warmup = n_iter/2
+names <- unique(data$name)
+
+#----------------------------------------------------------------------
+# run a model 
+
+fit <- get_fit(which_lake = "pigeon lake", 
+               rec_model = "bev-holt", 
+               cr_prior = 6, 
+               n_iter = n_iter, n_chains = n_chains, 
+               n_warmup = n_warmup, 
+               data=data, stocking=stocking)

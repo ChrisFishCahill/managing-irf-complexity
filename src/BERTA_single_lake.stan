@@ -1,8 +1,7 @@
 /*
-* 'BERTA_single_lake
+* BERTA_single_lake
 * Bayesian Estimation of Recruitment Trends in Alberta
-* Cahill December 2021
-* TODO: will it compile? 
+* Cahill 30 December 2021
 */
 data {
   int <lower=0> n_surveys;             // number of surveys, i.e., rows of caa matrix
