@@ -1,9 +1,13 @@
-#Cahill 2021--single lake version of BERTA run.R
+#----------------------------------------------------------------------
+# single lake version of BERTA run.R for AEP contract 
+# Cahill 2021
+#----------------------------------------------------------------------
+
 # libraries
 library(tidyverse)
 library(rstan)
 
-# run on all cores
+# show stan all cores
 options(mc.cores = parallel::detectCores())
 rstan::rstan_options(auto_write = TRUE)
 
@@ -174,7 +178,7 @@ n_warmup = n_iter/2
 names <- unique(data$name)
 
 #----------------------------------------------------------------------
-# run a model 
+# test with a single model 
 
 fit <- get_fit(which_lake = "buck lake", 
                rec_model = "bev-holt", 
@@ -182,3 +186,7 @@ fit <- get_fit(which_lake = "buck lake",
                n_iter = n_iter, n_chains = n_chains, 
                n_warmup = n_warmup, 
                data=data, stocking=stocking)
+
+#----------------------------------------------------------------------
+
+#TODO: Run with all six lakes using some fancy functional programming stuff
