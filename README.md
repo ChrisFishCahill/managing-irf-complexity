@@ -7,3 +7,7 @@ The project plan is as follows:
 * Create a single lake version of the BERTA models from Cahill et al. 2021 so that one can easily run models for a single lake 
 * Develop the necessary programs to evaluate harvest control rules for a collection of lakes given model fits from part 1 
 * Build capacity within AEP so that they can implement assessments and harvest control rule development on their own
+
+Additional notes:
+
+* There are two .stan files in the /src folder.  The first is BERTA.stan, which is the file used in Cahill et al. 2021. The second is BERTA_single_lake.stan, which is a single lake version of the .stan file used in the Cahill et al. 2021 manuscript. 
