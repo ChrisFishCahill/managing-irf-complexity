@@ -7,7 +7,7 @@
 -   Become familiar with `browser()`, `get_fit()`, `future_pwalk()`.
 -   Learn how .R and .stan scripts are working together to subset data,
     fit a Bayesian stock reduction analysis model to those data, and
-    then saving the model fit with a unique file name identifier.
+    then save the model fit with a unique file name identifier.
 -   Practice debugging.
 
 # Packages
