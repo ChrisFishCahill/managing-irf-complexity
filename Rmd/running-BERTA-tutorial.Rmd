@@ -1,6 +1,6 @@
 ---
 title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
-author: "Christopher L. Cahill & Carl J. Walters"
+author: "Christopher L. Cahill"
 date: "31 December 2021"
 output:
   pdf_document: default
