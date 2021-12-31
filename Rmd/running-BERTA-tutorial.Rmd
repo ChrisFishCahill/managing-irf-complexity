@@ -33,7 +33,7 @@ data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
 glimpse(data)
 ```
 
-Now read in the stocking data, which was used for plotting and not fitted.  Note these stocking records go from 1980-2018, and are number of Walleye stocked per hectare: 
+Now read in the stocking data, which was used for plotting and not fitted in the .stan model.  Note these stocking records go from 1980-2018, and are number of Walleye stocked per hectare: 
 ```{r}
 stocking <- readRDS(here::here("data/stocking_matrix_ha.rds"))
 glimpse(stocking)
