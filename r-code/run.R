@@ -230,15 +230,21 @@ to_fit3 <- to_fit
 to_fit3$cr_prior <- 12
 to_fit <- rbind(to_fit, to_fit3)
 
-#Run models and save fits -- 7.44 hours on my laptop
+# Run models and save fits -- 7.44 hours on my laptop
 system.time({ 
   future_pwalk(to_fit, get_fit, 
                .options = furrr_options(seed = TRUE)
   ) 
 })
 
-#remove all fits? 
-#do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
+# pseudo-code another (perhaps more intuitive) way:
+# for each row of to_fit
+# run get_fit using parameters from single row of to fit
+# save results
+# end for-loop
+
+# remove all fits? 
+# do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
 
 #----------------------------------------------------------------------
 # shinystan diagnostics -- can do this for any fit
