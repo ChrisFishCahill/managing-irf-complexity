@@ -9,7 +9,7 @@ output: md_document
 - Understand general structure of BERTA model used in Cahill et al. (2021).
 - Gain an overview of available modeling options, including tweaking priors and MCMC run parameters.
 - Become familiar with `browser()`, `get_fit()`, `future_pwalk()`. 
-- Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then saving the model fit with a unique file name identifier.
+- Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then save the model fit with a unique file name identifier.
 - Practice debugging.
 
 # Packages 
