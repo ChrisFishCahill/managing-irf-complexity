@@ -2,9 +2,7 @@
 title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
 author: "Christopher L. Cahill"
 date: "31/12/2021"
-output: 
-html_document: default
-md_document: default
+output: html_document
 ---
 # Goals
 
@@ -26,7 +24,7 @@ library(ggplot2)
 ```
 
 # Data
-We will work with the FWIN dataset used in Cahill et al. 2021, which is all lakes with$\ge 3$ FWIN surveys during 2000-2018: 
+We will work with the Fall Walleye Index Netting (FWIN) dataset used in Cahill et al. 2021, which included all lakes with $\ge$ 3 FWIN surveys during 2000-2018: 
 
 ```{r}
 data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
