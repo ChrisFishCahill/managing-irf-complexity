@@ -249,7 +249,7 @@ system.time({
 
 #----------------------------------------------------------------------
 # shinystan diagnostics -- can do this for any fit
-which_fit <- list.files("fits/", full.names = TRUE)[1]
-fit <- readRDS(which_fit)
+which_file <- list.files("fits/", full.names = TRUE)[1]
+fit <- readRDS(which_file)
 fit 
 shinystan::launch_shinystan(fit)
