@@ -2,9 +2,7 @@
 title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
 author: "Christopher L. Cahill"
 date: "31/12/2021"
-output:
-  html_document: default
-  pdf_document: default
+output: md_document
 ---
 # Goals
 
@@ -13,3 +11,25 @@ output:
 - Become familiar with `browser()`, `get_fit()`, `future_pwalk()`. 
 - Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then saving the model fit with a unique file name identifier.
 - Practice debugging.
+
+# Packages 
+Let's load the packages we will use:
+
+```{r}
+library(tidyverse)
+library(rstan)
+library(furrr)
+library(future) 
+library(ggplot2)
+```
+
+# Data
+We will work with the FWIN dataset used in Cahill et al. 2021, which is all lakes  $with \ge 3$ FWIN surveys during 2000-2018: 
+
+```{r}
+data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
+glimpse(data)
+
+stocking <- readRDS(here::here("data/stocking_matrix_ha.rds"))
+glimpse(stocking)
+```
