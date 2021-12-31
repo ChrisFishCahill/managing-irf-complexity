@@ -193,19 +193,19 @@ initial_yr <- t - max_a + rec_a - 2
 add_year <- initial_yr - 1
 
 # declare HMC run parameters 
-n_iter = 10
-n_chains = 1
+n_iter = 2000
+n_chains = 4
 n_warmup = n_iter/2
 names <- unique(data$name)
 
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
 
-fit <- get_fit(which_lake = "pigeon lake", 
-               rec_ctl = "ricker", 
-               cr_prior = 6, 
-               n_iter = n_iter, n_chains = n_chains, 
-               n_warmup = n_warmup)
+# fit <- get_fit(which_lake = "pigeon lake", 
+#                rec_ctl = "ricker", 
+#                cr_prior = 6, 
+#                n_iter = n_iter, n_chains = n_chains, 
+#                n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  
@@ -238,7 +238,7 @@ system.time({
 })
 
 #remove all fits? 
-do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
+#do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
 
 #----------------------------------------------------------------------
 # shinystan diagnostics 

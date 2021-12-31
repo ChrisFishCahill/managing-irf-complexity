@@ -38,7 +38,7 @@ data {
   int Rinit_ctl;                       // G*R0 (0) or a more complicated form (1)
   int<lower=0> length_Fseq;            // length of Fseq for generated quantities calcs
   vector[length_Fseq] Fseq;            // sequence of values to iterate across for Fmsy
-  int<lower=0> rec_ctl;              // Ricker (0), BH (1)
+  int<lower=0> rec_ctl;                // Ricker (0), BH (1)
   real<lower=0> cr_prior;              // compensation ratio prior 
 }
 transformed data {
@@ -97,13 +97,13 @@ transformed data {
   }
 }
 parameters {
-  vector<lower=0>[2] v;                                  // early period F v[1] or late F v[2]
-  real<lower=0> R0;                                      // average unfished recruitment 
-  real ar;                                               // stock-recruit a
-  vector[n_years-2] w;                                   // recruitment anomalies--first 2 yrs for initiazation
-  real<lower=G_bound[1], upper=G_bound[2]> G;            // is population at equilibrium (1) or declining (<1)
-  //real<lower=0> phi;                                   // for negative binomial
-  //vector<lower=0, upper=1>[n_lakes] su_stock;          // attempting to estimate stocked fish survival
+  vector<lower=0>[2] v;                              // early period F v[1] or late F v[2]
+  real<lower=0> R0;                                  // average unfished recruitment 
+  real ar;                                           // stock-recruit a
+  vector[n_years-2] w;                               // recruitment anomalies--first 2 yrs for initiazation
+  real<lower=G_bound[1], upper=G_bound[2]> G;        // is population at equilibrium (1) or declining (<1)
+  //real<lower=0> phi;                               // for negative binomial
+  //vector<lower=0, upper=1>[n_lakes] su_stock;      // attempting to estimate stocked fish survival
 }
 transformed parameters {
   vector<lower=0>[n_years] F_vec;                    // Insantaneous fishing mortality
@@ -247,7 +247,7 @@ transformed parameters {
         caa_pred[j] = Nat_array[a, year[i]]*         //numbers(a,t)
         prop_aged[i]*                                //prop_aged
         effort[i]*                                   //survey effort
-        v_a[a];                                      //vulnerability to gear
+        v_a[a];                                      //vulnerability to survey gear
       }
       if(get_SSB_obs==1){
         SSB_obs = SSB_C; 
