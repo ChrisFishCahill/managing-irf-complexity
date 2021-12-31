@@ -1,3 +1,9 @@
+# Running Bayesian Estimation of Recruitment Trends in Alberta (BERTA) with FWIN data
+
+## Christopher L. Cahill
+
+## 31 December 2021
+
 # Goals
 
 -   Understand general structure of BERTA model used in Cahill et
