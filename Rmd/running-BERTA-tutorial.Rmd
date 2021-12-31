@@ -2,11 +2,10 @@
 title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
 author: "Christopher L. Cahill"
 date: "31/12/2021"
-output: md_document
+output: 
+html_document: default
+md_document: default
 ---
-# Running Bayesian Estimation of Recruitment Trends in Alberta (BERTA) with FWIN data
-### "Christopher L. Cahill \n31 December 2021" 
-
 # Goals
 
 - Understand general structure of BERTA model used in Cahill et al. (2021).
