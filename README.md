@@ -10,4 +10,8 @@ The project plan is as follows:
 
 Additional notes:
 
-* There are two .stan files in the /src folder.  The first is BERTA.stan and the second is BERTA_single_lake.stan.  These correspond to the original and single-lake versions of BERTA used in Cahill et al. 2021, respectively.  
+* There are two .stan files in the /src folder.  The first is BERTA.stan and the second is BERTA_single_lake.stan.  These correspond to the original and single-lake versions of BERTA used in Cahill et al. 2021, respectively. 
+
+TODO for Chris: 
+* plotting file 
+* develop harvest control rule script 
