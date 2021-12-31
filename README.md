@@ -15,3 +15,4 @@ Additional notes:
 TODO for Chris: 
 * plotting file 
 * develop harvest control rule script 
+* work on markdown lessons 
