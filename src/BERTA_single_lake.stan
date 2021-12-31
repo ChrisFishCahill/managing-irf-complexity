@@ -38,7 +38,7 @@ data {
   int Rinit_ctl;                       // G*R0 (0) or a more complicated form (1)
   int<lower=0> length_Fseq;            // length of Fseq for generated quantities calcs
   vector[length_Fseq] Fseq;            // sequence of values to iterate across for Fmsy
-  int<lower=0> rec_model;              // Ricker (0), BH (1)
+  int<lower=0> rec_ctl;              // Ricker (0), BH (1)
   real<lower=0> cr_prior;              // compensation ratio prior 
 }
 transformed data {
@@ -148,20 +148,20 @@ transformed parameters {
     SPR = sbrf_late / sbr0; 
 
   // Calculate recruitment b's, Rinit's
-  if(rec_model==0){ //ricker b
+  if(rec_ctl==0){ //ricker b
     br = (ar + log(sbr0)) / (R0*sbr0); 
   }
-  if(rec_model==1){ //bev-holt b
+  if(rec_ctl==1){ //bev-holt b
     br = (exp(ar)*sbr0 - 1)/ (R0*sbr0); 
   }
   if(Rinit_ctl == 0){
     Rinit = G*R0; 
   }
   if(Rinit_ctl == 1){
-    if(rec_model==0){ // ricker Req
+    if(rec_ctl==0){ // ricker Req
       Rinit = (ar + log(sbrf_early)-log(G)) / (br*sbrf_early);
     }
-    if(rec_model==1){ // bev-holt Req
+    if(rec_ctl==1){ // bev-holt Req
       Rinit = (exp(ar)*(sbrf_early-1)) / (br*sbrf_early); 
     }
   }
@@ -212,10 +212,10 @@ transformed parameters {
   counter_SSB = 0; 
 
   for(t in 3:n_years){
-    if(rec_model==0){//ricker
+    if(rec_ctl==0){//ricker
       Nat_array[1, t] = SSB[t-2]*exp(ar - br*SSB[t-2] + w[t-2]);
     }
-    if(rec_model==1){//beverton-holt
+    if(rec_ctl==1){//beverton-holt
       Nat_array[1, t] = SSB[t-2]*exp(ar + w[t-2]) / (1 + br*SSB[t-2]);
     }
     for(a in 2:n_ages){
@@ -292,10 +292,10 @@ generated quantities{
       ypr += su*(1-exp(-Fseq[i]*v_f_a[a]))*W_a[a]; 
       su = su*exp(-M_a[a] - Fseq[i]*v_f_a[a]); 
       }
-      if(rec_model == 0){ //ricker
+      if(rec_ctl == 0){ //ricker
         Req = log( exp(ar)*(sbrf) ) / (br*sbrf); //Botsford predction of Req for F[i]
       }
-      if(rec_model == 1){ //bh
+      if(rec_ctl == 1){ //bh
         Req = ( exp(ar)*sbrf-1.0 ) / (br*sbrf); 
       }
       Yeq = Req*ypr; //predicted equilibrium yield

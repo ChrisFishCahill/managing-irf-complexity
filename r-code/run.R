@@ -6,6 +6,7 @@
 # libraries
 library(tidyverse)
 library(rstan)
+library(furrr)
 
 # show stan all cores
 options(mc.cores = parallel::detectCores())
@@ -22,19 +23,17 @@ stocking <- readRDS("data/stocking_matrix_ha.rds")
 # create function to run .stan model
 
 get_fit <- function(which_lake = "pigeon lake",
-                    rec_model = c("bev-holt", "ricker"),
+                    rec_ctl = c("bev-holt", "ricker"),
                     cr_prior = c(6, 12),
                     n_iter = n_iter, n_chains = n_chains,
                     n_warmup = n_iter / 2,
-                    data = data,
-                    stocking = stocking, 
                     ...) {
-  rec_model <- match.arg(rec_model)
+  rec_ctl <- match.arg(rec_ctl)
   cat(
     crayon::green(
       clisymbols::symbol$tick
     ),
-    fitted = "model fitted = ", which_lake, rec_model, 
+    fitted = "model fitted = ", which_lake, rec_ctl, 
     sep = " "
   )
   cat("\n")
@@ -121,7 +120,7 @@ get_fit <- function(which_lake = "pigeon lake",
     Rinit_ctl = 0,
     length_Fseq = length(Fseq),
     Fseq = Fseq,
-    rec_model = ifelse(rec_model == "ricker", 0, 1),
+    rec_ctl = ifelse(rec_ctl == "ricker", 0, 1),
     cr_prior = cr_prior
   )
 
@@ -161,7 +160,27 @@ get_fit <- function(which_lake = "pigeon lake",
         max_treedepth = 15
       )
     )
-  fit
+  # create name and save .rds files for each run 
+  if(rec_ctl=="ricker"){
+    my_name <- paste0(which_lake, "_ricker.rds")
+  }
+  if(rec_ctl=="bev-holt"){
+    my_name <- paste0(which_lake, "_bh.rds")
+  }
+  stan_file <- "fits/"
+  stan_file <- str_c(stan_file, my_name)
+  stan_file <- stan_file %>% gsub(" ", "_", .)
+  if(cr_prior == 6){
+    stan_file <- stan_file %>% gsub(".rds", "_cr_6.rds", .)
+  }
+  if(cr_prior == 12){
+    stan_file <- stan_file %>% gsub(".rds", "_cr_12.rds", .)
+  }
+  if (file.exists(stan_file)) {
+    return(NULL)
+  } else {
+    saveRDS(fit, file = stan_file)
+  }
 }
 
 #----------------------------------------------------------------------
@@ -174,7 +193,7 @@ initial_yr <- t - max_a + rec_a - 2
 add_year <- initial_yr - 1
 
 # declare HMC run parameters 
-n_iter = 30
+n_iter = 10
 n_chains = 1
 n_warmup = n_iter/2
 names <- unique(data$name)
@@ -182,13 +201,41 @@ names <- unique(data$name)
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
 
-fit <- get_fit(which_lake = "buck lake", 
-               rec_model = "ricker", 
+fit <- get_fit(which_lake = "pigeon lake", 
+               rec_ctl = "ricker", 
                cr_prior = 6, 
                n_iter = n_iter, n_chains = n_chains, 
-               n_warmup = n_warmup, 
-               data=data, stocking=stocking)
+               n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
+# naughty functional programming voodoo 
 
-#TODO: Run with all six lakes using some fancy functional programming stuff
+contract_lakes <- c("lac ste. anne", "baptiste lake", 
+                    "pigeon lake", "calling lake", 
+                    "moose lake", "lake newell"
+)
+
+to_fit <- tibble(which_lake = contract_lakes)
+to_fit$n_iter <- n_iter
+to_fit$n_chains <- n_chains
+to_fit$n_warmup <- n_warmup
+to_fit$rec_ctl <- "ricker"
+to_fit$cr_prior <- 6
+
+to_fit2 <- to_fit
+to_fit2$rec_ctl <- "bev-holt"
+to_fit <- rbind(to_fit, to_fit2)
+
+to_fit3 <- to_fit
+to_fit3$cr_prior <- 12
+to_fit <- rbind(to_fit, to_fit3)
+
+#Run models and save fits/plots
+system.time({ 
+  future_pwalk(to_fit, get_fit, 
+               .options = furrr_options(seed = TRUE)
+  ) 
+})
+
+#remove all fits? 
+do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
