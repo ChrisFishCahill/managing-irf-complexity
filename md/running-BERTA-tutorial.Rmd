@@ -5,7 +5,7 @@ date: "31/12/2021"
 output: md_document
 ---
 # Running Bayesian Estimation of Recruitment Trends in Alberta (BERTA) with FWIN data
-### Christopher L. Cahill \n31 December 2021 
+### "Christopher L. Cahill \n31 December 2021" 
 
 # Goals
 
