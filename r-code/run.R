@@ -230,7 +230,7 @@ to_fit3 <- to_fit
 to_fit3$cr_prior <- 12
 to_fit <- rbind(to_fit, to_fit3)
 
-#Run models and save fits
+#Run models and save fits -- 7.44 hours on my laptop
 system.time({ 
   future_pwalk(to_fit, get_fit, 
                .options = furrr_options(seed = TRUE)
@@ -241,7 +241,7 @@ system.time({
 #do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
 
 #----------------------------------------------------------------------
-# shinystan diagnostics 
+# shinystan diagnostics -- can do this for any fit
 which_fit <- list.files("fits/", full.names = TRUE)[1]
 fit <- readRDS(which_fit)
 fit 
