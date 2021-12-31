@@ -237,7 +237,8 @@ system.time({
   ) 
 })
 
-# pseudo-code another (perhaps more intuitive) way:
+# future_pwalk looks like magic, is from the purrr/furrr family of libraries
+# pseudo-code for another more familiar way:
 # for each row of to_fit
 # run get_fit using parameters from single row of to fit
 # save results
