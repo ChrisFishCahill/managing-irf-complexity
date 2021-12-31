@@ -7,6 +7,7 @@
 library(tidyverse)
 library(rstan)
 library(furrr)
+library(future) 
 
 # detect number of CPUs on current host 
 options(mc.cores = parallel::detectCores())
@@ -231,6 +232,9 @@ to_fit <- rbind(to_fit, to_fit2)
 to_fit3 <- to_fit
 to_fit3$cr_prior <- 12
 to_fit <- rbind(to_fit, to_fit3)
+
+# set up parallel processing plan 
+future::plan(multisession)
 
 # Run models and save fits -- 7.44 hours on my laptop
 system.time({ 
