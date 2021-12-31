@@ -57,8 +57,8 @@ transformed data {
   real ar_mean;                        // ar mean
   int counter = 0;                     // counter for caa_obs
   
-  //calculate vul, length-age, M-age, fec-age 
-  sbr0 = 0; //initialize
+  // calculate vul, length-age, M-age, fec-age 
+  sbr0 = 0; // initialize
   for(a in 1:n_ages){
     v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi;          
     v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi;  
@@ -68,7 +68,7 @@ transformed data {
     if(a < a50){
         f_a[a] = 0; 
       } else { 
-        //relative weight at age assumed to follow vb
+        // relative weight at age assumed to follow vb
         f_a[a] = fmax(0, (l_a[a]^wl_beta)); 
       }
       if(a == 1){ 
@@ -80,8 +80,8 @@ transformed data {
   }
   ar_mean = log(cr_prior/sbr0); 
   
-  //calculate the rowsums for each survey, observed SSB
-  //SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
+  // calculate the rowsums for each survey, observed SSB
+  // SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
   for(i in 1:n_surveys){
     SSB_Cn = 0; 
     SSB_Cd = 0; 
@@ -101,8 +101,8 @@ parameters {
   real ar;                                           // stock-recruit a
   vector[n_years-2] w;                               // recruitment anomalies--first 2 yrs for initiazation
   real<lower=G_bound[1], upper=G_bound[2]> G;        // is population at equilibrium (1) or declining (<1)
-  //real<lower=0> phi;                               // for negative binomial
-  //vector<lower=0, upper=1>[n_lakes] su_stock;      // attempting to estimate stocked fish survival
+  //real<lower=0> phi;                               // negative binomial parameter
+  //vector<lower=0, upper=1>[n_lakes] su_stock;      // estimate stocked fish survival
 }
 transformed parameters {
   vector<lower=0>[n_years] F_vec;                    // Insantaneous fishing mortality
@@ -237,7 +237,7 @@ transformed parameters {
   
   // Calculate the preds vector
   // C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
-  for(hack in 1:1){  // hack to initialize j = 0
+  for(hack in 1:1){// hack to initialize j = 0
     int j = 0; 
     for(i in 1:n_surveys){
       for(a in 1:n_ages){
@@ -266,9 +266,12 @@ model {
   // likelihood
   caa_obs ~ poisson(caa_pred); 
   
-  //phi ~ cauchy(0,3);
-  //su_stock ~ beta(2,2); 
-  //caa_obs ~ neg_binomial_2(caa_pred, phi); 
+  // NOTE: Stan is creating log(posterior) = log(likelikhood) + log(priors)
+  
+  // extra stuff for negative binomial model and stocking survival 
+  // phi ~ cauchy(0,3);
+  // su_stock ~ beta(2,2); 
+  // caa_obs ~ neg_binomial_2(caa_pred, phi); 
 }
 generated quantities{
   real Fmsy;           // instantaneous fishing mortality @ MSY                
