@@ -1,6 +1,6 @@
 ## Developing harvest control rules for Alberta Walleye fisheries
 
-This directory contains Stan and R code to fit age structured population dynamics models to Alberta FWIN data as per Cahill et al. 2021.  It also contains .R simulation code that develops harvest control rules for Special Harvest Liscence (SHL) Walleye fisheries given these model fits. The directory is straightforward, with a "data" folder, an "r-files" folder, a "plots" folder, and an "src" (i.e., source) folder for .stan files. 
+This directory contains Stan and R code to fit age structured population dynamics models to Alberta FWIN data as per Cahill et al. 2021.  It also contains .R simulation code that develops harvest control rules for Special Harvest Licence (SHL) Walleye fisheries given these model fits. The directory is straightforward, with a "data" folder, an "r-files" folder, a "plots" folder, and an "src" (i.e., source) folder for .stan files. 
 
 The project plan is as follows:
 
