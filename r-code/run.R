@@ -252,7 +252,8 @@ system.time({
 # do.call(file.remove, list(list.files("fits/", full.names = TRUE)))
 
 #----------------------------------------------------------------------
-# shinystan diagnostics -- can do this for any fit
+# some diagnostics -- can do this for any fit
+
 which_file <- list.files("fits/", full.names = TRUE)[1]
 fit <- readRDS(which_file)
 fit 
