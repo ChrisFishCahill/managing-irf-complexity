@@ -10,4 +10,4 @@ The project plan is as follows:
 
 Additional notes:
 
-* There are two .stan files in the /src folder.  The first is BERTA.stan, which is the file used in Cahill et al. 2021. The second is BERTA_single_lake.stan, which is a single lake version of the .stan file used in the Cahill et al. 2021 manuscript. 
+* There are two .stan files in the /src folder.  The first is BERTA.stan and the second is BERTA_single_lake.stan.  These correspond to the original and single-lake versions of BERTA used in Cahill et al. 2021, respectively.  
