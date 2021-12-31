@@ -1,14 +1,14 @@
 ---
 title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
-author: "Christopher L. Cahill"
+author: "Christopher L. Cahill & Carl J. Walters"
 date: "31 December 2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 # Goals
 
-- Understand general structure of BERTA model used in Cahill et al. (2021).
+- Understand general structure of and build intuition for BERTA model used in Cahill et al. (2021).
 - Gain an overview of available modeling options, including tweaking priors and MCMC run parameters.
 - Become familiar with `browser()`, `get_fit()`, `future_pwalk()`. 
 - Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then save the model fit with a unique file name identifier.
@@ -31,7 +31,10 @@ We will work with the Fall Walleye Index Netting (FWIN) dataset used in Cahill e
 ```{r}
 data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
 glimpse(data)
+```
 
+Now read in the stocking data, which was used for plotting and not fitted.  Note these stocking records go from 1980-2018, and are number of Walleye stocked per hectare: 
+```{r}
 stocking <- readRDS(here::here("data/stocking_matrix_ha.rds"))
 glimpse(stocking)
 ```
