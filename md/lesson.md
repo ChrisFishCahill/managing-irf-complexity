@@ -59,7 +59,7 @@ Let’s load the packages we will use:
 # Data
 
 We will work with the FWIN dataset used in Cahill et al. 2021, which is
-all lakes with  ≥ 3 FWIN surveys during 2000-2018:
+all lakes with ≥ 3 FWIN surveys during 2000-2018:
 
     data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
     glimpse(data)
