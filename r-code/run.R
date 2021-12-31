@@ -208,7 +208,7 @@ fit <- get_fit(which_lake = "pigeon lake",
                n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
-# naughty functional programming voodoo 
+# naughty functional programming black magjicks  
 
 contract_lakes <- c("lac ste. anne", "baptiste lake", 
                     "pigeon lake", "calling lake", 
