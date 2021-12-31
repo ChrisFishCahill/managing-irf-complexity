@@ -55,7 +55,7 @@ transformed data {
   real SSB_C;                          // SSB obs
   vector[n_ages] Su_F0;                // survivorship unfished (F=0) 
   real ar_mean;                        // ar mean
-  int counter = 0; 
+  int counter = 0;                     // counter for caa_obs
   
   //calculate vul, length-age, M-age, fec-age 
   sbr0 = 0; //initialize
@@ -80,10 +80,9 @@ transformed data {
   }
   ar_mean = log(cr_prior/sbr0); 
   
-  //calculate the rowsums for eacht survey, observed SSB
+  //calculate the rowsums for each survey, observed SSB
   //SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
   for(i in 1:n_surveys){
-    //int k_idx = lake[i];
     SSB_Cn = 0; 
     SSB_Cd = 0; 
     SSB_C = 0; 
@@ -148,10 +147,10 @@ transformed parameters {
     SPR = sbrf_late / sbr0; 
 
   // Calculate recruitment b's, Rinit's
-  if(rec_ctl==0){ //ricker b
+  if(rec_ctl==0){ // ricker b
     br = (ar + log(sbr0)) / (R0*sbr0); 
   }
-  if(rec_ctl==1){ //bev-holt b
+  if(rec_ctl==1){ // bev-holt b
     br = (exp(ar)*sbr0 - 1)/ (R0*sbr0); 
   }
   if(Rinit_ctl == 0){
@@ -167,7 +166,7 @@ transformed parameters {
   }
   pinit = Rinit / R0; 
 
-  //Initialize F(t) fishing rate vector from start year to 2018
+  // Initialize F(t) fishing rate vector from start year to 2018
   for(t in 1:n_years){
     if(t < which_year){
         F_vec[t] = v[1];
@@ -180,7 +179,7 @@ transformed parameters {
       pred_B_catch[t] = 0;
   }
   
-  //Initialize the N(at) array age structure for t = 1,2
+  // Initialize the N(at) array age structure for t = 1,2
   cr = exp(ar)*sbr0; 
   for(t in 1:2){
     Nat_array[1, t] =  Rinit;
@@ -199,12 +198,12 @@ transformed parameters {
           Nat_array[a, t] = Nat_array[a, 1]; 
         }
       }
-      SSB[t] = SSB[1]; 
-      pred_N_catch[t] = pred_N_catch[1]; 
-      pred_B_catch[t] = pred_B_catch[1]; 
-    }
+    SSB[t] = SSB[1]; 
+    pred_N_catch[t] = pred_N_catch[1]; 
+    pred_B_catch[t] = pred_B_catch[1]; 
+  }
   
-  //Calculate the N(at) array and derived outputs
+  // Calculate the N(at) array and derived outputs
   R2[1] = Nat_array[1, 1];
   R2[2] = Nat_array[1, 2];
     
@@ -212,10 +211,10 @@ transformed parameters {
   counter_SSB = 0; 
 
   for(t in 3:n_years){
-    if(rec_ctl==0){//ricker
+    if(rec_ctl==0){// ricker
       Nat_array[1, t] = SSB[t-2]*exp(ar - br*SSB[t-2] + w[t-2]);
     }
-    if(rec_ctl==1){//beverton-holt
+    if(rec_ctl==1){// beverton-holt
       Nat_array[1, t] = SSB[t-2]*exp(ar + w[t-2]) / (1 + br*SSB[t-2]);
     }
     for(a in 2:n_ages){
@@ -227,7 +226,7 @@ transformed parameters {
     pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_vec[t]));
     pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_vec[t]));
     R2[t] = Nat_array[1, t];
-    //calculate mean SSB across survey years
+    // calculate mean SSB across survey years
     if(t >= survey_yrs[1] && t <= survey_yrs[2]){
       counter_SSB += 1; 
       SSB_bar += SSB[t];
@@ -236,18 +235,18 @@ transformed parameters {
     SSB_bar = SSB_bar / counter_SSB;
     SBR = SSB_bar / (R0*sbr0);     
   
-  //Calculate the preds vector
-  //C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
-  for(hack in 1:1){  //naughty hack to initialize j = 0
+  // Calculate the preds vector
+  // C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
+  for(hack in 1:1){  // hack to initialize j = 0
     int j = 0; 
     for(i in 1:n_surveys){
       for(a in 1:n_ages){
         j += 1;
-        caa_pred[j] = 0; 
-        caa_pred[j] = Nat_array[a, year[i]]*         //numbers(a,t)
-        prop_aged[i]*                                //prop_aged
-        effort[i]*                                   //survey effort
-        v_a[a];                                      //vulnerability to survey gear
+        caa_pred[j] = 0;                        // initialize
+        caa_pred[j] = Nat_array[a, year[i]]*    // numbers(a,t)
+        prop_aged[i]*                           // prop_aged
+        effort[i]*                              // survey effort
+        v_a[a];                                 // vulnerability to survey gear
       }
       if(get_SSB_obs==1){
         SSB_obs = SSB_C; 
@@ -256,7 +255,7 @@ transformed parameters {
   }
 }
 model {
-  //priors:
+  // priors:
   v[1] ~ normal(v_prior_early, prior_sigma_v[1]); 
   v[2] ~ normal(v_prior_late, prior_sigma_v[2]); 
   R0 ~ lognormal(R0_mean, R0_sd); 
@@ -264,7 +263,7 @@ model {
   G ~ normal(0,prior_sigma_G); 
   to_vector(w) ~ normal(prior_mean_w, prior_sigma_w); 
   
-  //likelihood
+  // likelihood
   caa_obs ~ poisson(caa_pred); 
   
   //phi ~ cauchy(0,3);
@@ -278,7 +277,7 @@ generated quantities{
   real F_early_ratio;  // Fearly / F_msy                        
   real b_ratio;        // average ssb survey years / pristine ssb
   
-  //Fmsy, MSY subroutine
+  // Fmsy, MSY subroutine
   Fmsy = 0; 
   MSY = 0; 
   for(i in 1:length_Fseq){
@@ -288,28 +287,28 @@ generated quantities{
     real Req = 0; 
     real Yeq = 0; 
     for(a in 1:n_ages){
-      sbrf += su*f_a[a]; //accumulate spawning biomass per recruit
+      sbrf += su*f_a[a]; // accumulate spawning biomass per recruit
       ypr += su*(1-exp(-Fseq[i]*v_f_a[a]))*W_a[a]; 
       su = su*exp(-M_a[a] - Fseq[i]*v_f_a[a]); 
       }
-      if(rec_ctl == 0){ //ricker
-        Req = log( exp(ar)*(sbrf) ) / (br*sbrf); //Botsford predction of Req for F[i]
+      if(rec_ctl == 0){ // ricker
+        Req = log( exp(ar)*(sbrf) ) / (br*sbrf); // Botsford predction of Req for F[i]
       }
-      if(rec_ctl == 1){ //bh
+      if(rec_ctl == 1){ // bh
         Req = ( exp(ar)*sbrf-1.0 ) / (br*sbrf); 
       }
-      Yeq = Req*ypr; //predicted equilibrium yield
+      Yeq = Req*ypr; // predicted equilibrium yield
       if(Yeq > MSY){
         MSY = Yeq; 
-        //jitter values to make a purdy histogram:
+        // jitter values to make a purdy histogram:
         Fmsy = Fseq[i] + 0.01*(uniform_rng(0,1)-0.5); 
       } else {
-        //Yeq for this F is lower than highest value already found,
-        //so can exit the subroutine
+        // Yeq for this F is lower than highest value already found,
+        // so can exit the subroutine
         continue; 
       }
    }
-   //Kobe plot hogwash
+   // Kobe plot calculations 
    F_early_ratio = v[1] / Fmsy;
    F_ratio = v[2] / Fmsy;
    b_ratio = SSB_bar / (R0*sbr0);
