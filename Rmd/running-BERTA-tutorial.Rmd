@@ -110,7 +110,7 @@ proj_stock <- rep(0, 10)
 run_stocking <- round(c(run_stocking, proj_stock)) #add to stocking data (for plots)
 ```
 
-The extra lines for `proj_stock` simply add zeros to the end of the stocking data for a given lake.  These were important when we were attempting to fit a stocking survival parameter in previous versions of the model, but are no longer used. 
+The extra lines for `proj_stock` simply add zeros to the end of the stocking data for a given lake.  These were important when we were attempting to fit a stocking survival parameter in previous versions of the model, but are no longer used except for plotting. 
 
 The next chunk of code in `get_fit()` is 
 
