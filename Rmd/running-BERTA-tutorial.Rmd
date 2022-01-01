@@ -191,7 +191,7 @@ stan_data <- list(
 )
 ```
 
-The stuff in `stan_data` corresponds to the inputs in the data{} section in the .stan file that we will ultimately call below. Before we do that, we need to declare one more function to pass start values for our estimated parameters to Stan: 
+The stuff in `stan_data` corresponds to the inputs in the data{} section of the `BERTA_singe_lake.stan` file that we will ultimately call below. Before we do that, we need to declare one more function to pass start values for our estimated parameters to Stan: 
 
 ```{r}
 # create a function for start values
