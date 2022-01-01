@@ -289,7 +289,7 @@ That's it for `get_fit()`.
 
 # Functional programming with `{purrr}` and `{furrr}`
 
-`purrr` and `furrr` are functional programming tools for the R programming environment. A great resource on these tools is available at [here.](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
+`purrr` and `furrr` are functional programming tools for the R programming environment. A great resource on these tools is available at [https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
 
 ## `purrr`
 This package is extremely powerful and helps with iteration.  If we wanted to iterate a simple function for multiple inputs we might go about it in base R by
@@ -340,9 +340,9 @@ result2 <-
 print(unlist(result2))
 ```
 
-A few things are important here. The first is that `map()` takes in a single argument (in our case `which_i`), and iterates `silly_func()` for each value in the vector `which_i`. It then returns a *list* corresponding to the outputs for each iteration.  This is why I used `unlist()` to print `result2`. With the exception of this list output, we can see that the for-loop above and `map()` produce essentially the same output. Cool. 
+A few things are important here. The first is that `map()` takes in a single argument (in our case `which_i`), and iterates `silly_func()` for each value in the vector `which_i`. It then returns a *list* corresponding to the outputs for each iteration.  This is why I used `unlist()` to print `result2`. With the exception of this list output, we can see that the for-loop above and `map()` produce the same output. Cool. 
 
-Now, `map()` is one of the simplest {purrr} functions available. However, there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
+Now, `map()` is one of the simplest {purrr} functions, but there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
 
 [https://purrr.tidyverse.org/](https://purrr.tidyverse.org/)
 
