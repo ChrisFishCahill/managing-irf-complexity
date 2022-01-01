@@ -355,7 +355,7 @@ silly_func_2 <- function(x,y){
 }
 
 # create an input vector for each x, y
-input_df <- tibble(x = 1:10, y = 1:10) #tibble more or less the same as data.frame
+input_df <- tibble(x = 1:5, y = 1:5) #tibble more or less the same as data.frame
 str(input_df)
 
 #iterate across tibble using pmap()
@@ -366,6 +366,9 @@ input_df %>%
 input_df %>%
   pwalk(silly_func_2)
 
+#note: no output
 ```
 
-Thus, the 'walk' bit just says that this function is the silent analog of 'map'.  
+Thus, the 'walk' bit just says that this function is the silent analog of 'map'.  `pwalk()` is running exactly the same thing as `pmap()`, but it isn't storing the results anywhere or kicking them out to the console.  Why might this be useful? 
+
+# Okay, but why all this {purrr} stuff? 
