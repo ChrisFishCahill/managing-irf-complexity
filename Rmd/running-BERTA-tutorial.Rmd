@@ -5,14 +5,15 @@ date: "31 December 2021"
 output:
   pdf_document: default
   html_document: default
+highlight: tango
 ---
 # Goals
 
 - Understand general structure of and build intuition for BERTA model used in Cahill et al. (2021).
 - Gain an overview of available modeling options, including tweaking priors and MCMC run parameters.
-- Become familiar with `browser()`, `get_fit()`, `future_pwalk()`. 
+- Become familiar with tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()`. 
 - Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then save the model fit with a unique file name identifier.
-- Practice debugging.
+- Practice debugging using `browser()`.
 
 # Packages 
 Let's load the packages we will use:
@@ -26,7 +27,7 @@ library(ggplot2)
 ```
 
 # Data
-We will work with the Fall Walleye Index Netting (FWIN) dataset used in Cahill et al. 2021, which included all Alberta lakes with $\ge$ 3 FWIN surveys during 2000-2018: 
+We will work with the Fall Walleye Index Netting (FWIN) dataset used in Cahill et al. (2021), which included all Alberta lakes with $\ge$ 3 FWIN surveys during 2000-2018.  Life history parameters $\omega$, $A_{50}$, $L_{\infty}$, $vbk$, and ${\beta}_{wl}$ were obtained using hierarchical modeling methods described in Cahill et al. (2020), and these values represent lake-specific averages. 
 
 ```{r}
 data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
@@ -34,6 +35,7 @@ glimpse(data)
 ```
 
 Now read in the stocking data, which was used for plotting and not fitted in the .stan model.  Note these stocking records go from 1980-2018, and are number of Walleye stocked per hectare: 
+
 ```{r}
 stocking <- readRDS(here::here("data/stocking_matrix_ha.rds"))
 glimpse(stocking)
