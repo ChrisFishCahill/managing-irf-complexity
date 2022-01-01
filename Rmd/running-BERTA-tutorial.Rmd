@@ -99,7 +99,7 @@ This first line subsets all available data via `%>%` and `filter()`, and returns
 
 The next few lines of code are simply re-ordering the data to ensure FWIN catch data for a given lake are in ascending order in terms of years via `within()` and `order()`  
 
-Once we have subsetted the FWIN data, we subset the stocking data in a similar way:
+Once we have subset the FWIN data, we subset the stocking data in a similar way:
 
 ```{r, eval = FALSE}
 # stocking stuff was run in different versions, now just for plotting:
