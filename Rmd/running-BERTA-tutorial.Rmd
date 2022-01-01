@@ -279,7 +279,7 @@ if (file.exists(stan_file)) {
   saveRDS(fit, file = stan_file)
 }
 ```
-There is a lot of hogwash going on in here about manipulating strings (e.g., via `gsub()` and `paste0()`), but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
+There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
 
 That's it for `get_fit()`. 
 
