@@ -213,7 +213,7 @@ inits <- function() {
 }
 ```
 
-Technically, one doesn't need this `inits()` function to run the model because rstan will randomly choose start values if the user does not declare them explicitly, but it *greatly* improves the numerical performance of the chains in this particular model.  Also note that `jitter()` simply "jitters" the values by a small amount: 
+Technically, this `inits()` function is not needed to run the model because rstan will randomly choose start values if the user does not declare them explicitly, but specifying starting values *greatly* improves the numerical performance of the chains in this particular model.  Also note that `jitter()` simply "jitters" the values by a small amount: 
 
 ```{r}
 # run it once
