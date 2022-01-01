@@ -217,10 +217,10 @@ Technically, one doesn't need this `inits()` function to run the model because r
 
 ```{r}
 # run it once
-inits()
+inits()$w
 
 # run it again and note slighly different results vs. previous call 
-inits()
+inits()$w
 ```
 
 This is useful for initializing starting values for parameters on different chains at slightly different locations. 
