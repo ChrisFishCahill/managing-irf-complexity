@@ -14,6 +14,10 @@ highlight: tango
 - Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then save the model fit with a unique file name identifier.
 - Practice debugging using `browser()`.
 
+# TODO: 
+- Description of how time index 1, 2, etc. is defined from calendar years, or calculated from some raw data file where the data are entered by calendar year
+- how to add new lakes and/or year(s) of survey data to the BERTA-wide rds file
+
 # Packages 
 Let's load the packages we will use:
 
@@ -285,4 +289,83 @@ That's it for `get_fit()`.
 
 # Functional programming with `{purrr}` and `{furrr}`
 
-...
+`purrr` and `furrr` are functional programming tools for the R programming environment. A great resource on these tools is available at [here.](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
+
+## `purrr`
+This package is extremely powerful and helps with iteration.  If we wanted to iterate a simple function for multiple inputs we might go about it in base R by
+
+- writing a simple function
+- looping through that function
+- examining our output 
+
+We do this using a simple (albeit silly) example: 
+
+```{r}
+# let's write a silly function
+
+silly_func <- function(x){
+  result <- x + 1 
+  result
+}
+
+#does the function behave as expected? 
+silly_func(1)
+
+silly_func(2)
+
+# now let's loop through silly_func() 10 times: 
+n_times <- 10 
+result <- rep(NA, n_times)
+
+for(i in 1:n_times){
+ result[i] <- silly_func(i) 
+}
+
+#print the output 
+print(result)
+
+```
+That works fine, now let's try this using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit...
+
+```{r}
+# create an input vector to iterate across
+which_i <- 1:n_times
+
+#iterate across that vector using map(), store as `result2`
+result2 <- 
+  which_i %>%
+  map(silly_func)
+
+#view the output 
+print(unlist(result2))
+```
+
+A few things are important here. The first is that `map()` takes in a single argument (in our case `which_i`), and iterates `silly_func()` for each value in the vector `which_i`. It then returns a *list* corresponding to the outputs for each iteration.  This is why I used `unlist()` to print `result2`. With the exception of this list output, we can see that the for-loop above and `map()` produce essentially the same output. Cool. 
+
+Now, `map()` is one of the simplest {purrr} functions available. However, there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
+
+[https://purrr.tidyverse.org/](https://purrr.tidyverse.org/)
+
+The functions in {purrr} that allow users to pass more than one argument to a function are preceded by the letter 'p'. This is handy because the `get_fit()` function we wrote above has many inputs.  Two such functions in {purrr} are called `pmap()` and `pwalk()`.  
+
+```{r}
+#create another silly function that requires two inputs and outputs their sum: 
+silly_func_2 <- function(x,y){
+  return(x + y)
+}
+
+# create an input vector for each x, y
+input_df <- tibble(x = 1:10, y = 1:10) #tibble more or less the same as data.frame
+str(input_df)
+
+#iterate across tibble using pmap()
+input_df %>%
+  pmap(silly_func_2)
+
+#iterate across tibble using pwalk()
+input_df %>%
+  pwalk(silly_func_2)
+
+```
+
+Thus, the 'walk' bit just says that this function is the silent analog of 'map'.  
