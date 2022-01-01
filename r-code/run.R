@@ -236,7 +236,7 @@ to_fit <- rbind(to_fit, to_fit3)
 # set up parallel processing plan 
 future::plan(multisession)
 
-# Run models and save fits -- 7.44 hours on my laptop
+# Run models and save fits -- 5.5 hours on my laptop
 system.time({ 
   future_pwalk(to_fit, get_fit, 
                .options = furrr_options(seed = TRUE)

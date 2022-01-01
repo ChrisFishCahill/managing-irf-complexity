@@ -284,3 +284,5 @@ There is a lot of hogwash going on in here about manipulating strings (e.g., via
 That's it for `get_fit()`. 
 
 # Functional programming with `{purrr}` and `{furrr}`
+
+...
