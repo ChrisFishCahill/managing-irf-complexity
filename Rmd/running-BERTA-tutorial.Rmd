@@ -46,10 +46,10 @@ Once the data are read into R, we can write a wrapper function called `get_fit()
 - subsets all the data to data for a specific lake
 - creates the appropriate tagged list data structures as input into the Stan model
 - creates appropriate input for parameters for our Stan model 
-- runs the stan model for a particular combination of priors (e.g., which ${\alpha}_{r}$), structural control parameters (e.g., Ricker vs. Beverton-Holt stock-recruit), and Stan run parameter values (i.e., how many iterations, warmup, chains?) 
+- runs the model for a particular combination of priors (e.g., which ${\alpha}_{r}$), structural control parameters (e.g., Ricker vs. Beverton-Holt stock-recruit), and Stan run parameter values (i.e., how many iterations, warmup, chains?) 
 - saves this model run with a clever name (e.g., `pigeon_lake_ricker_cr6.rds`)
 
-This may seem like a pain, but coding this way will help us later on when we need to run multiple models on different data sets.  
+This may seem like a pain, but coding this way will help us later on when we need to run multiple models on different data sets.  The wrapper function is:  
 
 ```{r}
 get_fit <- function(which_lake = "pigeon lake",
@@ -62,7 +62,7 @@ get_fit <- function(which_lake = "pigeon lake",
 }
 ```
 
-There is too much code in this chunk to show here.  Let's break `get_fit()` down into pieces.  Note these next lines won't run because we are jumping inside a function (thus your machine won't be able to find certain parameters). 
+There is too much code in this function to show it all here.  Let's break `get_fit()` down into pieces.  Please note these next lines won't run because we are jumping inside a function (thus your machine won't be able to find certain parameters). 
 
 The first few lines of `get_fit()` are: 
 
@@ -79,7 +79,7 @@ cat(
 cat("\n")
 ```
 
-This code looks scary but it is simply ensuring that the variable rec_ctl is either "ricker" or "bev-holt" via `match_arg()`.  Next, this code is printing which lake and recruitment model is being fitted to the console via cat(). This isn't super important and realistically can be omitted or ignored by most users.
+This code is ensuring that the variable rec_ctl is either "ricker" or "bev-holt" via `match_arg()`.  Next, this code is printing which lake and recruitment model is being fitted to the console via cat(). This isn't super important and realistically can be omitted or ignored by most users.
 
 The next chunk of code is: 
 
@@ -98,3 +98,159 @@ run_data <- run_data[order(run_data$lake), ]
 This first line subsets all available data via `%>%` and `filter()`, and returns data corresponding to the variable `which_lake`.  
 
 The next few lines of code are simply re-ordering the data to ensure FWIN catch data for a given lake are in ascending order in terms of years via `within()` and `order()`  
+
+Once we have subsetted the FWIN data, we subset the stocking data in a similar way:
+
+```{r, eval = FALSE}
+# stocking stuff was run in different versions, now just for plotting:
+run_stocking <- stocking[which(rownames(stocking) %in% which_lake), ]
+  
+# Add ten years of zero for short term projections
+proj_stock <- rep(0, 10) 
+run_stocking <- round(c(run_stocking, proj_stock)) #add to stocking data (for plots)
+```
+
+The extra lines for `proj_stock` simply add zeros to the end of the stocking data for a given lake.  These were important when we were attempting to fit a stocking survival parameter in previous versions of the model, but are no longer used. 
+
+The next chunk of code in `get_fit()` is 
+
+```{r, eval = FALSE}
+# Set up the Rbar years
+suppressMessages(
+  survey_yrs <- run_data %>%
+      group_by(lake) %>%
+      summarise(
+        min_yr = min(year) + length(initial_yr:(t - 1)),
+        max_yr = max(year) + length(initial_yr:(t - 1))
+      ) %>%
+  as.numeric()
+)
+survey_yrs <- survey_yrs[2:3]
+# summarize the life history relationships
+suppressMessages(
+  life_hist <- run_data %>%
+    group_by(lake) %>%
+    summarize(
+      a50 = unique(a50),
+      vbk = unique(vbk),
+      linf = unique(linf),
+      wl_beta = unique(beta_wl)
+    )
+)
+```
+
+This code is calculating the first and last FWIN survey years for the lake of interest (top chunk) and summarizing that lake's life history parameters (bottom chunk).  These chunks are wrapped in `supressMessages()` because dplyr was returning some goofy messages and it was driving me bonkers.   
+
+Now that we have subsetted the data and calculated the necessary values from all available data, we can create a tagged data list for Stan: 
+
+```{r, eval = FALSE}
+Fseq <- seq(from = 0.01, to = 1.0, by = 0.01)
+
+# declare the tagged data list for stan
+stan_data <- list(
+  n_surveys = nrow(run_data),
+  n_ages = length(Ages),
+  n_obs = nrow(run_data) * length(Ages),
+  n_years = length(initial_yr:2028),
+  n_lakes = length(unique(run_data$lake)),
+  caa = run_data[, which(colnames(run_data) %in% Ages)],
+  prop_aged = run_data$p_aged,
+  effort = run_data$effort,
+  lake = run_data$lake,
+  year = run_data$year + length(initial_yr:(t - 1)),
+  ages = Ages,
+  survey_yrs = survey_yrs,
+  which_year = 1996 - initial_yr + 2, # which integer corresponds to year = 1997
+  v_prior_early = 0.3,
+  v_prior_late = 0.1,
+  prior_sigma_v = c(0.1, 0.5),
+  R0_mean = log(6),
+  R0_sd = log(3),
+  ar_sd = 0.1,
+  prior_mean_w = 0,
+  prior_sigma_w = 1.2,
+  vbk = life_hist$vbk,
+  linf = life_hist$linf,
+  a50 = life_hist$a50,
+  wl_beta = life_hist$wl_beta,
+  lbar = 57.57, # From cahill et al. 2020
+  M = 0.1,
+  theta = 0.85, # Lorenzen M exponent
+  phi = 2.02, # vulnerability parameter (nets)
+  psi = 2, # vulnerability parameter (angling)
+  G_bound = c(0, Inf),
+  get_SSB_obs = 1L,
+  obs_cv_prior = 0.15,
+  SSB_penalty = 0,
+  prior_sigma_G = 1,
+  Rinit_ctl = 0,
+  length_Fseq = length(Fseq),
+  Fseq = Fseq,
+  rec_ctl = ifelse(rec_ctl == "ricker", 0, 1),
+  cr_prior = cr_prior
+)
+```
+
+The stuff in `stan_data` corresponds to the inputs in the data{} section in the .stan file that we will ultimately call below. Before we do that, we need to declare one more function to pass start values for our estimated parameters to Stan: 
+
+```{r}
+# create a function for start values
+vk <- c(0.3, 0.3)
+inits <- function() {
+  list(
+    v = jitter(vk, amount = 0.1),
+    R0 = jitter(15, amount = 2),
+    G = jitter(1, amount = 0.1),
+    w = jitter(rep(
+      0,
+      length(1980:2028)-2
+    ),
+    amount = 0.1
+    ),
+    sigma_w = jitter(0.5, amount = 0.05),
+    ar = jitter(0.5, amount = 0.01)
+  )
+}
+```
+
+Technically, one doesn't need this `inits()` function to run the model because rstan will randomly choose start values if the user does not declare them explicitly, but it *greatly* improves the numerical performance of the chains in this particular model.  Also note that `jitter()` simply "jitters" the values by a small amount: 
+
+```{r}
+# run it once
+inits()
+
+# run it again and note slighly different results vs. previous call 
+inits()
+```
+
+This is useful for initializing starting values for parameters on different chains at slightly different locations. 
+
+Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and even created an `inits()` function to declare starting values for the Bayesian model.  We can now call a compiled Stan model `m` via: 
+
+```{r, eval = FALSE}
+#run the model
+fit <-
+  rstan::sampling(
+    m,
+    data = stan_data,
+    pars =
+      c(
+        "ar_mean_kick", "F_ratio", "Fmsy", "MSY",
+        "G", "cr", "ar", "SPR", "br",
+        "SBR", "sbr0_kick", "R0", "v", "SSB",
+        "R2", "SSB_obs", "caa_pred", "b_ratio", "w"
+      ),
+    iter = n_iter,
+    warmup = n_warmup,
+    chains = n_chains,
+    init = inits,
+    control = list(
+      adapt_delta = 0.999,
+      max_treedepth = 15
+    )
+  )
+```
+
+Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model. 
+
+The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss this in person.**_ 
