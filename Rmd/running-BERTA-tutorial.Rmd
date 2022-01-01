@@ -253,4 +253,4 @@ fit <-
 
 Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model. 
 
-The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss this in person.**_ 
+The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss selection of these in person.**_ 
