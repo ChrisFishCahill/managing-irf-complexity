@@ -47,7 +47,7 @@ Once the data are read into R, we can write a wrapper function called `get_fit()
 - creates the appropriate tagged list data structures as input into the Stan model
 - creates appropriate input for parameters for our Stan model 
 - runs the model for a particular combination of priors (e.g., which ${\alpha}_{r}$), structural control parameters (e.g., Ricker vs. Beverton-Holt stock-recruit), and Stan run parameter values (i.e., how many iterations, warmup, chains?) 
-- saves this model run with a clever name (e.g., `pigeon_lake_ricker_cr6.rds`)
+- saves this model run with a unique identifier file name 
 
 This may seem like a pain, but coding this way will help us later on when we need to run multiple models on different data sets.  The wrapper function is:  
 
@@ -253,4 +253,34 @@ fit <-
 
 Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model. 
 
-The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss selection of these in person.**_ 
+The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss selection of the control arguments in person.**_ 
+
+Once the stan model runs, we save a fit via: 
+```{r, eval = FALSE}
+# create name and save .rds files for each run
+if (rec_ctl == "ricker") {
+  my_name <- paste0(which_lake, "_ricker.rds")
+}
+if (rec_ctl == "bev-holt") {
+  my_name <- paste0(which_lake, "_bh.rds")
+}
+stan_file <- "fits/"
+stan_file <- str_c(stan_file, my_name)
+stan_file <- stan_file %>% gsub(" ", "_", .)
+if (cr_prior == 6) {
+  stan_file <- stan_file %>% gsub(".rds", "_cr_6.rds", .)
+}
+if (cr_prior == 12) {
+  stan_file <- stan_file %>% gsub(".rds", "_cr_12.rds", .)
+}
+if (file.exists(stan_file)) {
+  return(NULL)
+} else {
+  saveRDS(fit, file = stan_file)
+}
+```
+There is a lot of hogwash going on in here about manipulating strings (e.g., via `gsub()` and `paste0()`), but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call this .rds file for plotting or harvest control rule development or whatever later on.
+
+That's it for `get_fit()`. 
+
+# Functional programming with `{purrr}` and `{furrr}`
