@@ -256,7 +256,7 @@ fit <-
   )
 ```
 
-Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model. 
+Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model.
 
 The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss selection of the control arguments in person.**_ 
 
@@ -284,6 +284,7 @@ if (file.exists(stan_file)) {
   saveRDS(fit, file = stan_file)
 }
 ```
+
 There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
 
 That's it for `get_fit()`. 
@@ -326,6 +327,7 @@ for(i in 1:n_times){
 print(result)
 
 ```
+
 That works fine, now let's do this exact thing using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
 
 ```{r}
@@ -396,6 +398,7 @@ system.time(
 )
 
 ```
+
 So that's pretty darn cool.  Super duper speedy loops. Why is one of these faster than the other? 
 
 The second reason you might want to code things using this functional programming logic is because there is a second package, called {furrr}, that extends most of the {purrr} commands into a 'future' supported backend.  
@@ -423,7 +426,8 @@ system.time(
 )
 
 ```
-Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calculation on a laptop in roughly 1/8 of the amount of time it takes to do that same calculation using a base R loop. Obviously this isn't entirely an apples to apples comparison, but the point stands that this is fast and powerful.
+
+Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calculation on a laptop in a fraction of the time it took to do that same calculation using a base R loop. Obviously this isn't entirely an apples to apples comparison, but the point stands that this is fast and powerful way to code.
 
 # How does all that relate to using BERTA and `get_fit()`
 
@@ -452,7 +456,8 @@ contract_lakes <- c("lac ste. anne", "baptiste lake",
                     "moose lake", "lake newell"
 )
 
-# create a tibble to iterate through, where columns correspond to function arguments in get_fit()
+# create a tibble to iterate through, where columns correspond 
+# to function arguments in get_fit()
 to_fit <- tibble(which_lake = contract_lakes)
 to_fit$n_iter <- n_iter
 to_fit$n_chains <- n_chains
@@ -481,6 +486,9 @@ system.time({
 })
 
 ```
-Boom, we just ran 6 lakes x 2 stock-recruitment x 2 compensation ratios = 24 Bayesian population dynamics models in only a few lines of code. We saved each of these model runs in the fits folder. How could you add another lake? Or an entirely different set of lakes? 
+
+Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative priors for compensation ratio = 24 total Bayesian population dynamics models in only a few lines of code. We also saved each of these runs in the fits folder. 
 
 On my laptop this takes around 8.7 hours if you don't use {furrr} and {future}, but only 5.5 hours using the functional programming sneakery.   
+
+How could you add another lake? Or an entirely different set of lakes? 
