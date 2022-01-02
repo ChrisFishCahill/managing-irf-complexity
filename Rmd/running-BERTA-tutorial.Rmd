@@ -6,18 +6,19 @@ output:
   pdf_document: default
   html_document: default
 highlight: tango
+urlcolor: blue
 ---
 # Goals
-- Understand general structure of and build intuition for the age-structured population dynamics model used in Cahill et al. (2021).
-- Gain an understanding of available modeling options, including tweaking priors and MCMC run parameters.
-- Become familiar with tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()`. 
-- Learn how .R and .stan scripts are working together to subset data, fit a Bayesian stock reduction analysis model to those data, and then save the model fit with a unique file name identifier.
+- Become familiar with the `run.R` script
+- Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save the model fit with a unique file name identifier.
+- In particular, improve understanding and technical programming skills around tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions. 
 - Practice debugging using `browser()`.
 
 # TODO: 
 - Description of how time index 1, 2, etc. is defined from calendar years, or calculated from some raw data file where the data are entered by calendar year
 - how to add new lakes and/or year(s) of survey data to the BERTA-wide rds file
-- fix goals
+- double check goals
+
 # Packages 
 Let's load the packages we will use:
 
@@ -371,7 +372,7 @@ input_df %>%
 
 Thus, the 'walk' bit just means that this function is the silent analog of 'map'. Phrased differently, `pwalk()` is running exactly the same thing as `pmap()`, but it isn't storing the results anywhere or printing them out to the console.  Why might this be useful? 
 
-# Okay, but why all this jank {purrr} stuff? 
+# Okay, but why all this {purrr} stuff? 
 
 So far nothing that we have done is particularly necessary or beneficial; however, when we have complex functions and lots of things to iterate across {purrr} becomes very useful. 
 
