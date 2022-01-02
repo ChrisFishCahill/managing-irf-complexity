@@ -199,7 +199,6 @@ add_year <- initial_yr - 1
 n_iter = 2000
 n_chains = 4
 n_warmup = n_iter/2
-names <- unique(data$name)
 
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  

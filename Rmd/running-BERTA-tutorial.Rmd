@@ -9,15 +9,14 @@ highlight: tango
 urlcolor: blue
 ---
 # Goals
+- Import both the FWIN and stocking data, and show how one might add new data to the data used in Cahill et al. 2021
 - Become familiar with the `run.R` script
-- Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save the model fit with a unique file name identifier.
-- In particular, improve understanding and technical programming skills around tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions. 
+- Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier.
+- Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions. 
 - Practice debugging using `browser()`.
 
 # TODO: 
-- Description of how time index 1, 2, etc. is defined from calendar years, or calculated from some raw data file where the data are entered by calendar year
-- how to add new lakes and/or year(s) of survey data to the BERTA-wide rds file
-- double check goals
+- proofread 
 
 # Packages 
 Let's load the packages we will use:
@@ -25,9 +24,9 @@ Let's load the packages we will use:
 ```{r}
 library(tidyverse)
 library(rstan)
+library(purrr)
 library(furrr)
 library(future) 
-library(ggplot2)
 ```
 
 # Data
@@ -44,6 +43,22 @@ Now read in the stocking data, which was used for plotting and not fitted in the
 stocking <- readRDS(here::here("data/stocking_matrix_ha.rds"))
 glimpse(stocking)
 ```
+
+# Adding new data to the .rds
+Here are a few important notes to how one might add new data into this .rds file setup. 
+
+First, `year` in these files are indexed from year 2000, which was when the first FWIN survey in Alberta occurred.  Thus, year = 1 is 2000, year = 2 is 2001, etc.  
+
+Consequently, if one wanted to add new data to the `BERTA-wide-0-25.rds` file from e.g., 2022, they would create a new row in the .rds that
+
+- declares the value in the `year` slot as 2022 - 2000 + 1 = 23
+- repeats the name for that lake as per the names in `name` slot
+- sets the number of nets (nnets) as the sum of full nets (each net equal to 1) and half nets (each worth 0.5)
+- calculate the proportion of fish aged in that survey in the `p_aged` slot
+- put the catch at each age from 0 to 25 in columns labelled '1', '2', ..., '25'
+- all other columns just need to be copied for the lake of interest
+
+To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018. Thus, if you want to add stocking values after 2018 you'd add columns for the lake(s) of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
 
 # Create a wrapper function
 Once the data are read into R, we can write a wrapper function called `get_fit()` that does the following:
@@ -67,7 +82,11 @@ get_fit <- function(which_lake = "pigeon lake",
 }
 ```
 
-There is too much code in this function to show it all here.  Let's break `get_fit()` down into pieces.  Please note these next lines won't run because we are jumping inside a function (thus your machine won't be able to find certain parameters). 
+There is too much code in this function to show it all here.  The entire function can be seen at:
+
+<https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/run.R#L28-L187>
+
+Let's break `get_fit()` down into pieces.  Note these next lines won't run because we are jumping inside a function. 
 
 The first few lines of `get_fit()` are: 
 
@@ -117,7 +136,7 @@ run_stocking <- round(c(run_stocking, proj_stock)) #add to stocking data (for pl
 
 The extra lines for `proj_stock` simply add zeros to the end of the stocking data for a given lake.  These were important when we were attempting to fit a stocking survival parameter in previous versions of the model, but are no longer used except for plotting. 
 
-The next chunk of code in `get_fit()` is 
+The next chunk of `get_fit()` is 
 
 ```{r, eval = FALSE}
 # Set up the Rbar years
@@ -233,7 +252,7 @@ This is useful for initializing starting values for parameters on different chai
 Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and even created an `inits()` function to declare starting values for the Bayesian model.  We can now call a compiled Stan model `m` via: 
 
 ```{r, eval = FALSE}
-#run the model
+# run the model
 fit <-
   rstan::sampling(
     m,
@@ -258,7 +277,7 @@ fit <-
 
 Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model.
 
-The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. _**We should discuss selection of the control arguments in person.**_ 
+The parameters in the `control` part of `sampling()` control technical aspects of the MCMC sampling algorithm. **We should discuss selection of the control arguments in person.** 
 
 Once the stan model runs, we save a fit via: 
 ```{r, eval = FALSE}
@@ -301,7 +320,7 @@ That's it for `get_fit()`.
 
 # Functional programming with `{purrr}` and `{furrr}`
 
-`purrr` and `furrr` are functional programming toolkits for R. A great resource on these tools is available at [https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
+`purrr` and `furrr` are functional programming toolkits for R. 
 
 ## `purrr`
 This package is extremely powerful and helps with iteration.  If we wanted to iterate a simple function for multiple inputs we might go about it in base R by
@@ -310,17 +329,16 @@ This package is extremely powerful and helps with iteration.  If we wanted to it
 - looping through that function
 - examining the output of looping through that function 
 
-We do this using a simple (albeit silly) example: 
+The following silly example demonstrates this: 
 
 ```{r}
 # let's write a silly function
-
 silly_func <- function(x){
   result <- x + 1 
   result
 }
 
-#does the function behave as expected? 
+# does the function behave as expected? 
 silly_func(1)
 
 silly_func(2)
@@ -333,18 +351,18 @@ for(i in 1:n_times){
  result[i] <- silly_func(i) 
 }
 
-#print the output 
+# print the output 
 print(result)
 
 ```
 
-That works fine, now let's do this exact thing using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
+That works fine, now let's do this exact same thing again using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
 
 ```{r}
 # create an input vector to iterate across
 which_i <- 1:n_times
 
-#iterate across that vector using map(), store as `result2`
+# iterate across that vector using map(), store as `result2`
 result2 <- 
   which_i %>%
   map(silly_func)
@@ -357,29 +375,29 @@ A few things are important here. The first is that `map()` takes in a single arg
 
 Now, `map()` is one of the simplest {purrr} functions, but there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
 
-[https://purrr.tidyverse.org/](https://purrr.tidyverse.org/)
+<https://purrr.tidyverse.org/>
 
-The functions in {purrr} that allow users to pass more than one argument to a function are preceded by the letter 'p'. This is handy because the `get_fit()` function we wrote above has many function arguments.  Two such functions in {purrr} are called `pmap()` and `pwalk()`.  
+The functions in {purrr} that allow users to pass more than one argument to a function are preceded by the letter 'p'. This is handy because the `get_fit()` function we wrote above has many function arguments.  Two such functions in {purrr} are called `pmap()` and `pwalk()`.  Here's how to use them: 
 
 ```{r}
-#create another silly function that requires two inputs and outputs their sum: 
+# create another silly function that requires two inputs and outputs their sum: 
 silly_func_2 <- function(x,y){
   return(x + y)
 }
 
 # create an input vector for each x, y
-input_df <- tibble(x = 1:5, y = 1:5) #tibble more or less the same as data.frame
+input_df <- tibble(x = 1:5, y = 1:5) # tibble more or less the same as data.frame
 str(input_df)
 
-#iterate across tibble using pmap()
+# iterate across tibble using pmap()
 input_df %>%
   pmap(silly_func_2)
 
-#iterate across tibble using pwalk()
+# iterate across tibble using pwalk()
 input_df %>%
   pwalk(silly_func_2)
 
-#note: no output
+# note: no output
 ```
 
 Thus, the 'walk' bit just means that this function is the silent analog of 'map'. Phrased differently, `pwalk()` is running exactly the same thing as `pmap()`, but it isn't storing the results anywhere or printing them out to the console.  Why might this be useful? 
@@ -388,7 +406,7 @@ Thus, the 'walk' bit just means that this function is the silent analog of 'map'
 
 So far nothing that we have done is particularly necessary or beneficial; however, when we have complex functions and lots of things to iterate across {purrr} becomes very useful. 
 
-First, it is often faster than using for loops in R: 
+First, it is often (slightly) faster than using for loops in R: 
 
 ```{r}
 # increase amount of things to iterate across to show timing difference:
@@ -397,7 +415,9 @@ input_df <- tibble(x = 1:500, y = 1:500)
 # loop through silly_func_2 the old way and time it: 
 system.time(
   for (i in 1:nrow(input_df)) {
-    silly_func_2(x = input_df[i, 1], y = input_df[i, 2])
+    for(j in 1:nrow(input_df)){
+    silly_func_2(i,j)
+    }
   }
 )
 
@@ -409,11 +429,11 @@ system.time(
 
 ```
 
-So that's pretty darn cool.  Super duper speedy loops. Why is one of these faster than the other? 
+So that's pretty darn cool.  Speedy iteration.  Why is one of these faster than the other? 
 
 The second reason you might want to code things using this functional programming logic is because there is a second package, called {furrr}, that extends most of the {purrr} commands into a 'future' supported backend.  
 
-This means any of the {furrr} commands can be used in conjunction with the {future} package to run your iteration computations in parallel in a really easy way. This can be done using the following code: 
+This means any of the {furrr} commands can be used in conjunction with the {future} package to run your iteration computations in parallel in a really easy way. This can be done using the following code, which first runs a version using base R and then runs a version using {furrr} functionals and compares the run time for both methods: 
 
 ```{r}
 # let's make the number of iterations even bigger!
@@ -437,15 +457,15 @@ system.time(
 
 ```
 
-Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calculation on a laptop in a fraction of the time it took to do that same calculation using a base R loop. Obviously this isn't entirely an apples to apples comparison, but the point stands that this is fast and powerful way to code.
+Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calculation on a laptop in a fraction of the time it took to do that same calculation using a base R loop. Obviously this isn't entirely an apples to apples comparison, but the point stands that this is fast and powerful way to code.  How is this working? 
 
 # How does all that relate to using BERTA and `get_fit()`
 
-Rather than looping through silly functions, how can we use this functional programming knowledge to do something useful? 
+Rather than looping through silly functions, can we use this functional programming knowledge to do something useful like assess lakes across a landscape? 
 
-Here's how we can use all of the tricks from above to greatly speed up our computations for the BERTA assessment models.  First we declare a few variables for the Stan model: 
+Here's how we can use all of the tricks from above to greatly speed up our computations for the BERTA assessment models.  First we declare a few variables for the Stan model, and then a `to_fit` dataframe to iterate across: 
 
-```{r, eval = FALSE}
+```{r}
 # declare some indeces for stan model  
 Ages <- 2:20
 t <- 2000 # first survey year
@@ -458,7 +478,6 @@ add_year <- initial_yr - 1
 n_iter = 2000
 n_chains = 4
 n_warmup = n_iter/2
-names <- unique(data$name)
 
 # which lakes were the contract lakes? 
 contract_lakes <- c("lac ste. anne", "baptiste lake", 
@@ -486,7 +505,9 @@ to_fit <- rbind(to_fit, to_fit3)
 str(to_fit)
 ```
 
-Then we call `plan()`, `get_fit()`, and `future_pwalk()`: 
+Note that the columns in `to_fit` *must* match the function arguments in `get_fit()` *exactly*.
+
+Once we have this set up, we call `plan()`, `get_fit()`, and `future_pwalk()`: 
 
 ```{r, eval=FALSE}
 # set up parallel processing plan 
@@ -500,8 +521,22 @@ system.time({
 })
 ```
 
-Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative priors for compensation ratio = 24 total Bayesian population dynamics models in only a few lines of code. We also saved each of these runs in the fits folder. 
+Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative priors for compensation ratio = 24 Bayesian models in only a few lines of code. We also saved each of these runs in the fits folder. 
 
 On my laptop this takes around 8.7 hours if you don't use {furrr} and {future}, but only 5.5 hours using the functional programming sneakery.   
 
-How could you add another lake? Or an entirely different set of lakes? 
+How could you add another lake to the analysis? Or an entirely different set of lakes? 
+
+# Debugging basics using `browser()`
+
+For all the benefits of functional programming, it is certainly harder to debug code when errors inevitably arise.  This means you should have a working knowledge of `browser()` and a few other Rstudio tricks. **Discuss this in person**.
+
+# Resources: 
+
+<https://purrr.tidyverse.org/>
+
+<https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html>
+
+<https://adv-r.hadley.nz/debugging.html>
+
+<https://whattheyforgot.org/debugging-r-code.html>
