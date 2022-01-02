@@ -17,7 +17,7 @@ highlight: tango
 # TODO: 
 - Description of how time index 1, 2, etc. is defined from calendar years, or calculated from some raw data file where the data are entered by calendar year
 - how to add new lakes and/or year(s) of survey data to the BERTA-wide rds file
-
+- fix goals
 # Packages 
 Let's load the packages we will use:
 
@@ -289,14 +289,14 @@ That's it for `get_fit()`.
 
 # Functional programming with `{purrr}` and `{furrr}`
 
-`purrr` and `furrr` are functional programming tools for the R programming environment. A great resource on these tools is available at [https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
+`purrr` and `furrr` are functional programming toolkits for R. A great resource on these tools is available at [https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html](https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html)
 
 ## `purrr`
 This package is extremely powerful and helps with iteration.  If we wanted to iterate a simple function for multiple inputs we might go about it in base R by
 
 - writing a simple function
 - looping through that function
-- examining our output 
+- examining the output of looping through that function 
 
 We do this using a simple (albeit silly) example: 
 
@@ -325,7 +325,7 @@ for(i in 1:n_times){
 print(result)
 
 ```
-That works fine, now let's try this using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit...
+That works fine, now let's do this exact thing using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
 
 ```{r}
 # create an input vector to iterate across
@@ -369,6 +369,117 @@ input_df %>%
 #note: no output
 ```
 
-Thus, the 'walk' bit just says that this function is the silent analog of 'map'.  `pwalk()` is running exactly the same thing as `pmap()`, but it isn't storing the results anywhere or kicking them out to the console.  Why might this be useful? 
+Thus, the 'walk' bit just means that this function is the silent analog of 'map'. Phrased differently, `pwalk()` is running exactly the same thing as `pmap()`, but it isn't storing the results anywhere or printing them out to the console.  Why might this be useful? 
 
-# Okay, but why all this {purrr} stuff? 
+# Okay, but why all this jank {purrr} stuff? 
+
+So far nothing that we have done is particularly necessary or beneficial; however, when we have complex functions and lots of things to iterate across {purrr} becomes very useful. 
+
+First, it is often faster than using for loops in R: 
+
+```{r}
+# increase amount of things to iterate across to show timing difference:
+input_df <- tibble(x = 1:500, y = 1:500) 
+
+# loop through silly_func_2 the old way and time it: 
+system.time(
+  for (i in 1:nrow(input_df)) {
+    silly_func_2(x = input_df[i, 1], y = input_df[i, 2])
+  }
+)
+
+# compare with purrr
+system.time(
+    input_df %>%
+      pmap(silly_func_2)
+)
+
+```
+So that's pretty darn cool.  Super duper speedy loops. Why is one of these faster than the other? 
+
+The second reason you might want to code things using this functional programming logic is because there is a second package, called {furrr}, that extends most of the {purrr} commands into a 'future' supported backend.  
+
+This means any of the {furrr} commands can be used in conjunction with the {future} package to run your iteration computations in parallel in a really easy way. This can be done using the following code: 
+
+```{r}
+# let's make the number of iterations even bigger!
+input_df <- tibble(x = 1:50000, y = 1:50000) 
+
+# loop through silly_func_2 the old way and time it: 
+system.time(
+  for (i in 1:nrow(input_df)) {
+    silly_func_2(x = input_df[i, 1], y = input_df[i, 2])
+  }
+)
+
+# set up a parallel processing plan using future and plan 
+future::plan(multisession)
+
+# compare with furrr--note the future_pmap vs. pmap from previous code chunk 
+system.time(
+    input_df %>%
+      future_pmap(silly_func_2)
+)
+
+```
+Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calculation on a laptop in roughly 1/8 of the amount of time it takes to do that same calculation using a base R loop. Obviously this isn't entirely an apples to apples comparison, but the point stands that this is fast and powerful.
+
+# How does all that relate to using BERTA and `get_fit()`
+
+Rather than looping through silly functions, how can we use this functional programming knowledge to do something useful? 
+
+Here's how we can use all of the tricks from above to greatly speed up our computations for the BERTA assessment models: 
+
+```{r, eval = FALSE}
+# declare some indeces for stan model  
+Ages <- 2:20
+t <- 2000 # first survey year
+max_a <- max(Ages)
+rec_a <- min(Ages)
+initial_yr <- t - max_a + rec_a - 2 
+add_year <- initial_yr - 1
+
+# declare HMC run parameters 
+n_iter = 2000
+n_chains = 4
+n_warmup = n_iter/2
+names <- unique(data$name)
+
+# which lakes were the contract lakes? 
+contract_lakes <- c("lac ste. anne", "baptiste lake", 
+                    "pigeon lake", "calling lake", 
+                    "moose lake", "lake newell"
+)
+
+# create a tibble to iterate through, where columns correspond to function arguments in get_fit()
+to_fit <- tibble(which_lake = contract_lakes)
+to_fit$n_iter <- n_iter
+to_fit$n_chains <- n_chains
+to_fit$n_warmup <- n_warmup
+to_fit$rec_ctl <- "ricker"
+to_fit$cr_prior <- 6
+
+to_fit2 <- to_fit
+to_fit2$rec_ctl <- "bev-holt"
+to_fit <- rbind(to_fit, to_fit2)
+
+to_fit3 <- to_fit
+to_fit3$cr_prior <- 12
+to_fit <- rbind(to_fit, to_fit3)
+
+str(to_fit)
+
+# set up parallel processing plan 
+future::plan(multisession)
+
+# Run models and save fits -- 5.5 hours on my laptop
+system.time({ 
+  future_pwalk(to_fit, get_fit, 
+               .options = furrr_options(seed = TRUE)
+  ) 
+})
+
+```
+Boom, we just ran 6 lakes x 2 stock-recruitment x 2 compensation ratios = 24 Bayesian population dynamics models in only a few lines of code. We saved each of these model runs in the fits folder. How could you add another lake? Or an entirely different set of lakes? 
+
+On my laptop this takes around 8.7 hours if you don't use {furrr} and {future}, but only 5.5 hours using the functional programming sneakery.   
