@@ -11,9 +11,9 @@ urlcolor: blue
 # Goals
 - Import both the FWIN and stocking data, and show how one might add new data to the data used in Cahill et al. 2021
 - Become familiar with the `run.R` script
-- Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier.
-- Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions. 
-- Practice debugging using `browser()`.
+- Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier
+- Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions
+- Practice debugging using `browser()`
 
 # TODO: 
 - proofread 
@@ -306,9 +306,12 @@ if (file.exists(stan_file)) {
 
 There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
 
+Note how this will break if you start using informative priors other than 6 or 12.  How could you fix this issue?
+
 Now that we've done all this work, it is dead simple to fit a single BERTA model to any lake in the FWIN database: 
 
 ```{r, eval = FALSE}
+# do a short run with one chain 
 fit <- get_fit(which_lake = "unnamed 5", 
                rec_ctl = "ricker", 
                cr_prior = 6, 
