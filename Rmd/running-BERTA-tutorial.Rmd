@@ -287,6 +287,16 @@ if (file.exists(stan_file)) {
 
 There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
 
+Now that we've done all this work, it is dead simple to fit a single BERTA model to any lake in the FWIN database: 
+
+```{r, eval = FALSE}
+fit <- get_fit(which_lake = "unnamed 5", 
+               rec_ctl = "ricker", 
+               cr_prior = 6, 
+               n_iter = 30, n_chains = 1, 
+               n_warmup = 15)
+```
+
 That's it for `get_fit()`. 
 
 # Functional programming with `{purrr}` and `{furrr}`
@@ -433,7 +443,7 @@ Okay, so now we are just playing dirty.  Using {furrr} we just ran the same calc
 
 Rather than looping through silly functions, how can we use this functional programming knowledge to do something useful? 
 
-Here's how we can use all of the tricks from above to greatly speed up our computations for the BERTA assessment models: 
+Here's how we can use all of the tricks from above to greatly speed up our computations for the BERTA assessment models.  First we declare a few variables for the Stan model: 
 
 ```{r, eval = FALSE}
 # declare some indeces for stan model  
@@ -474,7 +484,11 @@ to_fit3$cr_prior <- 12
 to_fit <- rbind(to_fit, to_fit3)
 
 str(to_fit)
+```
 
+Then we call `plan()`, `get_fit()`, and `future_pwalk()`: 
+
+```{r, eval=FALSE}
 # set up parallel processing plan 
 future::plan(multisession)
 
@@ -484,7 +498,6 @@ system.time({
                .options = furrr_options(seed = TRUE)
   ) 
 })
-
 ```
 
 Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative priors for compensation ratio = 24 total Bayesian population dynamics models in only a few lines of code. We also saved each of these runs in the fits folder. 
