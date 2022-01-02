@@ -349,7 +349,7 @@ Now, `map()` is one of the simplest {purrr} functions, but there is a whole fami
 
 [https://purrr.tidyverse.org/](https://purrr.tidyverse.org/)
 
-The functions in {purrr} that allow users to pass more than one argument to a function are preceded by the letter 'p'. This is handy because the `get_fit()` function we wrote above has many inputs.  Two such functions in {purrr} are called `pmap()` and `pwalk()`.  
+The functions in {purrr} that allow users to pass more than one argument to a function are preceded by the letter 'p'. This is handy because the `get_fit()` function we wrote above has many function arguments.  Two such functions in {purrr} are called `pmap()` and `pwalk()`.  
 
 ```{r}
 #create another silly function that requires two inputs and outputs their sum: 
