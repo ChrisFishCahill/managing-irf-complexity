@@ -15,9 +15,6 @@ urlcolor: blue
 - Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions
 - Practice debugging using `browser()`
 
-# TODO: 
-- proofread 
-
 # Packages 
 Let's load the packages we will use:
 
@@ -47,18 +44,18 @@ glimpse(stocking)
 # Adding new data to the .rds
 Here are a few important notes to how one might add new data into this .rds file setup. 
 
-First, `year` in these files are indexed from year 2000, which was when the first FWIN survey in Alberta occurred.  Thus, year = 1 is 2000, year = 2 is 2001, etc.  
+First, `year` in the BERTA .rds is indexed from year 2000, which was when the first FWIN survey in Alberta occurred.  Thus, year = 1 is 2000, year = 2 is 2001, etc.  
 
 Consequently, if one wanted to add new data to the `BERTA-wide-0-25.rds` file from e.g., 2022, they would create a new row in the .rds that
 
 - declares the value in the `year` slot as 2022 - 2000 + 1 = 23
 - repeats the name for that lake as per the names in `name` slot
 - sets the number of nets (nnets) as the sum of full nets (each net equal to 1) and half nets (each worth 0.5)
-- calculate the proportion of fish aged in that survey in the `p_aged` slot
-- put the catch at each age from 0 to 25 in columns labelled '1', '2', ..., '25'
+- calculate the proportion of fish with age structure estimates in that survey in the `p_aged` slot
+- put the catch at each age from 0 to 25 in columns labelled '0', '1', ..., '25'
 - all other columns just need to be copied for the lake of interest
 
-To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018. Thus, if you want to add stocking values after 2018 you'd add columns for the lake(s) of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
+To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018 in that lake. Thus, if you want to add stocking values after 2018 you'd add new columns for the years of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
 
 # Create a wrapper function
 Once the data are read into R, we can write a wrapper function called `get_fit()` that does the following:
@@ -66,7 +63,7 @@ Once the data are read into R, we can write a wrapper function called `get_fit()
 - subsets all the data to data for a specific lake
 - creates the appropriate tagged list data structures as input into the Stan model
 - creates appropriate input for parameters for our Stan model 
-- runs the model for a particular combination of priors (e.g., which ${\alpha}_{r}$), structural control parameters (e.g., Ricker vs. Beverton-Holt stock-recruit), and Stan run parameter values (i.e., how many iterations, warmup, chains?) 
+- runs the model for a particular combination of priors (e.g., which ${\alpha}_{r}$), structural control parameters (e.g., Ricker vs. Beverton-Holt stock-recruit), and Stan run parameter values (i.e., number of iterations, warmup period, number of chains) 
 - saves this model run with a unique identifier file name 
 
 This may seem like a pain, but coding this way will help us later on when we need to run multiple models on different data sets.  The wrapper function is:  
@@ -249,7 +246,7 @@ inits()$v
 
 This is useful for initializing starting values for parameters on different chains at slightly different locations. 
 
-Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and even created an `inits()` function to declare starting values for the Bayesian model.  We can now call a compiled Stan model `m` via: 
+Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and an `inits()` function to declare starting values for the Bayesian model.  We now call a compiled Stan model `m` via: 
 
 ```{r, eval = FALSE}
 # run the model
@@ -304,14 +301,12 @@ if (file.exists(stan_file)) {
 }
 ```
 
-There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.
-
-Note how this will break if you start using informative priors other than 6 or 12.  How could you fix this issue?
+There is a lot of hogwash going on in here about manipulating strings via `gsub()` and `paste0()`, but what you need to know is that this chunk of code saves the Bayesian model fit to a specific .rds file in the fits folder.  These .rds files have names like `pigeon_lake_ricker_cr6.rds`.  We can call a specific .rds file for plotting or harvest control rule development or whatever later on.  Note how this chunk of code will fail to save a fit for a model run using informative priors for compensation ratio other than 6 or 12.  How could you fix this issue?
 
 Now that we've done all this work, it is dead simple to fit a single BERTA model to any lake in the FWIN database: 
 
 ```{r, eval = FALSE}
-# do a short run with one chain 
+# do a short run with one chain for a lake chosen at random 
 fit <- get_fit(which_lake = "unnamed 5", 
                rec_ctl = "ricker", 
                cr_prior = 6, 
@@ -359,7 +354,7 @@ print(result)
 
 ```
 
-That works fine, now let's do this exact same thing again using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
+Now let's do this exact same thing again using a simple `map()` function from {purrr}.  Why we do this will make more sense in a bit.
 
 ```{r}
 # create an input vector to iterate across
@@ -374,9 +369,9 @@ result2 <-
 print(unlist(result2))
 ```
 
-A few things are important here. The first is that `map()` takes in a single argument (in our case `which_i`), and iterates `silly_func()` for each value in the vector `which_i`. It then returns a *list* corresponding to the outputs for each iteration.  This is why I used `unlist()` to print `result2`. With the exception of this list output, we can see that the for-loop above and `map()` produce the same output. Cool. 
+A few things are important here. The first is that `map()` takes in a single argument (in our case `which_i`), and iterates `silly_func()` for each value in the vector `which_i`. It then returns a *list* corresponding to the outputs for each iteration.  This is why I used `unlist()` to print `result2`. With the exception of this list output, we can see that the for-loop above and `map()` produce the same output. 
 
-Now, `map()` is one of the simplest {purrr} functions, but there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
+The `map()` function is one of the simplest {purrr} functions, but there is a whole family of useful functions in this package.  Some of these functions return lists, others return data frames, and some are even able to pass multiple values to functions that require more than a single input.  See this link and poke around to explore some of the different options available: 
 
 <https://purrr.tidyverse.org/>
 
@@ -510,7 +505,7 @@ str(to_fit)
 
 Note that the columns in `to_fit` *must* match the function arguments in `get_fit()` *exactly*.
 
-Once we have this set up, we call `plan()`, `get_fit()`, and `future_pwalk()`: 
+Once we have this set up, we call `plan()` to tell R we want to conduct our analysis on multiple cores, and then use `future_pwalk()` to pass the `to_fit` dataframe through the `get_fit()` function: 
 
 ```{r, eval=FALSE}
 # set up parallel processing plan 
@@ -526,13 +521,13 @@ system.time({
 
 Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative priors for compensation ratio = 24 Bayesian models in only a few lines of code. We also saved each of these runs in the fits folder. 
 
-On my laptop this takes around 8.7 hours if you don't use {furrr} and {future}, but only 5.5 hours using the functional programming sneakery.   
+On my laptop this takes 5.5 hours using the functionals and {future}, and around 8.7 hours if you don't use these tricks.   
 
 How could you add another lake to the analysis? Or an entirely different set of lakes? 
 
 # Debugging basics using `browser()`
 
-For all the benefits of functional programming, it is certainly harder to debug code when errors inevitably arise.  This means you should have a working knowledge of `browser()` and a few other Rstudio tricks. **Discuss this in person**.
+For all the benefits of functional programming, it is certainly harder to debug when errors arise.  This means you should have a working knowledge of `browser()` and a few other Rstudio tricks. **Discuss this in person**.
 
 # Resources: 
 
