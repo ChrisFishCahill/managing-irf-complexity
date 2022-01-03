@@ -12,16 +12,13 @@ library(purrr)
 # list the fits
 list.files("fits/", full.names = TRUE)
 
-# pick a file 
-# which_file <- "fits/lac_ste._anne_bh_cr_6.rds"
-
 # extract all the saved .stan fit names
 paths <- dir("fits/", pattern = "\\.rds$")
 paths <- paste0(getwd(), "/fits/", paths)
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
-my_string <- names(fits)[10]
+my_string <- names(fits)[10] #lac ste. anne bh cr = 6
 fit <- fits[[which(names(fits)==my_string)]]
 
 #----------------------------------------------------------------------
