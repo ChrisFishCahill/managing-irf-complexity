@@ -21,3 +21,10 @@ fit <-
   purrr::set_names(.) %>%
   purrr::map(readRDS)
 
+#----------------------------------------------------------------------
+# ***N.B.***
+# We need to preserve the historical frequency of weak and strong 
+# year classes in our recruitment time series for our retrospective 
+# analysis
+# Thus, we will select 1990-2015 for these lakes for a 25 yr ref period
+#----------------------------------------------------------------------
