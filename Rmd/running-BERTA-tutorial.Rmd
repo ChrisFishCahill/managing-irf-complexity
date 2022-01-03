@@ -541,7 +541,9 @@ fit <- readRDS(which_file)
 shinystan::launch_shinystan(fit)
 ```
 
-After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. 
+After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. See also 
+
+<http://mc-stan.org/shinystan/>
 
 # Debugging basics using `browser()`
 
@@ -552,6 +554,8 @@ For all the benefits of functional programming, it is certainly harder to debug 
 <https://purrr.tidyverse.org/>
 
 <https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html>
+
+<http://mc-stan.org/shinystan/>
 
 <https://adv-r.hadley.nz/debugging.html>
 
