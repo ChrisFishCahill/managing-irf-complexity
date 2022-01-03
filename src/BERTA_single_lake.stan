@@ -50,9 +50,9 @@ transformed data {
   vector<lower=0>[n_ages] f_a;         // fec at age a
   vector<lower=0>[n_ages] W_a;         // Weight at age a
   real<lower=0> sbr0;                  // spawning biomass per recruit unfished 
-  real SSB_Cn;                         // SSB obs numerator
-  real SSB_Cd;                         // SSB obs denominator
-  real SSB_C;                          // SSB obs
+  vector[n_surveys] SSB_Cn;            // SSB obs numerator
+  vector[n_surveys] SSB_Cd;            // SSB obs denominator
+  vector[n_surveys] SSB_C;             // SSB obs
   vector[n_ages] Su_F0;                // survivorship unfished (F=0) 
   real ar_mean;                        // ar mean
   int counter = 0;                     // counter for caa_obs
@@ -83,16 +83,16 @@ transformed data {
   // calculate the rowsums for each survey, observed SSB
   // SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
   for(i in 1:n_surveys){
-    SSB_Cn = 0; 
-    SSB_Cd = 0; 
-    SSB_C = 0; 
+    SSB_Cn[i] = 0; 
+    SSB_Cd[i] = 0; 
+    SSB_C[i] = 0; 
     for(a in 1:n_ages){
       counter = counter + 1; 
-      SSB_Cn += f_a[a]*caa[i, a]*(1/v_a[a]); 
+      SSB_Cn[i] += f_a[a]*caa[i, a]*(1/v_a[a]); 
       caa_obs[counter] = caa[i,a]; 
     }
-    SSB_Cd = prop_aged[i]*effort[i]; 
-    SSB_C = SSB_Cn / SSB_Cd;
+    SSB_Cd[i] = prop_aged[i]*effort[i]; 
+    SSB_C[i] = SSB_Cn[i] / SSB_Cd[i];
   }
 }
 parameters {
@@ -117,7 +117,7 @@ transformed parameters {
   real sbrf_late;                                    // spawning biomass per recruit fished
   real<lower=0> pinit;                               // how much depletion from R0
   real<lower=0> Rinit;                               // initial recruitment
-  real SSB_obs;                                      // SSB observed
+  vector[n_surveys] SSB_obs;                         // SSB observed
   vector[n_years] pred_N_catch;                      // predicted catch N/ha, *not vulN*
   vector[n_years] pred_B_catch;                      // predicted catch biomass/ha
   real<lower=0> sbr0_kick;                           // sbr0 report 
@@ -232,8 +232,8 @@ transformed parameters {
       SSB_bar += SSB[t];
      }
   }
-    SSB_bar = SSB_bar / counter_SSB;
-    SBR = SSB_bar / (R0*sbr0);     
+  SSB_bar = SSB_bar / counter_SSB;
+  SBR = SSB_bar / (R0*sbr0);     
   
   // Calculate the preds vector
   // C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
@@ -249,7 +249,7 @@ transformed parameters {
         v_a[a];                                 // vulnerability to survey gear
       }
       if(get_SSB_obs==1){
-        SSB_obs = SSB_C; 
+        SSB_obs[i] = SSB_C[i];  
       }
     }
   }
