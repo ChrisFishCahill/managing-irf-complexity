@@ -13,7 +13,7 @@ urlcolor: blue
 - Become familiar with the `run.R` script
 - Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier
 - Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions
-- Launching shinystan diagnostics 
+- Demonstrate how to launch shinystan diagnostics 
 - Practice debugging using `browser()`
 
 # Packages 
