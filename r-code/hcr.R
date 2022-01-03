@@ -43,7 +43,7 @@ draw_idx <- unique(devs$.draw)
 
 w_devs <- fit %>%
   spread_draws(w[year]) %>%
-  filter(.draw %in% draw_idx)
+  filter(.draw %in% draw_idx) # force same .draw to be taken as above
 
 v_devs <- fit %>%
   spread_draws(v[period]) %>%
@@ -52,3 +52,9 @@ v_devs <- fit %>%
 F_devs <- fit %>%
   spread_draws(F_vec[year]) %>%
   filter(.draw %in% draw_idx)
+
+# extract nta from stan
+nta_stan <- fit %>%
+  spread_draws(Nat_array[age, year]) %>%
+  pivot_wider(names_from = age, values_from = Nat_array) %>%
+  filter(.draw %in% draw_idx) 

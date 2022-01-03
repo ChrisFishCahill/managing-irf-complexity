@@ -152,7 +152,7 @@ get_fit <- function(which_lake = "pigeon lake",
       pars =
         c(
           "ar_mean_kick", "F_ratio", "Fmsy", "MSY",
-          "G", "cr", "ar", "SPR", "br",
+          "G", "cr", "ar", "SPR", "br", "Nat_array",
           "SBR", "sbr0_kick", "R0", "v", "F_vec", "SSB",
           "R2", "SSB_obs", "caa_pred", "b_ratio", "w"
         ),
