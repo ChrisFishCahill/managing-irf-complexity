@@ -541,6 +541,8 @@ fit <- readRDS(which_file)
 shinystan::launch_shinystan(fit)
 ```
 
+After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. 
+
 # Debugging basics using `browser()`
 
 For all the benefits of functional programming, it is certainly harder to debug when errors arise.  This means you should have a working knowledge of `browser()` and a few other Rstudio tricks. **Discuss this in person**.
