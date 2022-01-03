@@ -64,8 +64,12 @@ nta_stan <- fit %>%
   filter(.draw %in% draw_idx) %>%
   mutate(year = year + initial_yr_minus_one)
 
-# rename columns to correct ages 2-20
-colnames(nta_stan)[5:23] = ages 
+# which columns have ages: 
+age_cols <- which(!is.na(str_extract(string = colnames(nta_stan), 
+                         pattern = "[0-9]|10[0-9]") ))
+
+# rename age columns to correct ages 2-20
+colnames(nta_stan)[age_cols] = ages 
 
 #----------------------------------------------------------------------
 # ***N.B.***
@@ -97,5 +101,6 @@ w_devs <- w_devs %>%
 # extract F estimates from 1990-2015
 F_devs <- F_devs %>% 
   filter(year %in% retro_initial_yr:retro_terminal_yr)
+
 
 
