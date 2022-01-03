@@ -6,6 +6,7 @@
 # libraries
 library(tidyverse)
 library(rstan)
+library(purrr)
 library(furrr)
 library(future) 
 library(tidybayes)
@@ -294,7 +295,7 @@ r2 <-
     ) 
 }, .id = "stan_file") %>%
   mutate("name" = str_extract(string = stan_file, 
-                              pattern = "(?<=fits/).*(?=_bh)")) %>%
+                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
   mutate(name = gsub("_", " ", name))
 
 r2$which <- "recruits"

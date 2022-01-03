@@ -9,7 +9,7 @@ highlight: tango
 urlcolor: blue
 ---
 # Goals
-- Import both the FWIN and stocking data, and show how one might add new data to the data used in Cahill et al. 2021
+- Import the FWIN and stocking data, and demonstrate how to add new data to the original data used in Cahill et al. 2021
 - Become familiar with the `run.R` script
 - Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier
 - Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions
@@ -51,8 +51,8 @@ Consequently, if one wanted to add new data to the `BERTA-wide-0-25.rds` file fr
 - declares the value in the `year` slot as 2022 - 2000 + 1 = 23
 - repeats the name for that lake as per the names in `name` slot
 - sets the number of nets (nnets) as the sum of full nets (each net equal to 1) and half nets (each worth 0.5)
-- calculate the proportion of fish with age structure estimates in that survey in the `p_aged` slot
-- put the catch at each age from 0 to 25 in columns labelled '0', '1', ..., '25'
+- calculates the proportion of fish with age structure estimates in that survey in the `p_aged` slot
+- puts the catch at each age from 0 to 25 in columns labelled '0', '1', ..., '25'
 - all other columns just need to be copied for the lake of interest
 
 To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018 in that lake. Thus, if you want to add stocking values after 2018 you'd add new columns for the years of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
