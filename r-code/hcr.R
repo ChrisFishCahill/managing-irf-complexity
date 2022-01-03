@@ -1,13 +1,23 @@
+#----------------------------------------------------------------------
 # develop harvest control rules for Alberta Walleye lakes
-# Cahill & Walters 2022 
-# load packages
+# Cahill & Walters 3 Jan 2022 
+#----------------------------------------------------------------------
 
+# load packages
 library(tidyverse)
 library(tidybayes)
 library(purrr)
 
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
+
+# declare some variables 
+ages <- 2:20
+t <- 2000 # first survey year
+max_a <- max(ages)
+rec_a <- min(ages)
+initial_yr <- t - max_a + rec_a - 2 
+initial_yr_minus_one <- initial_yr - 1
 
 # list the fits
 list.files("fits/", full.names = TRUE)
@@ -18,16 +28,9 @@ paths <- paste0(getwd(), "/fits/", paths)
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
-my_string <- names(fits)[10] #lac ste. anne bh cr = 6
+#pick one
+my_string <- names(fits)[1] 
 fit <- fits[[which(names(fits)==my_string)]]
-
-#----------------------------------------------------------------------
-# ***N.B.***
-# We need to preserve the historical frequency of weak and strong 
-# year classes in our recruitment time series for our retrospective 
-# analysis
-# Thus, we will select 1990-2015 for these lakes for a 25 yr ref period
-#----------------------------------------------------------------------
 
 # Extract things from some (identical) rows of the posterior to 
 # preserve correlation structure
@@ -57,4 +60,16 @@ F_devs <- fit %>%
 nta_stan <- fit %>%
   spread_draws(Nat_array[age, year]) %>%
   pivot_wider(names_from = age, values_from = Nat_array) %>%
-  filter(.draw %in% draw_idx) 
+  filter(.draw %in% draw_idx) %>%
+  mutate(year = year + initial_yr_minus_one)
+
+# rename columns to correct ages 2-20
+colnames(nta_stan)[5:23] = ages 
+
+#----------------------------------------------------------------------
+# ***N.B.***
+# We need to preserve the historical frequency of weak and strong 
+# year classes in our recruitment time series for our retrospective 
+# analysis
+# Thus, we will select 1990-2015 for these lakes for a 25 yr ref period
+#----------------------------------------------------------------------

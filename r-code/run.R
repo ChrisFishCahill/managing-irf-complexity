@@ -88,16 +88,16 @@ get_fit <- function(which_lake = "pigeon lake",
   # declare the tagged data list for stan
   stan_data <- list(
     n_surveys = nrow(run_data),
-    n_ages = length(Ages),
-    n_obs = nrow(run_data) * length(Ages),
+    n_ages = length(ages),
+    n_obs = nrow(run_data) * length(ages),
     n_years = length(initial_yr:2028),
     n_lakes = length(unique(run_data$lake)),
-    caa = run_data[, which(colnames(run_data) %in% Ages)],
+    caa = run_data[, which(colnames(run_data) %in% ages)],
     prop_aged = run_data$p_aged,
     effort = run_data$effort,
     lake = run_data$lake,
     year = run_data$year + length(initial_yr:(t - 1)),
-    ages = Ages,
+    ages = ages,
     survey_yrs = survey_yrs,
     which_year = 1996 - initial_yr + 2, # which integer corresponds to year = 1997
     v_prior_early = 0.3,
@@ -190,12 +190,12 @@ get_fit <- function(which_lake = "pigeon lake",
 
 #----------------------------------------------------------------------
 # declare some indeces for stan model  
-Ages <- 2:20
+ages <- 2:20
 t <- 2000 # first survey year
-max_a <- max(Ages)
-rec_a <- min(Ages)
+max_a <- max(ages)
+rec_a <- min(ages)
 initial_yr <- t - max_a + rec_a - 2 
-add_year <- initial_yr - 1
+initial_yr_minus_one <- initial_yr - 1
 
 # declare HMC run parameters 
 n_iter = 2000

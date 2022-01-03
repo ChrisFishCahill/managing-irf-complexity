@@ -7,6 +7,13 @@ library(purrr)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
 
+# declare some indeces 
+t <- 2000 # first survey year
+max_a <- max(ages)
+rec_a <- min(ages)
+initial_yr <- t - max_a + rec_a - 2 
+initial_yr_minus_one <- initial_yr - 1
+
 # find the fits corresponding to beverton-holt compensation ratio = 6
 stan_files <- list.files("fits/", full.names = TRUE)
 stan_files <- stan_files[grep("bh_cr_6", stan_files)]
@@ -24,7 +31,7 @@ r2 <-
       spread_draws(R2[year]) %>%
       mutate(
         value = R2,
-        year = year + 1979
+        year = year + initial_yr_minus_one
       ) %>%
       summarise(
         lwr = quantile(R2, 0.1),
@@ -45,7 +52,7 @@ ssb <- big_list %>% map_dfr(function(big_list) { # extract estimated ssb
     spread_draws(SSB[year]) %>%
     mutate(
       value = SSB,
-      year = year + 1979
+      year = year + initial_yr_minus_one
     ) %>%
     summarise(
       lwr = quantile(SSB, 0.1),
@@ -78,7 +85,7 @@ ssb_c <- big_list %>% map_dfr(function(big_list) { # extract "observed" ssb
 yr_dat <- data %>% 
   filter(name %in% contract_lakes) %>%
   summarise(name = name,
-            year = year + 1999)
+            year = year + t - 1) # t - 1 = 1999
 
 ssb_c$year <- yr_dat$year
 
