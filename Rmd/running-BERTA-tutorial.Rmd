@@ -13,6 +13,7 @@ urlcolor: blue
 - Become familiar with the `run.R` script
 - Gain intuition for how .R and .stan scripts are working together to subset data, fit a Bayesian population dynamics model to those data, and then save a model fit with a unique file name identifier
 - Improve understanding of tidyverse sub-setting, `get_fit()`, `future_pwalk()`, and `plan()` functions
+- Launching shinystan diagnostics 
 - Practice debugging using `browser()`
 
 # Packages 
@@ -524,6 +525,21 @@ Boom, we just ran 6 lakes x 2 stock-recruitment relationships x 2 informative pr
 On my laptop this takes 5.5 hours using the functionals and {future}, and around 8.7 hours if you don't use these tricks.   
 
 How could you add another lake to the analysis? Or an entirely different set of lakes? 
+
+# Launching `shinystan`'s diagnostic browser
+
+`shinystan` is a diagnostic and interactive browser for Stan models: 
+
+```{r, eval=FALSE}
+# pick a lake in the fits folder to examine
+which_file <- "fits/lac_ste._anne_ricker_cr_12.rds"
+
+# load the .rds file
+fit <- readRDS(which_file)
+
+# launch the shinystan browser 
+shinystan::launch_shinystan(fit)
+```
 
 # Debugging basics using `browser()`
 
