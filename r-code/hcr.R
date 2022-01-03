@@ -14,8 +14,8 @@ library(purrr)
 # declare some variables 
 ages <- 2:20
 t <- 2000 # first survey year
-max_a <- max(ages)
-rec_a <- min(ages)
+max_a <- max(ages) # max age
+rec_a <- min(ages) # age at recruitment
 initial_yr <- t - max_a + rec_a - 2 
 initial_yr_minus_one <- initial_yr - 1
 
@@ -28,25 +28,25 @@ paths <- paste0(getwd(), "/fits/", paths)
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
-#pick one
+# pick one
 my_string <- names(fits)[1] 
 fit <- fits[[which(names(fits)==my_string)]]
 
-# Extract things from some (identical) rows of the posterior to 
-# preserve correlation structure
-
+#----------------------------------------------------------------------
+# extract things from some (identical) rows of the posterior 
 n_draws <- 5 
 
 devs <- fit %>% 
   spread_draws(R0, ar, br, sbr0_kick) %>%
   sample_draws(n_draws)
 
-# index which draws were selected to ensure same draws for each simulation
+# index which draws were selected to preserve correlation structure
 draw_idx <- unique(devs$.draw)
 
 w_devs <- fit %>%
   spread_draws(w[year]) %>%
-  filter(.draw %in% draw_idx) # force same .draw to be taken as above
+  filter(.draw %in% draw_idx) %>% # force same .draw to be taken as above
+  mutate(year = year + initial_yr_minus_one) #make years 1980-2028
 
 v_devs <- fit %>%
   spread_draws(v[period]) %>%
@@ -54,7 +54,8 @@ v_devs <- fit %>%
 
 F_devs <- fit %>%
   spread_draws(F_vec[year]) %>%
-  filter(.draw %in% draw_idx)
+  filter(.draw %in% draw_idx) %>%
+  mutate(year = year + initial_yr_minus_one)
 
 # extract nta from stan
 nta_stan <- fit %>%
@@ -69,7 +70,32 @@ colnames(nta_stan)[5:23] = ages
 #----------------------------------------------------------------------
 # ***N.B.***
 # We need to preserve the historical frequency of weak and strong 
-# year classes in our recruitment time series for our retrospective 
+# year classes in our recruitment time series for the retrospective 
 # analysis
-# Thus, we will select 1990-2015 for these lakes for a 25 yr ref period
+# 
+# Thus, we will select 1990-2015 for these lakes for a 25 yr recruitment 
+# reference period as most FWIN surveys have information on recruitment
+# back to 1990 
 #----------------------------------------------------------------------
+
+# initialize the simulation using BERTA posterior 
+
+retro_initial_yr <- 1990 
+retro_terminal_yr <- 2015
+n_repeats <- 3 # 3 recruitment series repeats 
+
+# 3 recruitment sequence repeats: 
+n_sim_years <- length(retro_initial_yr:retro_terminal_yr)*n_repeats 
+
+# extract the age structure corresponding to 1990   
+nta_init <- nta_stan %>% filter(year == retro_initial_yr)
+
+# extract w estimates from 1990-2015
+w_devs <- w_devs %>%
+  filter(year %in% retro_initial_yr:retro_terminal_yr)
+
+# extract F estimates from 1990-2015
+F_devs <- F_devs %>% 
+  filter(year %in% retro_initial_yr:retro_terminal_yr)
+
+
