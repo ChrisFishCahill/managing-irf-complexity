@@ -8,6 +8,11 @@ output:
 highlight: tango
 urlcolor: blue
 ---
+# TODO from 4 Jan 2022 conversation 
+- diagnostics--general talk
+- add new data exercise 
+- run fit without fancy wrapper 
+
 # Goals
 - Import the FWIN and stocking data, and demonstrate how to add new data to the original data used in Cahill et al. 2021
 - Become familiar with the `run.R` script
