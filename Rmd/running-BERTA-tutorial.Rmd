@@ -541,9 +541,9 @@ fit <- readRDS(which_file)
 shinystan::launch_shinystan(fit)
 ```
 
-After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. See also 
+After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. 
 
-<http://mc-stan.org/shinystan/>
+See also <http://mc-stan.org/shinystan/>
 
 # Debugging basics using `browser()`
 
