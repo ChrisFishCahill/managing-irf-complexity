@@ -79,7 +79,7 @@ colnames(nta_stan)[age_cols] <- ages
 # year classes in our recruitment time series for the retrospective
 # analysis
 #
-# Thus, we will select 1990-2015 for these lakes for a 25 yr recruitment
+# Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
 # reference period as most FWIN surveys have information on recruitment
 # to approximately 1990
 #----------------------------------------------------------------------
@@ -118,3 +118,21 @@ sampled_post <- left_join(sampled_post, devs,
 ) %>% arrange(.draw)
 
 #----------------------------------------------------------------------
+k = 786
+sub_post <- subset(sampled_post, sampled_post$.draw == k)
+wt <- sub_post$w
+
+rec_var <- 1.0 # 1.2 might be fun to try
+wt <- c(wt, wt * rec_var, wt * rec_var)
+sim_yrs <- 1:length(wt)
+df <- data.frame(wt = wt, sim_yrs = sim_yrs)
+
+df %>%
+ggplot(aes(x=sim_yrs, y=wt)) + 
+  geom_point() + 
+  geom_line() + 
+  xlab("Year of Simulation") + 
+  ylab("Recruitment Anomaly (wt)") + 
+  ggsidekick::theme_sleek()
+
+plot(wt, type="b")
