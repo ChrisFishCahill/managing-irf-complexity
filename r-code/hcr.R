@@ -226,7 +226,10 @@ for (i in seq_along(c_slope_seq)) {
       nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
       
       ass_int <- 3 # assessment interval 
-      t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize) 
+      t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
+      
+      obs_sd <- 0.1
+      q_survey <- 1.0 # q_survey assumed to be 1.0 in Cahill et al. 2021
 
       # run age-structured model for sim years
       for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
@@ -234,20 +237,15 @@ for (i in seq_along(c_slope_seq)) {
         vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
         vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
         
-        # set observed vb from "true" 
-        obs_sd <- 0.1
-        q_survey <- 1.0 # q_survey assumed to be 1.0 in Cahill et al. 2021
-        
         if(t - t_last_ass == ass_int){ #run FWIN survey / TAC to use until next assessment 
           t_last_ass <- t 
-          vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) # -0.5*(0.1)^2 corrects exponential effect on mean observation
+          # set observed vb from "true", -0.5*(0.1)^2 corrects exponential effect on mean observation:
+          vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) 
           TAC <- c_slope * (vB_obs - b_lrp)
-          if(TAC < 0){
-            TAC <- 0
-          }
         }
         
-        if (TAC == 0) {
+        if (TAC < 0) {
+          TAC <- 0
           Ut <- 0
         } else {
           Ut <- ifelse((TAC / vB_fish[t]) < 0.9, (TAC / vB_fish[t]), 0.9)
