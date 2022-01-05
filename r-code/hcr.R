@@ -26,6 +26,9 @@ initial_yr_minus_one <- initial_yr - 1
 # list the fits
 list.files("fits/", full.names = TRUE)
 
+
+
+
 # extract all the saved .stan fit names
 paths <- dir("fits/", pattern = "\\.rds$")
 paths <- paste0(getwd(), "/fits/", paths)
@@ -211,7 +214,7 @@ for (i in seq_along(c_slope_seq)) {
       wt <- sub_post$w
       wt <- rep(wt, n_repeats)
       
-      rec_var <- 1.2 # 1.2 might be fun to try
+      rec_var <- 1.0 # 1.2 might be fun to try
       
       #multiply recruitment anomalies after initial period by rec_var
       wt[(length(retro_initial_yr:retro_terminal_yr)+1):length(wt)] <- 
@@ -235,17 +238,17 @@ for (i in seq_along(c_slope_seq)) {
       
       ass_int <- 3 # assessment interval 
       t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
+      Ut_max <- 0.9
       
       obs_sd <- 0.1
       q_survey <- 1.0 # q_survey assumed to be 1.0 in Cahill et al. 2021
-      browser()
       # run age-structured model for sim years
       for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
         SSB[t] <- sum(nta[t, ] * f_a * w_a)
         vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
         vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
         
-        if(t - t_last_ass == ass_int){ # run FWIN survey / set TAC to use until next assessment 
+        if(t - t_last_ass == ass_int){ # assess every ass_int yrs
           t_last_ass <- t 
           # set observed vb from "true"
           # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
@@ -253,12 +256,10 @@ for (i in seq_along(c_slope_seq)) {
           TAC <- c_slope * (vB_obs - b_lrp)
         }
         
-        if (TAC < 0) {
+        if (TAC < 0) { # correct negative TACs
           TAC <- 0
-          Ut <- 0
-        } else {
-          Ut <- ifelse((TAC / vB_fish[t]) < 0.9, (TAC / vB_fish[t]), 0.9)
-        }
+        } 
+        Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
         
         # stock-recruitment 
         if (rec_ctl == "ricker") { 
@@ -464,4 +465,51 @@ ggsave(
   filename = filename,
   width = 10, height = 11, units = "in"
 )
+
+
+##############################################################################################
+##############################################################################################
+##############################################################################################
+
+#EXTRA stuff to get wt sequences to CJ
+
+# extract most likely wt sequences from lakes bh cr =6 
+# for carl 
+# find the fits corresponding to beverton-holt compensation ratio = 6
+# 
+# retro_initial_yr <- 1990
+# retro_terminal_yr <- 2015
+# 
+stan_files <- list.files("fits/", full.names = TRUE)
+stan_files <- stan_files[grep("bh_cr_12", stan_files)]
+
+big_list <-
+  stan_files %>%
+  purrr::set_names(.) %>%
+  purrr::map(readRDS)
+
+wt <- big_list %>% map_dfr(function(big_list) { # extract recruits
+  big_list %>%
+    spread_draws(w[year]) %>%
+    mutate(
+      value = w,
+      year = year + initial_yr_minus_one
+    ) %>%
+    summarise(
+      med = quantile(w, 0.5), # posterior median
+    )
+}, .id = "stan_file") %>%
+  mutate("name" = str_extract(string = stan_file,
+                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
+  mutate(name = gsub("_", " ", name)) %>%
+  filter(year %in% retro_initial_yr:retro_terminal_yr)
+
+wts <- wt %>%
+  pivot_wider(id_cols = -stan_file,
+              names_from = name,
+              values_from = med)
+
+#write.csv(wts, "data/most_likely_wts_cr_12.csv")
+
+##############################################################################################
   
