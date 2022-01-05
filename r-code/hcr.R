@@ -221,7 +221,7 @@ for (i in seq_along(c_slope_seq)) {
       # nta matrix
       nta <- matrix(NA, nrow = length(wt), ncol = length(ages))
       
-      # SSB, Rpred vectors
+      # SSB, Rpred, vulnerable biomass vectors
       SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
       
       nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
