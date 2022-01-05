@@ -247,7 +247,8 @@ for (i in seq_along(c_slope_seq)) {
         
         if(t - t_last_ass == ass_int){ # run FWIN survey / set TAC to use until next assessment 
           t_last_ass <- t 
-          # set observed vb from "true", -0.5*(0.1)^2 corrects exponential effect on mean observation:
+          # set observed vb from "true"
+          # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
           vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) 
           TAC <- c_slope * (vB_obs - b_lrp)
         }
