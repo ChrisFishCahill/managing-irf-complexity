@@ -148,19 +148,19 @@ transformed parameters {
         Su_Fearly[a] = Su_Fearly[a-1]*exp(-M_a[a-1] - v_f_a[a-1]*v[1]); 
         Su_Flate[a] = Su_Flate[a-1]*exp(-M_a[a-1] - v_f_a[a-1]*v[2]); 
       }
-      sbrf_early += f_a[a]*Su_Fearly[a]; 
-      sbrf_late += f_a[a]*Su_Flate[a]; 
+    sbrf_early += f_a[a]*Su_Fearly[a]; 
+    sbrf_late += f_a[a]*Su_Flate[a]; 
       
-      // fill out report vectors
-      l_a_report[a] = l_a[a]; 
-      Lo_report[a] = Lo[a];
-      v_a_report[a] = v_a[a]; 
-      v_f_a_report[a] = v_f_a[a]; 
-      f_a_report[a] = f_a[a]; 
-      w_a_report[a] = w_a[a]; 
-      M_a_report[a] = M_a[a]; 
-    }
-    SPR = sbrf_late / sbro; 
+    // fill out report vectors
+    l_a_report[a] = l_a[a]; 
+    Lo_report[a] = Lo[a];
+    v_a_report[a] = v_a[a]; 
+    v_f_a_report[a] = v_f_a[a]; 
+    f_a_report[a] = f_a[a]; 
+    w_a_report[a] = w_a[a]; 
+    M_a_report[a] = M_a[a]; 
+  }
+  SPR = sbrf_late / sbro; 
 
   // Calculate recruitment b's, Rinit's
   if(rec_ctl==0){ // ricker b
