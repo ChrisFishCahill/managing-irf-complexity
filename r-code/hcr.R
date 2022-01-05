@@ -3,6 +3,7 @@
 # Cahill & Walters 3 Jan 2022
 # TODO: 
 # 1) compare carls spreadsheet
+# 2) unfuck stupid wbar hogwash 
 # 2) save output somehow
 #----------------------------------------------------------------------
 
@@ -26,17 +27,15 @@ initial_yr_minus_one <- initial_yr - 1
 # list the fits
 list.files("fits/", full.names = TRUE)
 
-
-
-
 # extract all the saved .stan fit names
 paths <- dir("fits/", pattern = "\\.rds$")
 paths <- paste0(getwd(), "/fits/", paths)
+paths <- paths[grep("bh_cr_6", paths)]
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
 # pick one
-my_string <- names(fits)[1]
+my_string <- names(fits)[3]
 fit <- fits[[which(names(fits) == my_string)]]
 
 # set rec_ctl and which_lake
@@ -50,7 +49,7 @@ which_lake <- gsub("_", " ", which_lake)
 n_draws <- 100
 
 devs <- fit %>%
-  spread_draws(Ro, ar, br, sbro_report) %>%
+  spread_draws(Ro, ar, br, sbro_report, lp__) %>%
   sample_draws(n_draws)
 
 # index which draws were selected to preserve correlation structure
@@ -212,6 +211,8 @@ for (i in seq_along(c_slope_seq)) {
       vbo <- Ro * vbro
       
       wt <- sub_post$w
+      wt_bar <- mean(wt)
+      wt <- wt - wt_bar # correct nonzero wt over test period 
       wt <- rep(wt, n_repeats)
       
       rec_var <- 1.0 # 1.2 might be fun to try
