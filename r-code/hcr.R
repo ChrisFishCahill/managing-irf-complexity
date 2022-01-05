@@ -238,7 +238,7 @@ for (i in seq_along(c_slope_seq)) {
       
       obs_sd <- 0.1
       q_survey <- 1.0 # q_survey assumed to be 1.0 in Cahill et al. 2021
-
+      browser()
       # run age-structured model for sim years
       for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
         SSB[t] <- sum(nta[t, ] * f_a * w_a)
