@@ -34,10 +34,10 @@ fit <- fits[[which(names(fits) == my_string)]]
 
 #----------------------------------------------------------------------
 # extract things from some (identical) rows of the posterior
-n_draws <- 5
+n_draws <- 1
 
 devs <- fit %>%
-  spread_draws(R0, ar, br, sbr0_kick) %>%
+  spread_draws(Ro, ar, br, sbro_report) %>%
   sample_draws(n_draws)
 
 # index which draws were selected to preserve correlation structure
@@ -88,10 +88,6 @@ colnames(nta_stan)[age_cols] <- ages
 
 retro_initial_yr <- 1990
 retro_terminal_yr <- 2015
-n_repeats <- 3 # 3 recruitment series repeats
-
-# 3 recruitment sequence repeats:
-n_sim_years <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
 
 # extract the age structure corresponding to 1990
 nta_init <- nta_stan %>% filter(year == retro_initial_yr)
@@ -118,21 +114,69 @@ sampled_post <- left_join(sampled_post, devs,
 ) %>% arrange(.draw)
 
 #----------------------------------------------------------------------
-k = 786
+# set up cslope, bmin sequences and performance metric output matrices
+
+# Extract MAP estimate of Ro from posterior (for indexing bmin)
+Ro_summary <- rstan::summary(fit, pars = "Ro")$summary
+Ro_map <- Ro_summary[, "mean"]
+Ro_map 
+
+#---------------------------------------------------------
+# extrac leading parameters from stan to get vbro
+leading_pars <- fit %>%
+  spread_draws(Lo_report[age], 
+               l_a_report[age], 
+               v_a_report[age],
+               v_f_a_report[age], 
+               f_a_report[age], 
+               w_a_report[age]) %>%
+  filter(.draw %in% draw_idx)
+
+leading_pars$age <- ages # correct ages
+
+w_a <- leading_pars$w_a_report
+f_a <- leading_pars$f_a_report
+v_survey <- leading_pars$v_a_report
+v_fish <- leading_pars$v_f_a_report
+Lo <- leading_pars$Lo_report
+
+vbro <- sum(Lo * v_survey * w_a)
+sbro <- sum(f_a*Lo)
+
+vbro
+
+# recruitment sequence repeats:
+n_repeats <- 3 
+n_sim_years <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
+
+# c_slope and bmin ranges for harvest control rule
+c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
+bmin_seq <- seq(from = 0, to = 1.0 * Ro_map * vbro, length.out = length(c_slope_seq))
+tot_y <- tot_u <- prop_below <- TAC_zero <- matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
+yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_years))
+
+#----------------------------------------------------------------------
+k = sampled_post$.draw[1] # pick a draw
 sub_post <- subset(sampled_post, sampled_post$.draw == k)
 wt <- sub_post$w
 
 rec_var <- 1.0 # 1.2 might be fun to try
 wt <- c(wt, wt * rec_var, wt * rec_var)
-sim_yrs <- 1:length(wt)
-df <- data.frame(wt = wt, sim_yrs = sim_yrs)
+df <- data.frame(wt = wt, sim_yrs = 1:n_sim_years)
 
 df %>%
 ggplot(aes(x=sim_yrs, y=wt)) + 
   geom_point() + 
   geom_line() + 
   xlab("Year of Simulation") + 
-  ylab("Recruitment Anomaly (wt)") + 
+  ylab("Recruitment Anomaly ln(wt)") + 
   ggsidekick::theme_sleek()
 
-plot(wt, type="b")
+
+#run the hcr psedo-code
+#for each cslope i 
+# for each bmin j 
+#  for each draw k 
+#   for each year in n_sim_years l 
+#    [run model, record performance]
+# end i, j k, l

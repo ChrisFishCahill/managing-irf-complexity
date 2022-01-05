@@ -103,8 +103,8 @@ get_fit <- function(which_lake = "pigeon lake",
     v_prior_early = 0.3,
     v_prior_late = 0.1,
     prior_sigma_v = c(0.1, 0.5),
-    R0_mean = log(6),
-    R0_sd = log(3),
+    Ro_mean = log(6),
+    Ro_sd = log(3),
     ar_sd = 0.1,
     prior_mean_w = 0,
     prior_sigma_w = 1.2,
@@ -134,7 +134,7 @@ get_fit <- function(which_lake = "pigeon lake",
   inits <- function() {
     list(
       v = jitter(vk, amount = 0.1),
-      R0 = jitter(15, amount = 2),
+      Ro = jitter(15, amount = 2),
       G = jitter(1, amount = 0.1),
       w = jitter(rep(0,
                      stan_data$n_years - 2), 
@@ -151,10 +151,14 @@ get_fit <- function(which_lake = "pigeon lake",
       data = stan_data,
       pars =
         c(
-          "ar_mean_kick", "F_ratio", "Fmsy", "MSY",
+          "F_ratio", "Fmsy", "MSY",
           "G", "cr", "ar", "SPR", "br", "Nat_array",
-          "SBR", "sbr0_kick", "R0", "v", "F_vec", "SSB",
-          "R2", "SSB_obs", "caa_pred", "b_ratio", "w"
+          "SBR", "Ro", "v", "F_vec", "SSB",
+          "R2", "SSB_obs", "caa_pred", "b_ratio", "w", 
+          # report stuff: 
+          "sbro_report", "ar_mean_report", "l_a_report", 
+          "Lo_report", "v_a_report", "v_f_a_report", 
+          "f_a_report", "w_a_report"
         ),
       iter = n_iter,
       warmup = n_warmup,
@@ -205,11 +209,11 @@ n_warmup = n_iter/2
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
 
-# fit <- get_fit(which_lake = "pigeon lake", 
-#                rec_ctl = "ricker", 
-#                cr_prior = 6, 
-#                n_iter = n_iter, n_chains = n_chains, 
-#                n_warmup = n_warmup)
+fit <- get_fit(which_lake = "lac ste. anne",
+               rec_ctl = "bev-holt",
+               cr_prior = 6,
+               n_iter = n_iter, n_chains = n_chains,
+               n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  

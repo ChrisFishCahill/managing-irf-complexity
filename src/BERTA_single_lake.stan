@@ -18,8 +18,8 @@ data {
   real<lower=0> v_prior_early;         // prior, early F
   real<lower=0> v_prior_late;          // prior, late F
   vector<lower=0>[2] prior_sigma_v;    // prior variance for F's (early and late)
-  real<lower=0> R0_mean;               // prior mean, R0
-  real<lower=0> R0_sd;                 // prior sd, R0
+  real<lower=0> Ro_mean;               // prior mean, Ro
+  real<lower=0> Ro_sd;                 // prior sd, Ro
   real<lower=0> ar_sd;                 // prior sd, ar
   real<lower=0> prior_mean_w;          // prior sd
   real<lower=0> prior_sigma_w;         // prior sd
@@ -35,7 +35,7 @@ data {
   vector[2] G_bound;                   // bounds for G
   real<lower=0> get_SSB_obs;           // logical get SSB observed
   real<lower=0> prior_sigma_G;         // sd of G
-  int Rinit_ctl;                       // G*R0 (0) or a more complicated form (1)
+  int Rinit_ctl;                       // G*Ro (0) or a more complicated form (1)
   int<lower=0> length_Fseq;            // length of Fseq for generated quantities calcs
   vector[length_Fseq] Fseq;            // sequence of values to iterate across for Fmsy
   int<lower=0> rec_ctl;                // Ricker (0), BH (1)
@@ -48,23 +48,23 @@ transformed data {
   vector<lower=0>[n_ages] l_a;         // length at age a 
   vector<lower=0>[n_ages] M_a;         // M at age a 
   vector<lower=0>[n_ages] f_a;         // fec at age a
-  vector<lower=0>[n_ages] W_a;         // Weight at age a
-  real<lower=0> sbr0;                  // spawning biomass per recruit unfished 
+  vector<lower=0>[n_ages] w_a;         // Weight at age a
+  real<lower=0> sbro;                  // spawning biomass per recruit unfished 
   vector[n_surveys] SSB_Cn;            // SSB obs numerator
   vector[n_surveys] SSB_Cd;            // SSB obs denominator
   vector[n_surveys] SSB_C;             // SSB obs
-  vector[n_ages] Su_F0;                // survivorship unfished (F=0) 
+  vector<lower=0>[n_ages] Lo;          // survivorship unfished (F=0) 
   real ar_mean;                        // ar mean
   int counter = 0;                     // counter for caa_obs
   
   // calculate vul, length-age, M-age, fec-age 
-  sbr0 = 0; // initialize
-  for(a in 1:n_ages){
+  sbro = 0; // initialize
+  for(a in 1:n_ages){ 
     v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi;          
     v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi;  
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
-    W_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
+    w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
     if(a < a50){
         f_a[a] = 0; 
       } else { 
@@ -72,13 +72,13 @@ transformed data {
         f_a[a] = fmax(0, (l_a[a]^wl_beta)); 
       }
       if(a == 1){ 
-        Su_F0[a] = 1;
+        Lo[a] = 1;
       } else{
-        Su_F0[a] = Su_F0[a-1]*exp(-M_a[a-1]); 
+        Lo[a] = Lo[a-1]*exp(-M_a[a-1]); 
       }
-      sbr0 += f_a[a]*Su_F0[a];
+      sbro += f_a[a]*Lo[a];
   }
-  ar_mean = log(cr_prior/sbr0); 
+  ar_mean = log(cr_prior/sbro); 
   
   // calculate the rowsums for each survey, observed SSB
   // SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
@@ -97,7 +97,7 @@ transformed data {
 }
 parameters {
   vector<lower=0>[2] v;                              // early period F v[1] or late F v[2]
-  real<lower=0> R0;                                  // average unfished recruitment 
+  real<lower=0> Ro;                                  // average unfished recruitment 
   real ar;                                           // stock-recruit a
   vector[n_years-2] w;                               // recruitment anomalies--first 2 yrs for initiazation
   real<lower=G_bound[1], upper=G_bound[2]> G;        // is population at equilibrium (1) or declining (<1)
@@ -109,28 +109,34 @@ transformed parameters {
   real Nat_array[n_ages, n_years];                   // Numbers at age  
   vector [n_years] SSB;                              // Spawning stock biomass
   vector<lower=0>[n_obs] caa_pred;                   // predicted catch at age
-  real<lower=0> br;                                  // derived stock-recruit b from sbr0, R0
+  real<lower=0> br;                                  // derived stock-recruit b from sbro, Ro
   vector<lower=0>[n_years] R2;                       // kick out recruits rather than N(a,t)
   vector[n_ages] Su_Fearly;                          // survivorship including fishing--early
   vector[n_ages] Su_Flate;                           // survivorship including fishing--late    
   real sbrf_early;                                   // spawning biomass per recruit fished
   real sbrf_late;                                    // spawning biomass per recruit fished
-  real<lower=0> pinit;                               // how much depletion from R0
+  real<lower=0> pinit;                               // how much depletion from Ro
   real<lower=0> Rinit;                               // initial recruitment
   vector[n_surveys] SSB_obs;                         // SSB observed
   vector[n_years] pred_N_catch;                      // predicted catch N/ha, *not vulN*
   vector[n_years] pred_B_catch;                      // predicted catch biomass/ha
-  real<lower=0> sbr0_kick;                           // sbr0 report 
-  real ar_mean_kick;                                 // report the ar mean 
   real<lower=0> SPR;                                 // spawning potential ratio
   real<lower=0> SSB_bar;                             // average ssb survey years
   real<lower=0> SBR;                                 // spawning biomass ratio
   real<lower=0> counter_SSB;                         // hack for SBR calcs
   real<lower=0> cr;                                  // compensation ratio kick out to check math
+  real<lower=0> sbro_report;                         // report sbro  
+  real ar_mean_report;                               // report the ar mean 
+  vector<lower=0>[n_ages] l_a_report;                // report length at age a 
+  vector<lower=0>[n_ages] Lo_report;                 // report survivorship unfished (F=0) 
+  vector<lower=0>[n_ages] v_a_report;                // report net vulnerability age a
+  vector<lower=0>[n_ages] v_f_a_report;              // report angling vulnerability age a
+  vector<lower=0>[n_ages] f_a_report;                // report fec at age a
+  vector<lower=0>[n_ages] w_a_report;                // report weight at age a
   
   // calculate sbrf
-  sbr0_kick = sbr0; 
-  ar_mean_kick = ar_mean; 
+  sbro_report = sbro; 
+  ar_mean_report = ar_mean; 
   sbrf_early = 0; 
   sbrf_late = 0; 
   for(a in 1:n_ages){
@@ -143,18 +149,26 @@ transformed parameters {
       }
       sbrf_early += f_a[a]*Su_Fearly[a]; 
       sbrf_late += f_a[a]*Su_Flate[a]; 
+      
+      // fill out report vectors
+      l_a_report[a] = l_a[a]; 
+      Lo_report[a] = Lo[a];
+      v_a_report[a] = v_a[a]; 
+      v_f_a_report[a] = v_f_a[a]; 
+      f_a_report[a] = f_a[a]; 
+      w_a_report[a] = w_a[a]; 
     }
-    SPR = sbrf_late / sbr0; 
+    SPR = sbrf_late / sbro; 
 
   // Calculate recruitment b's, Rinit's
   if(rec_ctl==0){ // ricker b
-    br = (ar + log(sbr0)) / (R0*sbr0); 
+    br = (ar + log(sbro)) / (Ro*sbro); 
   }
   if(rec_ctl==1){ // bev-holt b
-    br = (exp(ar)*sbr0 - 1)/ (R0*sbr0); 
+    br = (exp(ar)*sbro - 1)/ (Ro*sbro); 
   }
   if(Rinit_ctl == 0){
-    Rinit = G*R0; 
+    Rinit = G*Ro; 
   }
   if(Rinit_ctl == 1){
     if(rec_ctl==0){ // ricker Req
@@ -164,7 +178,7 @@ transformed parameters {
       Rinit = (exp(ar)*(sbrf_early-1)) / (br*sbrf_early); 
     }
   }
-  pinit = Rinit / R0; 
+  pinit = Rinit / Ro; 
 
   // Initialize F(t) fishing rate vector from start year to 2018
   for(t in 1:n_years){
@@ -180,7 +194,7 @@ transformed parameters {
   }
   
   // Initialize the N(at) array age structure for t = 1,2
-  cr = exp(ar)*sbr0; 
+  cr = exp(ar)*sbro; 
   for(t in 1:2){
     Nat_array[1, t] =  Rinit;
     if(t == 1){
@@ -188,7 +202,7 @@ transformed parameters {
         Nat_array[a, t] = Nat_array[a-1, t]*exp(-M_a[a-1] - v_f_a[a-1]*F_vec[1]); 
         SSB[t] += Nat_array[a ,t]*f_a[a];
         pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a];  
-        pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a];  
+        pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*w_a[a];  
         }
         pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_vec[1]));
         pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_vec[1]));
@@ -221,7 +235,7 @@ transformed parameters {
       Nat_array[a, t] = Nat_array[a-1, t-1]*exp(-M_a[a-1] - v_f_a[a-1]*F_vec[t-1]);  
       SSB[t] += Nat_array[a ,t]*f_a[a];
       pred_N_catch[t] += Nat_array[a ,t]*v_f_a[a]; 
-      pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*W_a[a]; 
+      pred_B_catch[t] += Nat_array[a ,t]*v_f_a[a]*w_a[a]; 
     }
     pred_N_catch[t] = pred_N_catch[t]*(1-exp(-F_vec[t]));
     pred_B_catch[t] = pred_B_catch[t]*(1-exp(-F_vec[t]));
@@ -233,7 +247,7 @@ transformed parameters {
      }
   }
   SSB_bar = SSB_bar / counter_SSB;
-  SBR = SSB_bar / (R0*sbr0);     
+  SBR = SSB_bar / (Ro*sbro);     
   
   // Calculate the preds vector
   // C(k,a,t)=N(a,t)*Nnet(t)Paged(t)*v_a(a) 
@@ -258,7 +272,7 @@ model {
   // priors:
   v[1] ~ normal(v_prior_early, prior_sigma_v[1]); 
   v[2] ~ normal(v_prior_late, prior_sigma_v[2]); 
-  R0 ~ lognormal(R0_mean, R0_sd); 
+  Ro ~ lognormal(Ro_mean, Ro_sd); 
   ar ~ normal(ar_mean, ar_sd);
   G ~ normal(0,prior_sigma_G); 
   to_vector(w) ~ normal(prior_mean_w, prior_sigma_w); 
@@ -291,7 +305,7 @@ generated quantities{
     real Yeq = 0; 
     for(a in 1:n_ages){
       sbrf += su*f_a[a]; // accumulate spawning biomass per recruit
-      ypr += su*(1-exp(-Fseq[i]*v_f_a[a]))*W_a[a]; 
+      ypr += su*(1-exp(-Fseq[i]*v_f_a[a]))*w_a[a]; 
       su = su*exp(-M_a[a] - Fseq[i]*v_f_a[a]); 
       }
       if(rec_ctl == 0){ // ricker
@@ -314,5 +328,5 @@ generated quantities{
    // Kobe plot calculations 
    F_early_ratio = v[1] / Fmsy;
    F_ratio = v[2] / Fmsy;
-   b_ratio = SSB_bar / (R0*sbr0);
+   b_ratio = SSB_bar / (Ro*sbro);
 }
