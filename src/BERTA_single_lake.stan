@@ -133,6 +133,7 @@ transformed parameters {
   vector<lower=0>[n_ages] v_f_a_report;              // report angling vulnerability age a
   vector<lower=0>[n_ages] f_a_report;                // report fec at age a
   vector<lower=0>[n_ages] w_a_report;                // report weight at age a
+  vector<lower=0>[n_ages] M_a_report;                // report M at age a
   
   // calculate sbrf
   sbro_report = sbro; 
@@ -157,6 +158,7 @@ transformed parameters {
       v_f_a_report[a] = v_f_a[a]; 
       f_a_report[a] = f_a[a]; 
       w_a_report[a] = w_a[a]; 
+      M_a_report[a] = M_a[a]; 
     }
     SPR = sbrf_late / sbro; 
 

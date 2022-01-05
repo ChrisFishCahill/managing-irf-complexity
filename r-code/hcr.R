@@ -1,6 +1,7 @@
 #----------------------------------------------------------------------
 # Harvest control rules for Alberta Walleye lakes
 # Cahill & Walters 3 Jan 2022
+# TODO: assessing every few years code needs updating
 #----------------------------------------------------------------------
 
 # load packages
@@ -13,6 +14,7 @@ library(purrr)
 
 # declare some variables
 ages <- 2:20
+n_ages <- length(ages)
 t <- 2000 # first survey year
 max_a <- max(ages) # max age
 rec_a <- min(ages) # age at recruitment
@@ -31,6 +33,9 @@ fits <- map(paths, readRDS) %>%
 # pick one
 my_string <- names(fits)[1]
 fit <- fits[[which(names(fits) == my_string)]]
+
+# set rec_ctl 
+rec_ctl <- ifelse(grep("bh", my_string), "bh", "ricker")
 
 #----------------------------------------------------------------------
 # extract things from some (identical) rows of the posterior
@@ -129,7 +134,8 @@ leading_pars <- fit %>%
                v_a_report[age],
                v_f_a_report[age], 
                f_a_report[age], 
-               w_a_report[age]) %>%
+               w_a_report[age], 
+               M_a_report[age]) %>%
   filter(.draw %in% draw_idx)
 
 leading_pars$age <- ages # correct ages
@@ -139,6 +145,7 @@ f_a <- leading_pars$f_a_report
 v_survey <- leading_pars$v_a_report
 v_fish <- leading_pars$v_f_a_report
 Lo <- leading_pars$Lo_report
+M_a <- leading_pars$M_a_report
 
 vbro <- sum(Lo * v_survey * w_a)
 sbro <- sum(f_a*Lo)
@@ -172,11 +179,97 @@ ggplot(aes(x=sim_yrs, y=wt)) +
   ylab("Recruitment Anomaly ln(wt)") + 
   ggsidekick::theme_sleek()
 
-
-#run the hcr psedo-code
-#for each cslope i 
-# for each bmin j 
-#  for each draw k 
-#   for each year in n_sim_years l 
-#    [run model, record performance]
+# hcr psedo-code
+# for each cslope i 
+#  for each bmin j 
+#   for each draw k 
+#    for each year in n_sim_years l 
+#     [run model, record performance]
 # end i, j k, l
+
+# Run retrospective simulation for each cslope, bmin, draw, and simulation year
+for (i in seq_along(c_slope_seq)) {
+  c_slope <- c_slope_seq[i]
+  for (j in seq_along(bmin_seq)) {
+    b_lrp <- bmin_seq[j]
+    set.seed(83) # challenge each bmin, cslope combo with same set of unpredictable rec seqs
+    for (k in seq_len(n_draws)) {
+      # k = 1
+      # pick a single draw
+      sub_post <- subset(sampled_post, sampled_post$.draw == unique(sampled_post$.draw)[k])
+      
+      # set leading parameters from sampled draw
+      rec_a <- sub_post$ar[1]
+      rec_b <- sub_post$br[1]
+      Ro <- sub_post$Ro[1]
+      sbo <- Ro * sbro
+      vbo <- Ro * vbro
+      
+      wt <- sub_post$w
+      rec_var <- 1.0 # 1.2 might be fun to try
+      wt <- c(wt, wt * rec_var, wt * rec_var)
+      
+      # extract the initial age structure
+      Ninit <- sub_post[
+        which(sub_post$year == retro_initial_yr),
+        which(colnames(sub_post) %in% ages)
+      ] %>%
+        slice() %>%
+        unlist(., use.names = FALSE)
+      
+      # nta matrix
+      nta <- matrix(NA, nrow = length(wt), ncol = length(ages))
+      
+      # SSB, Rpred vectors
+      SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
+      
+      nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
+      
+      # run age-structured model for sim years
+      for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
+        SSB[t] <- sum(nta[t, ] * f_a * w_a)
+        vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
+        vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
+        
+        # set observed vb from "true" 
+        obs_sd <- 0.1
+        q_survey <- 1.0 #q_survey assumed to be 1.0 in Cahill et al. 2021
+        vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) #-0.5*(0.1)^2 corrects exponential effect on mean observation
+        
+        # Set up hcr
+        TAC <- c_slope * (vB_obs - b_lrp)
+        if (TAC < 0) {
+          TAC <- 0
+          Ut <- 0
+        } else {
+          Ut <- ifelse((TAC / vB_fish[t]) < 0.9, (TAC / vB_fish[t]), 0.9)
+        }
+        
+        # stock-recruitment 
+        if (rec_ctl == "ricker") { 
+          Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
+        }
+        if (rec_ctl == "bh") { 
+          Rpred[t] <- rec_a * SSB[t] * exp(wt[t]) / (1 + rec_b * SSB[t])
+        }
+        
+        # update the age structure
+        for (a in seq_len(n_ages)[-n_ages]) { #ages 2-19 
+          nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a])* (1 - Ut * v_fish[a])
+        }
+        
+        # record performance metrics
+        yield <- Ut * vB_fish[t]
+        yield_array[i, j, t] <- yield_array[i, j, t] + yield
+        tot_y[i, j] <- tot_y[i, j] + yield
+        tot_u[i, j] <- tot_u[i, j] + yield^0.3
+        prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < 0.1 * sbo, 1, 0) # SSBs falling below 0.1*sbo
+        TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
+        
+        # set rec value for next t
+        nta[t + 1, 1] <- Rpred[t]
+      }
+    }
+  }
+}
+  

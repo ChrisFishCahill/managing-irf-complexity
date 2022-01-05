@@ -158,7 +158,7 @@ get_fit <- function(which_lake = "pigeon lake",
           # report stuff: 
           "sbro_report", "ar_mean_report", "l_a_report", 
           "Lo_report", "v_a_report", "v_f_a_report", 
-          "f_a_report", "w_a_report"
+          "f_a_report", "w_a_report", "M_a_report"
         ),
       iter = n_iter,
       warmup = n_warmup,
