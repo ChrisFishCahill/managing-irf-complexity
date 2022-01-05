@@ -2,8 +2,8 @@
 # Harvest control rules for Alberta Walleye lakes
 # Cahill & Walters 3 Jan 2022
 # TODO: 
+# 1) compare carls spreadsheet
 # 2) save output somehow
-# 3) automate stupid which_lake line 42
 #----------------------------------------------------------------------
 
 # load packages
@@ -36,9 +36,12 @@ fits <- map(paths, readRDS) %>%
 my_string <- names(fits)[1]
 fit <- fits[[which(names(fits) == my_string)]]
 
-# set rec_ctl 
+# set rec_ctl and which_lake
 rec_ctl <- ifelse(grep("bh", my_string), "bh", "ricker")
-which_lake <- "lac ste. anne" #needs to be automated
+which_lake <- str_extract(string = my_string, 
+                          pattern = "(?<=fits/).*(?=_bh|ricker)")
+which_lake <- gsub("_", " ", which_lake)
+
 #----------------------------------------------------------------------
 # extract things from some (identical) rows of the posterior
 n_draws <- 100
@@ -154,7 +157,7 @@ sbro <- sum(f_a*Lo)
 vbro
 
 # recruitment sequence repeats:
-n_repeats <- 3 
+n_repeats <- 8 #26*8 = 208 yr time horizon 
 n_sim_years <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
 
 # c_slope and bmin ranges for harvest control rule
@@ -206,8 +209,13 @@ for (i in seq_along(c_slope_seq)) {
       vbo <- Ro * vbro
       
       wt <- sub_post$w
-      rec_var <- 1.0 # 1.2 might be fun to try
-      wt <- c(wt, wt * rec_var, wt * rec_var)
+      wt <- rep(wt, n_repeats)
+      
+      rec_var <- 1.2 # 1.2 might be fun to try
+      
+      #multiply recruitment anomalies after initial period by rec_var
+      wt[(length(retro_initial_yr:retro_terminal_yr)+1):length(wt)] <- 
+        wt[(length(retro_initial_yr:retro_terminal_yr)+1):length(wt)] * rec_var
       
       # extract the initial age structure
       Ninit <- sub_post[
@@ -237,7 +245,7 @@ for (i in seq_along(c_slope_seq)) {
         vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
         vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
         
-        if(t - t_last_ass == ass_int){ #run FWIN survey / set TAC to use until next assessment 
+        if(t - t_last_ass == ass_int){ # run FWIN survey / set TAC to use until next assessment 
           t_last_ass <- t 
           # set observed vb from "true", -0.5*(0.1)^2 corrects exponential effect on mean observation:
           vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) 
@@ -309,6 +317,7 @@ tot_y2 <-
     cslope = as.numeric(as.character(cslope)),
     bmin = as.numeric(as.character(bmin))
   )
+
 highlight <- tot_y2 %>%
   filter(value == max(value))
 
