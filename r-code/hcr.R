@@ -175,7 +175,7 @@ sub_post <- subset(sampled_post, sampled_post$.draw == k)
 wt <- sub_post$w
 
 rec_var <- 1.0 # 1.2 might be fun to try
-wt <- c(wt, wt * rec_var, wt * rec_var)
+wt <- rep(wt, n_repeats)
 df <- data.frame(wt = wt, sim_yrs = 1:n_sim_years)
 
 df %>%
@@ -254,12 +254,11 @@ for (i in seq_along(c_slope_seq)) {
           # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
           vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) 
           TAC <- c_slope * (vB_obs - b_lrp)
+          if (TAC < 0) { # correct negative TACs
+            TAC <- 0
+          } 
+          Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
         }
-        
-        if (TAC < 0) { # correct negative TACs
-          TAC <- 0
-        } 
-        Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
         
         # stock-recruitment 
         if (rec_ctl == "ricker") { 
