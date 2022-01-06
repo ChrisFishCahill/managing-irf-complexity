@@ -2,11 +2,11 @@
 # Harvest control rules for Alberta Walleye lakes
 # Cahill & Walters 3 Jan 2022
 # TODO:
-# 1) save output somehow
-# 2) domestic netting
+# 1) domestic netting
 #----------------------------------------------------------------------
 
 # load packages
+
 library(tidyverse)
 library(tidybayes)
 library(purrr)
@@ -14,17 +14,8 @@ library(purrr)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
 
-#----------------------------------------------------------------------
-#                             ***N.B.***
-# We need to preserve the historical frequency of weak and strong
-# year classes in our recruitment time series for the retrospective
-# analysis
-#
-# Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
-# reference period as most FWIN surveys have information on recruitment
-# to approximately 1990
-#----------------------------------------------------------------------
-
+#--------------------------------------------------------------------
+# write a function to take BERTA posteriors and run retrospective MSE
 
 get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
   #--------------------------------------------------------------------
@@ -264,6 +255,17 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
 
 #----------------------------------------------------------------------
 # declare some values for the simulations
+#----------------------------------------------------------------------
+#                             ***N.B.***
+# We need to preserve the historical frequency of weak and strong
+# year classes in our recruitment time series for the retrospective
+# analysis
+#
+# Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
+# reference period as most FWIN surveys have information on recruitment
+# to approximately 1990
+#----------------------------------------------------------------------
+
 n_draws <- 100
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
