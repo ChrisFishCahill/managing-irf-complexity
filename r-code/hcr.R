@@ -336,7 +336,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
           nta[t + 1, 1] <- Rpred[t]
           
           # record performance metrics
-          yield <- Ut * vB_fish[t]
+          yield <- Ut_overall * rett * vB_fish[t]
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
