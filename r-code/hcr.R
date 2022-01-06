@@ -164,13 +164,13 @@ vbro
 
 # recruitment sequence repeats:
 n_repeats <- 8 # 26*8 = 208 yr time horizon
-n_sim_years <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
+n_sim_yrs <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
 
 # c_slope and bmin ranges for harvest control rule
 c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
 bmin_seq <- seq(from = 0, to = 1.0 * Ro_map * vbro, length.out = length(c_slope_seq))
 tot_y <- tot_u <- prop_below <- TAC_zero <- matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
-yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_years))
+yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
 
 #----------------------------------------------------------------------
 # k = sampled_post$.draw[1] # pick a draw
@@ -179,7 +179,7 @@ yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yea
 #
 # rec_var <- 1.0 # 1.2 might be fun to try
 # wt <- rep(wt, n_repeats)
-# df <- data.frame(wt = wt, sim_yrs = 1:n_sim_years)
+# df <- data.frame(wt = wt, sim_yrs = 1:n_sim_yrs)
 #
 # df %>%
 # ggplot(aes(x=sim_yrs, y=wt)) +
@@ -189,35 +189,74 @@ yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yea
 #   ylab("Recruitment Anomaly ln(wt)") +
 #   ggsidekick::theme_sleek()
 #----------------------------------------------------------------------
-rec_var <- 1.0 # 1.2 might be fun to try
-d_mort <- 0.3 # discard mortality 
+# declare some values for the simulations 
+n_draws <- 1 
+rec_var <- 1.0 # variability of recruitment seqs after first seq
+n_repeats <- 8 # recruitment repeats
+retro_initial_yr <- 1990 # initial year for retrospective analysis 
+retro_terminal_yr <- 2015
+n_sim_yrs <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
+d_mort <- 0.3 # discard mortality
 ah_ret <- 5
-sd_ret <- 1 
-ret_a <- 1/(1+exp(-(ages - ah_ret)/ sd_ret)) # retention by age vector
+sd_ret <- 1
+ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5
+ass_int <- 3 # how often to assess / run FWIN 
+obs_sd <- 0.1
+q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
+Ut_limit <- 0.9 # limit TAC mortality to < this value 
+sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo  
 
-hcr_pars <- c(necessary_stuff_here)
+hcr_pars <- list(
+  "n_draws" = n_draws,
+  "rec_var" = rec_var,
+  "n_repeats" = n_repeats,
+  "retro_initial_yr" = retro_initial_yr, 
+  "retro_terminal_yr" = retro_terminal_yr,
+  "n_sim_yrs" = n_sim_yrs,
+  "d_mort" = d_mort,
+  "ret_a" = ret_a,
+  "Ut_overall" = Ut_overall,
+  "ass_int" = ass_int,
+  "obs_sd" = obs_sd, 
+  "q_survey" = q_survey, 
+  "Ut_limit" = Ut_limit,
+  "sbo_prop" = sbo_prop
+)
 
-# Run retrospective simulation for each cslope, bmin, draw, and simulation year
-get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {  
-  #TODO: set up initializeation. save stuff as list. clean up ugly 
-  #      think about catch and release mortality and partial controlability of Ut.
-  #      streamline plotting from saved list or whatever
+#----------------------------------------------------------------------
+get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
+  # TODO: get posterior draws in here, clean up ugly
+
+  # initialize stuff 
+  n_draws <- hcr_pars$n_draws
+  rec_var <- hcr_pars$rec_var
+  n_repeats <- hcr_pars$n_repeats
+  retro_initial_yr <- hcr$retro_initial_yr
+  retro_terminal_yr <- hcr$retro_terminal_yr
+  n_sim_yrs <- hcr$n_sim_yrs
+  d_mort <- hcr_pars$d_mort
+  ret_a <- hcr_pars$ret_a
+  Ut_overall <- hcr_pars$Ut_overall     
+  ass_int <- hcr_pars$ass_int 
+  obs_sd <- hcr_pars$obs_sd 
+  q_survey <- hcr_pars$q_survey 
+  Ut_limit <- hcr_pars$Ut_limit
   
-  # initialize stuff here
-  
+
   #--------------------------------------------------------------------
   # hcr psedo-code
-  # 
+  #
   # for each cslope i
   #  for each bmin j
   #   for each posterior draw k
-  #    for each year in n_sim_years t
+  #    for each year in n_sim_yrs t
   #       run model
   #       record performance
   # end i, j k, l
   #--------------------------------------------------------------------
   
+  # run retrospective simulation for each cslope, bmin, draw, and simulation year
   for (i in seq_along(c_slope_seq)) {
     c_slope <- c_slope_seq[i]
     for (j in seq_along(bmin_seq)) {
@@ -236,7 +275,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
 
         wt <- sub_post$w
         wt_bar <- mean(wt)
-        wt <- wt - wt_bar # correct nonzero wt over test period
+        wt <- wt - wt_bar # correct nonzero wt over initialization period
         wt <- rep(wt, n_repeats)
 
         # multiply recruitment anomalies after initial period by rec_var (ugly)
@@ -259,14 +298,10 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
 
         nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
 
-        ass_int <- 3 # assessment interval
         t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
-        Ut_max <- 0.9
 
-        obs_sd <- 0.1
-        q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0 
         # run age-structured model for sim years
-        for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
+        for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # years 1 to (n_sim_year-1)
           SSB[t] <- sum(nta[t, ] * f_a * w_a)
           vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
           vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
@@ -276,12 +311,12 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
             vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2)
             TAC <- c_slope * (vB_obs - b_lrp)
-            if (TAC < 0) { 
+            if (TAC < 0) {
               TAC <- 0
             }
             Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
           }
-          rett <- Ut / Ut_overall #rett = annual retention proportion 
+          rett <- Ut / Ut_overall # rett = annual retention proportion
 
           # stock-recruitment
           if (rec_ctl == "ricker") {
@@ -293,7 +328,8 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
 
           # update the age structure
           for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
-            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut_overall * v_fish[a]]*(ret_a[a]*rett + (1-ret_a[a]*rett)*d_mort))
+            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) *
+              (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
           }
 
           # record performance metrics
@@ -301,7 +337,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
-          prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < 0.1 * sbo, 1, 0) # SSBs falling below 0.1*sbo
+          prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0) # SSB below sbo_prop? 
           TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
 
           # set rec value for next t
@@ -310,27 +346,37 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
       }
     }
   }
-  return(big_list_of_interesting_stuff)
+  # process simulation output - get annual values
+  tot_y <- tot_y / (n_draws * n_sim_yrs)
+  tot_u <- tot_u / (n_draws * n_sim_yrs)
+  prop_below <- prop_below / (n_draws * n_sim_yrs)
+  TAC_zero <- TAC_zero / (n_draws * n_sim_yrs)
+
+  row.names(tot_y) <- row.names(tot_u) <- row.names(prop_below) <- row.names(TAC_zero) <- c_slope_seq
+  colnames(tot_y) <- colnames(tot_u) <- colnames(prop_below) <- colnames(TAC_zero) <- round(bmin_seq, 2)
+
+  yield_array <- yield_array / n_draws # expected yield seqs for each cslope, bmin
+  row_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[1]
+  col_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[2]
+  MSY_yields <- yield_array[row_idx, col_idx, ] # best MSY yields
+
+  row_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[1]
+  col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
+  HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
+
+  hcr_sim_list <- list(
+    "tot_y" = tot_y, "tot_u" = tot_u,
+    "prop_below" = prop_below, "TAC_zero" = TAC_zero,
+    "yield_array" = yield_array, "MSY_yields" = MSY_yields,
+    "HARA_yields" = HARA_yields
+  )
+  hcr_sim_list
 }
 
-# Process simulation output
-# Get annual values
-tot_y <- tot_y / (n_draws * n_sim_years)
-tot_u <- tot_u / (n_draws * n_sim_years)
-prop_below <- prop_below / (n_draws * n_sim_years)
-TAC_zero <- TAC_zero / (n_draws * n_sim_years)
 
-row.names(tot_y) <- row.names(tot_u) <- row.names(prop_below) <- row.names(TAC_zero) <- c_slope_seq
-colnames(tot_y) <- colnames(tot_u) <- colnames(prop_below) <- colnames(TAC_zero) <- round(bmin_seq, 2)
-
-yield_array <- yield_array / n_draws # expected yield seqs for each cslope, bmin
-row_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[1]
-col_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[2]
-MSY_yields <- yield_array[row_idx, col_idx, ] # best MSY yields
-
-row_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[1]
-col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
-HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
+#----------------------------------------------------------------------
+# plots 
+#----------------------------------------------------------------------
 
 # yield plot
 tot_y2 <-
@@ -431,14 +477,14 @@ p4
 msys <- data.frame(
   "yield" = MSY_yields,
   "Policy" = "MSY policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_years - 1)
+  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
 ) %>%
   filter(year <= retro_terminal_yr)
 
 haras <- data.frame(
   "yield" = HARA_yields,
   "Policy" = "HARA policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_years - 1)
+  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
 ) %>%
   filter(year <= retro_terminal_yr)
 
