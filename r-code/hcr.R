@@ -1,9 +1,9 @@
 #----------------------------------------------------------------------
 # Harvest control rules for Alberta Walleye lakes
 # Cahill & Walters 3 Jan 2022
-# TODO: 
+# TODO:
 # 1) compare carls spreadsheet
-# 2) unfuck stupid wbar hogwash 
+# 2) unfuck stupid wbar hogwash
 # 2) save output somehow
 #----------------------------------------------------------------------
 
@@ -40,8 +40,10 @@ fit <- fits[[which(names(fits) == my_string)]]
 
 # set rec_ctl and which_lake
 rec_ctl <- ifelse(grep("bh", my_string), "bh", "ricker")
-which_lake <- str_extract(string = my_string, 
-                          pattern = "(?<=fits/).*(?=_bh|ricker)")
+which_lake <- str_extract(
+  string = my_string,
+  pattern = "(?<=fits/).*(?=_bh|ricker)"
+)
 which_lake <- gsub("_", " ", which_lake)
 
 #----------------------------------------------------------------------
@@ -131,19 +133,21 @@ sampled_post <- left_join(sampled_post, devs,
 # Extract MAP estimate of Ro from posterior (for indexing bmin)
 Ro_summary <- rstan::summary(fit, pars = "Ro")$summary
 Ro_map <- Ro_summary[, "mean"]
-Ro_map 
+Ro_map
 
 #---------------------------------------------------------
 # extrac leading parameters from stan to get vbro
 leading_pars <- fit %>%
-  spread_draws(Lo_report[age], 
-               l_a_report[age], 
-               v_a_report[age],
-               v_f_a_report[age], 
-               f_a_report[age], 
-               w_a_report[age], 
-               M_a_report[age]) %>%
-  filter(.draw %in% draw_idx[1]) # indexed on 1 bc not changing 
+  spread_draws(
+    Lo_report[age],
+    l_a_report[age],
+    v_a_report[age],
+    v_f_a_report[age],
+    f_a_report[age],
+    w_a_report[age],
+    M_a_report[age]
+  ) %>%
+  filter(.draw %in% draw_idx[1]) # indexed on 1 bc not changing
 
 leading_pars$age <- ages # correct ages
 
@@ -155,11 +159,11 @@ Lo <- leading_pars$Lo_report
 M_a <- leading_pars$M_a_report
 
 vbro <- sum(Lo * v_survey * w_a)
-sbro <- sum(f_a*Lo)
+sbro <- sum(f_a * Lo)
 vbro
 
 # recruitment sequence repeats:
-n_repeats <- 8 #26*8 = 208 yr time horizon 
+n_repeats <- 8 # 26*8 = 208 yr time horizon
 n_sim_years <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
 
 # c_slope and bmin ranges for harvest control rule
@@ -169,124 +173,137 @@ tot_y <- tot_u <- prop_below <- TAC_zero <- matrix(0, nrow = length(c_slope_seq)
 yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_years))
 
 #----------------------------------------------------------------------
-k = sampled_post$.draw[1] # pick a draw
-sub_post <- subset(sampled_post, sampled_post$.draw == k)
-wt <- sub_post$w
-
+# k = sampled_post$.draw[1] # pick a draw
+# sub_post <- subset(sampled_post, sampled_post$.draw == k)
+# wt <- sub_post$w
+#
+# rec_var <- 1.0 # 1.2 might be fun to try
+# wt <- rep(wt, n_repeats)
+# df <- data.frame(wt = wt, sim_yrs = 1:n_sim_years)
+#
+# df %>%
+# ggplot(aes(x=sim_yrs, y=wt)) +
+#   geom_point() +
+#   geom_line() +
+#   xlab("Year of Simulation") +
+#   ylab("Recruitment Anomaly ln(wt)") +
+#   ggsidekick::theme_sleek()
+#----------------------------------------------------------------------
 rec_var <- 1.0 # 1.2 might be fun to try
-wt <- rep(wt, n_repeats)
-df <- data.frame(wt = wt, sim_yrs = 1:n_sim_years)
-
-df %>%
-ggplot(aes(x=sim_yrs, y=wt)) + 
-  geom_point() + 
-  geom_line() + 
-  xlab("Year of Simulation") + 
-  ylab("Recruitment Anomaly ln(wt)") + 
-  ggsidekick::theme_sleek()
-
-# hcr psedo-code
-# for each cslope i 
-#  for each bmin j 
-#   for each draw k 
-#    for each year in n_sim_years l 
-#     [run model, record performance]
-# end i, j k, l
+hcr_pars <- c(necessary_stuff_here)
 
 # Run retrospective simulation for each cslope, bmin, draw, and simulation year
-for (i in seq_along(c_slope_seq)) {
-  c_slope <- c_slope_seq[i]
-  for (j in seq_along(bmin_seq)) {
-    b_lrp <- bmin_seq[j]
-    set.seed(83) # challenge each bmin, cslope combo with same set of rec seqs
-    for (k in seq_len(n_draws)) {
-      # pick a single draw
-      sub_post <- subset(sampled_post, sampled_post$.draw == unique(sampled_post$.draw)[k])
-      
-      # set leading parameters from sampled draw
-      rec_a <- sub_post$ar[1]
-      rec_b <- sub_post$br[1]
-      Ro <- sub_post$Ro[1]
-      sbo <- Ro * sbro
-      vbo <- Ro * vbro
-      
-      wt <- sub_post$w
-      wt_bar <- mean(wt)
-      wt <- wt - wt_bar # correct nonzero wt over test period 
-      wt <- rep(wt, n_repeats)
-      
-      rec_var <- 1.0 # 1.2 might be fun to try
-      
-      #multiply recruitment anomalies after initial period by rec_var
-      wt[(length(retro_initial_yr:retro_terminal_yr)+1):length(wt)] <- 
-        wt[(length(retro_initial_yr:retro_terminal_yr)+1):length(wt)] * rec_var
-      
-      # extract the initial age structure
-      Ninit <- sub_post[
-        which(sub_post$year == retro_initial_yr),
-        which(colnames(sub_post) %in% ages)
-      ] %>%
-        slice() %>%
-        unlist(., use.names = FALSE)
-      
-      # nta matrix
-      nta <- matrix(NA, nrow = length(wt), ncol = length(ages))
-      
-      # SSB, Rpred, vulnerable biomass vectors
-      SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
-      
-      nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
-      
-      ass_int <- 3 # assessment interval 
-      t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
-      Ut_max <- 0.9
-      
-      obs_sd <- 0.1
-      q_survey <- 1.0 # q_survey assumed to be 1.0 in Cahill et al. 2021
-      # run age-structured model for sim years
-      for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
-        SSB[t] <- sum(nta[t, ] * f_a * w_a)
-        vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
-        vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
-        
-        if(t - t_last_ass == ass_int){ # assess every ass_int yrs
-          t_last_ass <- t 
-          # set observed vb from "true"
-          # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
-          vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2) 
-          TAC <- c_slope * (vB_obs - b_lrp)
-          if (TAC < 0) { # correct negative TACs
-            TAC <- 0
-          } 
-          Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
+get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {  
+  #TODO: set up initializeation. save stuff as list. clean up ugly 
+  #      think about catch and release mortality and partial controlability of Ut.
+  #      streamline plotting from saved list or whatever
+  
+  # initialize stuff here
+  
+  #--------------------------------------------------------------------
+  # hcr psedo-code
+  # 
+  # for each cslope i
+  #  for each bmin j
+  #   for each posterior draw k
+  #    for each year in n_sim_years t
+  #       run model
+  #       record performance
+  # end i, j k, l
+  #--------------------------------------------------------------------
+  
+  for (i in seq_along(c_slope_seq)) {
+    c_slope <- c_slope_seq[i]
+    for (j in seq_along(bmin_seq)) {
+      b_lrp <- bmin_seq[j]
+      set.seed(83) # challenge each bmin, cslope combo with same set of rec seqs
+      for (k in seq_len(n_draws)) {
+        # pick a single draw
+        sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
+
+        # set leading parameters from sampled draw
+        rec_a <- sub_post$ar[1]
+        rec_b <- sub_post$br[1]
+        Ro <- sub_post$Ro[1]
+        sbo <- Ro * sbro
+        vbo <- Ro * vbro
+
+        wt <- sub_post$w
+        wt_bar <- mean(wt)
+        wt <- wt - wt_bar # correct nonzero wt over test period
+        wt <- rep(wt, n_repeats)
+
+        # multiply recruitment anomalies after initial period by rec_var (ugly)
+        wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] <-
+          wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] * rec_var
+
+        # extract the initial age structure
+        Ninit <- sub_post[
+          which(sub_post$year == retro_initial_yr),
+          which(colnames(sub_post) %in% ages)
+        ] %>%
+          slice() %>%
+          unlist(., use.names = FALSE)
+
+        # nta matrix
+        nta <- matrix(NA, nrow = length(wt), ncol = length(ages))
+
+        # SSB, Rpred, vulnerable biomass vectors
+        SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
+
+        nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
+
+        ass_int <- 3 # assessment interval
+        t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
+        Ut_max <- 0.9
+
+        obs_sd <- 0.1
+        q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0 
+        # run age-structured model for sim years
+        for (t in seq_len(n_sim_years)[-n_sim_years]) { # years 1 to (n_sim_year-1)
+          SSB[t] <- sum(nta[t, ] * f_a * w_a)
+          vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
+          vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
+
+          if (t - t_last_ass == ass_int) { # assess every ass_int yrs
+            t_last_ass <- t
+            # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
+            vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2)
+            TAC <- c_slope * (vB_obs - b_lrp)
+            if (TAC < 0) { 
+              TAC <- 0
+            }
+            Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
+          }
+
+          # stock-recruitment
+          if (rec_ctl == "ricker") {
+            Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
+          }
+          if (rec_ctl == "bh") {
+            Rpred[t] <- rec_a * SSB[t] * exp(wt[t]) / (1 + rec_b * SSB[t])
+          }
+
+          # update the age structure
+          for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
+            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut * v_fish[a])
+          }
+
+          # record performance metrics
+          yield <- Ut * vB_fish[t]
+          yield_array[i, j, t] <- yield_array[i, j, t] + yield
+          tot_y[i, j] <- tot_y[i, j] + yield
+          tot_u[i, j] <- tot_u[i, j] + yield^0.3
+          prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < 0.1 * sbo, 1, 0) # SSBs falling below 0.1*sbo
+          TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
+
+          # set rec value for next t
+          nta[t + 1, 1] <- Rpred[t]
         }
-        
-        # stock-recruitment 
-        if (rec_ctl == "ricker") { 
-          Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
-        }
-        if (rec_ctl == "bh") { 
-          Rpred[t] <- rec_a * SSB[t] * exp(wt[t]) / (1 + rec_b * SSB[t])
-        }
-        
-        # update the age structure
-        for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19 
-          nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a])* (1 - Ut * v_fish[a])
-        }
-        
-        # record performance metrics
-        yield <- Ut * vB_fish[t]
-        yield_array[i, j, t] <- yield_array[i, j, t] + yield
-        tot_y[i, j] <- tot_y[i, j] + yield
-        tot_u[i, j] <- tot_u[i, j] + yield^0.3
-        prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < 0.1 * sbo, 1, 0) # SSBs falling below 0.1*sbo
-        TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
-        
-        # set rec value for next t
-        nta[t + 1, 1] <- Rpred[t]
       }
     }
   }
+  return(big_list_of_interesting_stuff)
 }
 
 # Process simulation output
@@ -328,10 +345,10 @@ p1 <- tot_y2 %>%
   geom_contour_filled(bins = 15) +
   ggsidekick::theme_sleek() +
   labs(fill = "Yield") +
-  geom_point(data=highlight, aes(x=bmin, y=cslope), size=1.75, show.legend = F) +
+  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
   scale_color_manual(values = c(NA, "black")) +
   xlab("Limit reference biomass (kg)")
-p1 
+p1
 
 tot_u2 <-
   as.data.frame.table(tot_u, responseName = "value", dnn = c("cslope", "bmin")) %>%
@@ -352,10 +369,10 @@ p2 <- tot_u2 %>%
   geom_contour_filled(bins = 15) +
   ggsidekick::theme_sleek() +
   labs(fill = "Utility") +
-  geom_point(data=highlight, aes(x=bmin, y=cslope), size=1.75, show.legend = F) +
+  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
   scale_color_manual(values = c(NA, "black")) +
   xlab("Limit reference biomass (kg)")
-p2 
+p2
 
 prop_below2 <-
   as.data.frame.table(prop_below, responseName = "value", dnn = c("cslope", "bmin")) %>%
@@ -429,12 +446,12 @@ haras <- data.frame(
 #   ) %>%
 #   select("yield", "Policy", "year")
 
-all_yields <- rbind(msys, haras) #, obs_yields
+all_yields <- rbind(msys, haras) # , obs_yields
 p5 <- all_yields %>%
   ggplot(aes(x = year, y = yield, linetype = Policy, color = Policy)) +
   geom_line(size = 1.5) +
-  scale_linetype_manual(values = c("dotted", "solid")) + #, "solid"
-  scale_color_manual(values = c("black", "grey")) + #, "black"
+  scale_linetype_manual(values = c("dotted", "solid")) + # , "solid"
+  scale_color_manual(values = c("black", "grey")) + # , "black"
   xlab("Year") +
   ylab("Yield (kg)") +
   ggsidekick::theme_sleek() +
@@ -450,12 +467,12 @@ size <- 3
 
 p5 <- p5 +
   annotate("text", which_x, Inf,
-           vjust = 3, hjust = hjust,
-           label = which_lake, size = size
+    vjust = 3, hjust = hjust,
+    label = which_lake, size = size
   )
 
 my_plot <- cowplot::plot_grid(p1, p2, p3, p4,
-                              nrow = 2
+  nrow = 2
 )
 
 filename <- paste0("plots/", which_lake, "_cr6_hcr_plot.pdf")
@@ -471,15 +488,15 @@ ggsave(
 ##############################################################################################
 ##############################################################################################
 
-#EXTRA stuff to get wt sequences to CJ
+# EXTRA stuff to get wt sequences to CJ
 
-# extract most likely wt sequences from lakes bh cr =6 
-# for carl 
+# extract most likely wt sequences from lakes bh cr =6
+# for carl
 # find the fits corresponding to beverton-holt compensation ratio = 6
-# 
+#
 # retro_initial_yr <- 1990
 # retro_terminal_yr <- 2015
-# 
+#
 stan_files <- list.files("fits/", full.names = TRUE)
 stan_files <- stan_files[grep("bh_cr_12", stan_files)]
 
@@ -488,28 +505,32 @@ big_list <-
   purrr::set_names(.) %>%
   purrr::map(readRDS)
 
-wt <- big_list %>% map_dfr(function(big_list) { # extract recruits
-  big_list %>%
-    spread_draws(w[year]) %>%
-    mutate(
-      value = w,
-      year = year + initial_yr_minus_one
-    ) %>%
-    summarise(
-      med = quantile(w, 0.5), # posterior median
-    )
-}, .id = "stan_file") %>%
-  mutate("name" = str_extract(string = stan_file,
-                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
+wt <- big_list %>%
+  map_dfr(function(big_list) { # extract recruits
+    big_list %>%
+      spread_draws(w[year]) %>%
+      mutate(
+        value = w,
+        year = year + initial_yr_minus_one
+      ) %>%
+      summarise(
+        med = quantile(w, 0.5), # posterior median
+      )
+  }, .id = "stan_file") %>%
+  mutate("name" = str_extract(
+    string = stan_file,
+    pattern = "(?<=fits/).*(?=_bh|ricker)"
+  )) %>%
   mutate(name = gsub("_", " ", name)) %>%
   filter(year %in% retro_initial_yr:retro_terminal_yr)
 
 wts <- wt %>%
-  pivot_wider(id_cols = -stan_file,
-              names_from = name,
-              values_from = med)
+  pivot_wider(
+    id_cols = -stan_file,
+    names_from = name,
+    values_from = med
+  )
 
-#write.csv(wts, "data/most_likely_wts_cr_12.csv")
+# write.csv(wts, "data/most_likely_wts_cr_12.csv")
 
 ##############################################################################################
-  
