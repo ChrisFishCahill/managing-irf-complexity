@@ -4,7 +4,6 @@
 # TODO:
 # 1) domestic netting
 #----------------------------------------------------------------------
-
 # load packages
 
 library(tidyverse)
@@ -264,6 +263,9 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
 # Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
 # reference period as most FWIN surveys have information on recruitment
 # to approximately 1990
+# 
+# We will repeate this 26 yr sequence 8 times for 208 yr time horizon, the
+# goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
 n_draws <- 100
