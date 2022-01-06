@@ -122,14 +122,12 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
     filter(.draw %in% draw_idx[1]) # indexed on 1 bc not changing
 
   leading_pars$age <- ages # correct ages
-
   w_a <- leading_pars$w_a_report
   f_a <- leading_pars$f_a_report
   v_survey <- leading_pars$v_a_report
   v_fish <- leading_pars$v_f_a_report
   Lo <- leading_pars$Lo_report
   M_a <- leading_pars$M_a_report
-
   vbro <- sum(Lo * v_survey * w_a)
   sbro <- sum(f_a * Lo)
 
@@ -266,7 +264,7 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
 
 #----------------------------------------------------------------------
 # declare some values for the simulations
-n_draws <- 1
+n_draws <- 100
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
@@ -320,7 +318,8 @@ paths <- paste0(getwd(), "/fits/", paths)
 paths <- paths[grep("bh_cr_6", paths)]
 fits <- map(paths, readRDS) %>%
   set_names(paths)
-hcr_pars$n_draws <- 100
+
+hcr_pars$n_draws <- 1
 system.time(
  run <- get_hcr(which_lake = "baptiste lake", hcr_pars = hcr_pars)
 )
@@ -328,6 +327,8 @@ system.time(
 #----------------------------------------------------------------------
 # plots
 #----------------------------------------------------------------------
+tot_y <- run$tot_y
+tot_u <- run$tot_u
 
 # yield plot
 tot_y2 <-
@@ -539,16 +540,18 @@ ggsave(
 
 ##############################################################################################
 #----------------------------------------------------------------------
-# k = sampled_post$.draw[1] # pick a draw
-# sub_post <- subset(sampled_post, sampled_post$.draw == k)
+
+# make a recruitment series plot 
+# k = post$.draw[1] # pick a draw
+# sub_post <- subset(post, sampled_post$.draw == k)
 # wt <- sub_post$w
-#
+# 
 # rec_var <- 1.0 # 1.2 might be fun to try
 # wt <- rep(wt, n_repeats)
 # df <- data.frame(wt = wt, sim_yrs = 1:n_sim_yrs)
-#
+# 
 # df %>%
-# ggplot(aes(x=sim_yrs, y=wt)) +
+#   ggplot(aes(x=sim_yrs, y=wt)) +
 #   geom_point() +
 #   geom_line() +
 #   xlab("Year of Simulation") +
