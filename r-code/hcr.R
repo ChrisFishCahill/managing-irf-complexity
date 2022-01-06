@@ -194,6 +194,7 @@ d_mort <- 0.3 # discard mortality
 ah_ret <- 5
 sd_ret <- 1 
 ret_a <- 1/(1+exp(-(ages - ah_ret)/ sd_ret)) # retention by age vector
+Ut_overall <- 0.5
 
 hcr_pars <- c(necessary_stuff_here)
 
@@ -280,6 +281,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
             }
             Ut <- ifelse((TAC / vB_fish[t]) < Ut_max, (TAC / vB_fish[t]), Ut_max)
           }
+          rett <- Ut / Ut_overall #rett = annual retention proportion 
 
           # stock-recruitment
           if (rec_ctl == "ricker") {
@@ -291,7 +293,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
 
           # update the age structure
           for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
-            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut * v_fish[a]]*(ret_a[a]+(1-ret_a[a])*d_mort))
+            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut_overall * v_fish[a]]*(ret_a[a]*rett + (1-ret_a[a]*rett)*d_mort))
           }
 
           # record performance metrics
