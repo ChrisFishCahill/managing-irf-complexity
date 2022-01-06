@@ -190,6 +190,11 @@ yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yea
 #   ggsidekick::theme_sleek()
 #----------------------------------------------------------------------
 rec_var <- 1.0 # 1.2 might be fun to try
+d_mort <- 0.3 # discard mortality 
+ah_ret <- 5
+sd_ret <- 1 
+ret_a <- 1/(1+exp(-(ages - ah_ret)/ sd_ret)) # retention by age vector
+
 hcr_pars <- c(necessary_stuff_here)
 
 # Run retrospective simulation for each cslope, bmin, draw, and simulation year
@@ -286,7 +291,7 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
 
           # update the age structure
           for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
-            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut * v_fish[a])
+            nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) * (1 - Ut * v_fish[a]]*(ret_a[a]+(1-ret_a[a])*d_mort))
           }
 
           # record performance metrics
