@@ -286,7 +286,7 @@ sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5
 ass_int <- 3 # how often to assess / run FWIN
-obs_sd <- 0.1
+obs_sd <- 0.1 # survey observation error 
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 Ut_limit <- 0.9 # limit TAC mortality to < this value
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
