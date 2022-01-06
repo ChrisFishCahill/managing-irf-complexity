@@ -320,9 +320,10 @@ paths <- paste0(getwd(), "/fits/", paths)
 paths <- paths[grep("bh_cr_6", paths)]
 fits <- map(paths, readRDS) %>%
   set_names(paths)
-
-run <- get_hcr(which_lake = "pigeon lake", hcr_pars = hcr_pars)
-
+hcr_pars$n_draws <- 100
+system.time(
+ run <- get_hcr(which_lake = "baptiste lake", hcr_pars = hcr_pars)
+)
 
 #----------------------------------------------------------------------
 # plots

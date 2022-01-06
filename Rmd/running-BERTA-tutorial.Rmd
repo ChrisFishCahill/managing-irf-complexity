@@ -8,11 +8,6 @@ output:
 highlight: tango
 urlcolor: blue
 ---
-# TODO from 4 Jan 2022 conversation 
-- diagnostics--general talk
-- add new data exercise 
-- run fit without fancy wrapper 
-
 # Goals
 - Import the FWIN and stocking data, and demonstrate how to add new data to the original data used in Cahill et al. 2021
 - Become familiar with the `run.R` script
@@ -36,6 +31,7 @@ library(future)
 We will work with the Fall Walleye Index Netting (FWIN) dataset used in Cahill et al. (2021), which included all Alberta lakes with $\ge$ 3 FWIN surveys during 2000-2018.  Life history parameters $\omega$, $A_{50}$, $L_{\infty}$, $vbk$, and ${\beta}_{wl}$ were obtained using hierarchical modeling methods described in Cahill et al. (2020), and these values represent lake-specific averages. 
 
 ```{r}
+# note the "here:here" is an Rmd thing and you don't have to worry about it (sorrr): 
 data <- readRDS(here::here("data/BERTA-wide-0-25.rds"))
 glimpse(data)
 ```
@@ -56,10 +52,11 @@ Consequently, if one wanted to add new data to the `BERTA-wide-0-25.rds` file fr
 
 - declares the value in the `year` slot as 2022 - 2000 + 1 = 23
 - repeats the name for that lake as per the names in `name` slot
-- sets the number of nets (nnets) as the sum of full nets (each net equal to 1) and half nets (each worth 0.5)
+- sets the number of nets (nnets and effort are the same) as the sum of full nets (each net equal to 1) and half nets (each worth 0.5)
 - calculates the proportion of fish with age structure estimates in that survey in the `p_aged` slot
 - puts the catch at each age from 0 to 25 in columns labelled '0', '1', ..., '25'
 - all other columns just need to be copied for the lake of interest
+- if you had an entirely new lake that you wanted to add, you'd have to calculate the relevant life history parameters and plug them into their corresponding slots. 
 
 To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018 in that lake. Thus, if you want to add stocking values after 2018 you'd add new columns for the years of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
 
@@ -546,7 +543,13 @@ fit <- readRDS(which_file)
 shinystan::launch_shinystan(fit)
 ```
 
-After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. 
+After running these lines, a browser opens and you can explore the performance of chains and a variety of other Bayesian MCMC model diagnostics. There are many Bayesian model algorithm diagnostics for Stan. 
+
+Three of importance are discussed here.  The first is the Neff or number of effective samples parameter.  For estimated parameters this should be relatively high.  For Cahill et al. (2021), all these were > 1000. 
+
+The second is that it is wise to visually inspect the chains.  They should look like fuzzy caterpillars and not have any obvious trends--phrased differently, all chains should converge to a common value for each parameter.  
+
+The last thing to be aware of are the dreaded divergent transitions.  This is a technical issue that indicates there's some degeneracy going on about your model *and thus that your results cannot be trusted.*  There is much literature on this topic available on google. You shouldn't see any of these in a BERTA run, and if you do it is because you 1) changed a structural equation in the model or 2) made a prior (or combination of priors) too vague.
 
 See also <http://mc-stan.org/shinystan/>
 
