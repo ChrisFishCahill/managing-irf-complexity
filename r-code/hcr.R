@@ -331,17 +331,17 @@ get_hcr <- function(post = sampled_post, hcr_pars = hcr_pars) {
             nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) *
               (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
           }
-
+     
+          # set rec value for next t
+          nta[t + 1, 1] <- Rpred[t]
+          
           # record performance metrics
           yield <- Ut * vB_fish[t]
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
-          prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0) # SSB below sbo_prop? 
+          prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0) 
           TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
-
-          # set rec value for next t
-          nta[t + 1, 1] <- Rpred[t]
         }
       }
     }
