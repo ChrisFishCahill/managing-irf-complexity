@@ -100,7 +100,7 @@ get_fit <- function(which_lake = "pigeon lake",
     ages = ages,
     survey_yrs = survey_yrs,
     which_year = 1996 - initial_yr + 2, # which integer corresponds to year = 1997
-    v_prior_early = 0.3,
+    v_prior_early = 0.5, # note this was 0.3 in Cahill et al. 2021
     v_prior_late = 0.1,
     prior_sigma_v = c(0.1, 0.5),
     Ro_mean = log(6),

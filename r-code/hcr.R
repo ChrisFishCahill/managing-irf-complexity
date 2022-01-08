@@ -1,22 +1,19 @@
 #----------------------------------------------------------------------
 # Harvest control rules for Alberta Walleye lakes
 # Cahill & Walters 3 Jan 2022
-# TODO:
-# 1) domestic netting
 #----------------------------------------------------------------------
 # load packages
-
 library(tidyverse)
 library(tidybayes)
 library(purrr)
-
+# library(rstan)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
 
 #--------------------------------------------------------------------
 # write a function to take BERTA posteriors and run retrospective MSE
 
-get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
+get_hcr <- function(which_lake = "lac ste. anne") {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
@@ -34,7 +31,7 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
   ret_a <- hcr_pars$ret_a
   Ut_overall <- hcr_pars$Ut_overall
   ass_int <- hcr_pars$ass_int
-  obs_sd <- hcr_pars$obs_sd
+  cv_survey <- hcr_pars$cv_survey
   q_survey <- hcr_pars$q_survey
   Ut_limit <- hcr_pars$Ut_limit
   sbo_prop <- hcr_pars$sbo_prop
@@ -42,7 +39,8 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
   #--------------------------------------------------------------------
-  fit_idx <- which(grepl(gsub(" ", "_", which_lake), names(fits)))
+  lake_str <- gsub(" ", "_", which_lake)
+  fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grep("bh", names(fits)[fit_idx]), "bh", "ricker")
 
@@ -126,8 +124,8 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
   #----------------------------------------------------------------------
   c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
   bmin_seq <- seq(from = 0, to = 1.0 * Ro_map * vbro, length.out = length(c_slope_seq))
-  tot_y <- tot_u <-
-    prop_below <- TAC_zero <- matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
+  tot_y <- tot_u <- prop_below <- TAC_zero <- 
+    matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
 
   #----------------------------------------------------------------------
@@ -183,7 +181,7 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
-            vB_obs <- q_survey * vB_survey[t] * exp(obs_sd * (rnorm(1)) - 0.5 * (obs_sd)^2)
+            vB_obs <- q_survey * vB_survey[t] * exp(cv_survey * (rnorm(1)) - 0.5 * (cv_survey)^2)
             TAC <- c_slope * (vB_obs - b_lrp)
             if (TAC < 0) {
               TAC <- 0
@@ -215,7 +213,7 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
-          TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(TAC == 0, 1, 0)
+          TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0) 
         }
       }
     }
@@ -264,8 +262,8 @@ get_hcr <- function(which_lake = "lac ste. anne", hcr_pars = hcr_pars) {
 # reference period as most FWIN surveys have information on recruitment
 # to approximately 1990
 # 
-# We will repeate this 26 yr sequence 8 times for 208 yr time horizon, the
-# goal of which is to find a stationary harvest control rule
+# We will repeat this 26 yr sequence 8 times for 208 yr time horizon,  
+# the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
 n_draws <- 100
@@ -284,9 +282,9 @@ d_mort <- 0.3 # discard mortality
 ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
-Ut_overall <- 0.5
+Ut_overall <- 0.5 # max U that fishermen can exert
 ass_int <- 3 # how often to assess / run FWIN
-obs_sd <- 0.1 # survey observation error 
+cv_survey <- 0.1 # survey observation error 
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 Ut_limit <- 0.9 # limit TAC mortality to < this value
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
@@ -306,7 +304,7 @@ hcr_pars <- list(
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
   "ass_int" = ass_int,
-  "obs_sd" = obs_sd,
+  "cv_survey" = cv_survey,
   "q_survey" = q_survey,
   "Ut_limit" = Ut_limit,
   "sbo_prop" = sbo_prop
@@ -323,175 +321,20 @@ paths <- paths[grep("bh_cr_6", paths)]
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
+# hcr_pars$n_draws <- 100
+# system.time(
+#  run <- get_hcr(which_lake = "pigeon lake", hcr_pars = hcr_pars)
+# )
+
 hcr_pars$n_draws <- 1
-system.time(
- run <- get_hcr(which_lake = "baptiste lake", hcr_pars = hcr_pars)
-)
+
+to_sim <- tibble(which_lake = c("pigeon lake", "lac ste. anne"))
+fit <- pmap(to_sim, get_hcr) 
+
+names(fit) #
+#map through and name these buggers 
 
 #----------------------------------------------------------------------
-# plots
-#----------------------------------------------------------------------
-tot_y <- run$tot_y
-tot_u <- run$tot_u
-
-# yield plot
-tot_y2 <-
-  as.data.frame.table(tot_y, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  )
-
-highlight <- tot_y2 %>%
-  filter(value == max(value))
-
-p1 <- tot_y2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Yield") +
-  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
-  scale_color_manual(values = c(NA, "black")) +
-  xlab("Limit reference biomass (kg)")
-p1
-
-tot_u2 <-
-  as.data.frame.table(tot_u, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  )
-highlight <- tot_u2 %>%
-  filter(value == max(value))
-
-# utility plot
-p2 <- tot_u2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Utility") +
-  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
-  scale_color_manual(values = c(NA, "black")) +
-  xlab("Limit reference biomass (kg)")
-p2
-
-prop_below2 <-
-  as.data.frame.table(prop_below, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  ) %>%
-  mutate(color = max(value) == value)
-
-# proportion failing plot
-p3 <- prop_below2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Proportion of years \nbelow 10% of average \nunfished SSB") +
-  scale_fill_viridis_d(direction = -1) +
-  xlab("Limit reference biomass (kg)")
-
-p3
-
-TAC_zero2 <-
-  as.data.frame.table(TAC_zero, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  ) %>%
-  mutate(color = max(value) == value)
-
-# zero catch
-p4 <- TAC_zero2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Proportion of years \nwith no harvest") +
-  scale_fill_viridis_d(direction = -1) +
-  xlab("Limit reference biomass (kg)")
-
-p4
-
-# make the comparison plot for policies
-msys <- data.frame(
-  "yield" = MSY_yields,
-  "Policy" = "MSY policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
-) %>%
-  filter(year <= retro_terminal_yr)
-
-haras <- data.frame(
-  "yield" = HARA_yields,
-  "Policy" = "HARA policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
-) %>%
-  filter(year <= retro_terminal_yr)
-
-# obs_yields <- yields %>%
-#   select(year, med) %>%
-#   filter(year <= terminal_yr) %>%
-#   filter(year >= initialization_yr) %>%
-#   mutate(
-#     "yield" = med,
-#     "Policy" = "historical yield",
-#     "year" = year
-#   ) %>%
-#   select("yield", "Policy", "year")
-
-all_yields <- rbind(msys, haras) # , obs_yields
-p5 <- all_yields %>%
-  ggplot(aes(x = year, y = yield, linetype = Policy, color = Policy)) +
-  geom_line(size = 1.5) +
-  scale_linetype_manual(values = c("dotted", "solid")) + # , "solid"
-  scale_color_manual(values = c("black", "grey")) + # , "black"
-  xlab("Year") +
-  ylab("Yield (kg)") +
-  ggsidekick::theme_sleek() +
-  guides(fill = guide_legend(title = ""))
-p5
-
-
-
-# plot title for area
-which_x <- min(all_yields$year)
-hjust <- 0
-size <- 3
-
-p5 <- p5 +
-  annotate("text", which_x, Inf,
-    vjust = 3, hjust = hjust,
-    label = which_lake, size = size
-  )
-
-my_plot <- cowplot::plot_grid(p1, p2, p3, p4,
-  nrow = 2
-)
-
-filename <- paste0("plots/", which_lake, "_cr6_hcr_plot.pdf")
-filename <- gsub(" ", "_", filename)
-my_tableau <- cowplot::plot_grid(p5, my_plot, nrow = 2, rel_heights = c(0.4, 0.6))
-ggsave(
-  filename = filename,
-  width = 10, height = 11, units = "in"
-)
-
 
 ##############################################################################################
 ##############################################################################################
