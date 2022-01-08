@@ -162,3 +162,68 @@ ggsave(
   width = 10, height = 11, units = "in"
 )
 
+# EXTRA stuff to get wt sequences to CJ
+
+# extract most likely wt sequences from lakes bh cr =6
+# for carl
+# find the fits corresponding to beverton-holt compensation ratio = 6
+#
+# retro_initial_yr <- 1990
+# retro_terminal_yr <- 2015
+#
+# stan_files <- list.files("fits/", full.names = TRUE)
+# stan_files <- stan_files[grep("bh_cr_12", stan_files)]
+#
+# big_list <-
+#   stan_files %>%
+#   purrr::set_names(.) %>%
+#   purrr::map(readRDS)
+#
+# wt <- big_list %>%
+#   map_dfr(function(big_list) { # extract recruits
+#     big_list %>%
+#       spread_draws(w[year]) %>%
+#       mutate(
+#         value = w,
+#         year = year + initial_yr_minus_one
+#       ) %>%
+#       summarise(
+#         med = quantile(w, 0.5), # posterior median
+#       )
+#   }, .id = "stan_file") %>%
+#   mutate("name" = str_extract(
+#     string = stan_file,
+#     pattern = "(?<=fits/).*(?=_bh|ricker)"
+#   )) %>%
+#   mutate(name = gsub("_", " ", name)) %>%
+#   filter(year %in% retro_initial_yr:retro_terminal_yr)
+#
+# wts <- wt %>%
+#   pivot_wider(
+#     id_cols = -stan_file,
+#     names_from = name,
+#     values_from = med
+#   )
+
+# write.csv(wts, "data/most_likely_wts_cr_12.csv")
+
+##############################################################################################
+#----------------------------------------------------------------------
+
+# make a recruitment series plot
+# k = post$.draw[1] # pick a draw
+# sub_post <- subset(post, sampled_post$.draw == k)
+# wt <- sub_post$w
+#
+# rec_var <- 1.0 # 1.2 might be fun to try
+# wt <- rep(wt, n_repeats)
+# df <- data.frame(wt = wt, sim_yrs = 1:n_sim_yrs)
+#
+# df %>%
+#   ggplot(aes(x=sim_yrs, y=wt)) +
+#   geom_point() +
+#   geom_line() +
+#   xlab("Year of Simulation") +
+#   ylab("Recruitment Anomaly ln(wt)") +
+#   ggsidekick::theme_sleek()
+#----------------------------------------------------------------------
