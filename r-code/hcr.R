@@ -355,10 +355,6 @@ system.time({ # 11 minutes
   )
 })
 
-
-names(fit) #
-# map through and name these buggers
-
 # remove all fits?
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
 
