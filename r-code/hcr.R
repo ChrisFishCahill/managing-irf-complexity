@@ -245,7 +245,7 @@ get_hcr <- function(which_lake = "lac ste. anne") {
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
-    "HARA_yields" = HARA_yields
+    "HARA_yields" = HARA_yields, "which_draws" = draw_idx
   )
 
   # create name and save .rds files for each run
