@@ -95,7 +95,7 @@ get_hcr <- function(which_lake = "lac ste. anne") {
       join_by = .draw
     ) %>% arrange(.draw)
   )
-  
+
   # extract leading parameters from stan to get vbro
   leading_pars <- fit %>%
     spread_draws(
@@ -124,7 +124,7 @@ get_hcr <- function(which_lake = "lac ste. anne") {
   #----------------------------------------------------------------------
   c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
   bmin_seq <- seq(from = 0, to = 1.0 * Ro_map * vbro, length.out = length(c_slope_seq))
-  tot_y <- tot_u <- prop_below <- TAC_zero <- 
+  tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
 
@@ -213,7 +213,7 @@ get_hcr <- function(which_lake = "lac ste. anne") {
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
-          TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0) 
+          TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0)
         }
       }
     }
@@ -247,7 +247,18 @@ get_hcr <- function(which_lake = "lac ste. anne") {
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
     "HARA_yields" = HARA_yields
   )
-  hcr_sim_list
+
+  # create name and save .rds files for each run
+  file_name <- str_extract(
+    string = names(fits)[fit_idx],
+    pattern = "(?<=fits/).*(?=.rds)"
+  )
+  file_name <- paste0("sims/", file_name, "_hcr", ".rds")
+  if (file.exists(file_name)) {
+    return(NULL)
+  } else {
+    saveRDS(hcr_sim_list, file = file_name)
+  }
 }
 
 #----------------------------------------------------------------------
@@ -261,8 +272,8 @@ get_hcr <- function(which_lake = "lac ste. anne") {
 # Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
 # reference period as most FWIN surveys have information on recruitment
 # to approximately 1990
-# 
-# We will repeat this 26 yr sequence 8 times for 208 yr time horizon,  
+#
+# We will repeat this 26 yr sequence 8 times for 208 yr time horizon,
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
@@ -284,7 +295,7 @@ sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
 ass_int <- 3 # how often to assess / run FWIN
-cv_survey <- 0.1 # survey observation error 
+cv_survey <- 0.1 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 Ut_limit <- 0.9 # limit TAC mortality to < this value
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
@@ -311,7 +322,7 @@ hcr_pars <- list(
 )
 
 #----------------------------------------------------------------------
-# read in the data and run 
+# read in the data and run
 #----------------------------------------------------------------------
 
 # extract some saved .stan fit names
@@ -321,18 +332,36 @@ paths <- paths[grep("bh_cr_6", paths)]
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
-# hcr_pars$n_draws <- 100
-# system.time(
-#  run <- get_hcr(which_lake = "pigeon lake", hcr_pars = hcr_pars)
+which_lakes <- str_extract(
+  string = paths,
+  "(?<=fits/).*(?=_bh|ricker)"
+)
+
+# run 1 lake:
+# run <- get_hcr(which_lake = "pigeon lake", hcr_pars = hcr_pars)
+
+hcr_pars$n_draws <- 100
+to_sim <- tibble(which_lake = which_lakes)
+
+# system.time( # 27 minutes
+#  pwalk(to_sim, get_hcr)
 # )
 
-hcr_pars$n_draws <- 1
+options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
+future::plan(multisession)
+system.time({ # 11 minutes
+  future_pwalk(to_sim, get_hcr,
+    .options = furrr_options(seed = TRUE)
+  )
+})
 
-to_sim <- tibble(which_lake = c("pigeon lake", "lac ste. anne"))
-fit <- pmap(to_sim, get_hcr) 
 
 names(fit) #
-#map through and name these buggers 
+# map through and name these buggers
+
+# remove all fits?
+# do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
+
 
 #----------------------------------------------------------------------
 
@@ -388,15 +417,15 @@ names(fit) #
 ##############################################################################################
 #----------------------------------------------------------------------
 
-# make a recruitment series plot 
+# make a recruitment series plot
 # k = post$.draw[1] # pick a draw
 # sub_post <- subset(post, sampled_post$.draw == k)
 # wt <- sub_post$w
-# 
+#
 # rec_var <- 1.0 # 1.2 might be fun to try
 # wt <- rep(wt, n_repeats)
 # df <- data.frame(wt = wt, sim_yrs = 1:n_sim_yrs)
-# 
+#
 # df %>%
 #   ggplot(aes(x=sim_yrs, y=wt)) +
 #   geom_point() +
