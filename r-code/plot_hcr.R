@@ -1,7 +1,18 @@
-# packages 
+#----------------------------------------------------------------------
+# hcr plots
+#----------------------------------------------------------------------
+
+# packages
 library(paletteer)
 library(viridis)
+library(purrr)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(gridExtra)
 
+#----------------------------------------------------------------------
+# read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
 sim_files <- sim_files[grep("bh_cr_6", sim_files)]
 names <- str_extract(
@@ -12,47 +23,183 @@ names <- str_extract(
 big_list <-
   sim_files %>%
   purrr::set_names(names) %>%
-  purrr::map(readRDS) 
+  purrr::map(readRDS)
 
-all_posts <- 
-  big_list %>% 
-  purrr::map_dfr(~.x$post, .id = "lake") %>%
-  mutate(lake = gsub("_"," ", lake))
+all_posts <-
+  big_list %>%
+  purrr::map_dfr(~ .x$post, .id = "lake") %>%
+  mutate(lake = gsub("_", " ", lake))
 
-p <- 
-  all_posts %>% 
-  ggplot(aes(x=year, y=w, colour=lake, group = .draw)) +
-  geom_line(colour = "#80b1d3", size=0.1, alpha=0.25)  +
-  ylab(expression(ln(w[t]))) + 
-  xlab("Year") + 
-  facet_wrap(~lake) + 
+#----------------------------------------------------------------------
+# plot the recruitment anomaly w(t) sequences used in hcrs
+p <-
+  all_posts %>%
+  ggplot(aes(x = year, y = w, colour = lake, group = .draw)) +
+  geom_line(colour = "#80b1d3", size = 0.05, alpha = 0.35) +
+  ylab(expression(ln(w[t]))) +
+  xlab("Year") +
+  facet_wrap(~lake) +
   ggsidekick::theme_sleek() +
-  theme(legend.title = element_blank(), 
-        legend.position = "none") 
-  
-p 
-
-ggsave("plots/hcr_wts.pdf", width = 8,
-       height = 5)
-
-
-
-
-wts <- wt %>%
-  pivot_wider(
-    id_cols = -stan_file,
-    names_from = name,
-    values_from = med
+  ggtitle("Recruitment anomaly sequences used for harvest control rule development") +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
   )
+p
 
-
+ggsave("plots/hcr_wts.pdf",
+  width = 8,
+  height = 5
+)
 
 
 #----------------------------------------------------------------------
 # plots
 #----------------------------------------------------------------------
-tot_y <- run$tot_y
-tot_u <- run$tot_u
+# make the yield isopleth plots
+my_data <- NA
+yield_list <- big_list %>%
+  purrr::map(~ .x$tot_y) 
+
+for(i in names(yield_list)){
+  lake_data <- yield_list[[i]]
+  long_data <- 
+    lake_data %>%
+  as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+  rename(
+    "cslope" = "Var1",
+    "bmin" = "Var2"
+  ) %>%
+  mutate(
+    cslope = as.numeric(as.character(cslope)),
+    bmin = as.numeric(as.character(bmin)), 
+    lake = gsub("_", " ", i)
+  )
+  if(names(yield_list)[1]==i){
+    my_data <- long_data
+    } else {
+      my_data <- rbind(my_data, long_data)
+    }
+}
+# rm(my_data)
+
+plot_list <- vector('list', length(unique(my_data$lake)))
+for(i in unique(my_data$lake)){
+  highlight <- my_data %>%
+    filter(lake == i) %>%
+    filter(value == max(value))
+p1 <- my_data %>%
+  filter(lake == i) %>%
+  ggplot(aes(bmin, cslope, z = value)) +
+  geom_contour_filled(bins = 15) +
+  ggsidekick::theme_sleek() +
+  labs(fill = "Yield") +
+  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
+  scale_color_manual(values = c(NA, "black")) +
+  xlab("Limit reference biomass (kg)") + 
+  ggtitle(i) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)
+  )
+  plot_list[[which(unique(my_data$lake) == i )]] <- p1 
+}
+
+bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=3)
+
+ggsave("plots/yield_isos.pdf", bigp,
+       width = 8,
+       height = 5
+)
+
+#----------------------------------------------------------------------
+# make the utility isopleth plots
+
+my_data <- NA
+hara_list <- big_list %>%
+  purrr::map(~ .x$tot_u) 
+
+for(i in names(hara_list)){
+  lake_data <- hara_list[[i]]
+  long_data <- 
+    lake_data %>%
+    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2"
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)), 
+      lake = gsub("_", " ", i)
+    )
+  if(names(hara_list)[1]==i){
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+# rm(my_data)
+
+# make the utility isopleth plots
+plot_list <- vector('list', length(unique(my_data$lake)))
+for(i in unique(my_data$lake)){
+  highlight <- my_data %>%
+    filter(lake == i) %>%
+    filter(value == max(value))
+  p1 <- my_data %>%
+    filter(lake == i) %>%
+    ggplot(aes(bmin, cslope, z = value)) +
+    geom_contour_filled(bins = 15) +
+    ggsidekick::theme_sleek() +
+    labs(fill = "Utility") +
+    geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
+    scale_color_manual(values = c(NA, "black")) +
+    xlab("Limit reference biomass (kg)") + 
+    ggtitle(i) +
+    theme(
+      legend.title = element_blank(),
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.5)
+    )
+  plot_list[[which(unique(my_data$lake) == i )]] <- p1 
+}
+
+bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=3)
+
+ggsave("plots/hara_isos.pdf", bigp,
+       width = 8,
+       height = 5
+)
+
+#----------------------------------------------------------------------
+# 
+
+
+p2 <- my_data %>%
+  filter(lake == "lake newell") %>%
+  ggplot(aes(bmin, cslope, z = value)) +
+  geom_contour_filled(bins = 15) +
+  ggsidekick::theme_sleek() +
+  labs(fill = "Utility") +
+  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
+  scale_color_manual(values = c(NA, "black")) +
+  xlab("Limit reference biomass (kg)") + 
+  ggtitle(i) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+p2
+
+
+
+
+
 
 # yield plot
 tot_y2 <-
@@ -66,18 +213,9 @@ tot_y2 <-
     bmin = as.numeric(as.character(bmin))
   )
 
-highlight <- tot_y2 %>%
-  filter(value == max(value))
 
-p1 <- tot_y2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Yield") +
-  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
-  scale_color_manual(values = c(NA, "black")) +
-  xlab("Limit reference biomass (kg)")
-p1
+
+
 
 tot_u2 <-
   as.data.frame.table(tot_u, responseName = "value", dnn = c("cslope", "bmin")) %>%
@@ -196,12 +334,12 @@ size <- 3
 
 p5 <- p5 +
   annotate("text", which_x, Inf,
-           vjust = 3, hjust = hjust,
-           label = which_lake, size = size
+    vjust = 3, hjust = hjust,
+    label = which_lake, size = size
   )
 
 my_plot <- cowplot::plot_grid(p1, p2, p3, p4,
-                              nrow = 2
+  nrow = 2
 )
 
 filename <- paste0("plots/", which_lake, "_cr6_hcr_plot.pdf")
