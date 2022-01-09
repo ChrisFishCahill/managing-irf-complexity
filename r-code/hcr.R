@@ -6,6 +6,8 @@
 library(tidyverse)
 library(tidybayes)
 library(purrr)
+library(future)
+library(furrr)
 # library(rstan)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
@@ -13,7 +15,7 @@ library(purrr)
 #--------------------------------------------------------------------
 # write a function to take BERTA posteriors and run retrospective MSE
 
-get_hcr <- function(which_lake = "lac ste. anne") {
+get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
@@ -30,7 +32,6 @@ get_hcr <- function(which_lake = "lac ste. anne") {
   d_mort <- hcr_pars$d_mort
   ret_a <- hcr_pars$ret_a
   Ut_overall <- hcr_pars$Ut_overall
-  ass_int <- hcr_pars$ass_int
   cv_survey <- hcr_pars$cv_survey
   q_survey <- hcr_pars$q_survey
   Ut_limit <- hcr_pars$Ut_limit
@@ -248,13 +249,12 @@ get_hcr <- function(which_lake = "lac ste. anne") {
     "HARA_yields" = HARA_yields, "post" = post, 
     "leading_pars" = leading_pars 
   )
-
   # create name and save .rds files for each run
   file_name <- str_extract(
     string = names(fits)[fit_idx],
     pattern = "(?<=fits/).*(?=.rds)"
   )
-  file_name <- paste0("sims/", file_name, "_hcr", ".rds")
+  file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, ".rds")
   if (file.exists(file_name)) {
     return(NULL)
   } else {
@@ -295,7 +295,6 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
-ass_int <- 3 # how often to assess / run FWIN
 cv_survey <- 0.1 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 Ut_limit <- 0.9 # limit TAC mortality to < this value
@@ -315,7 +314,6 @@ hcr_pars <- list(
   "d_mort" = d_mort,
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
-  "ass_int" = ass_int,
   "cv_survey" = cv_survey,
   "q_survey" = q_survey,
   "Ut_limit" = Ut_limit,
@@ -338,12 +336,20 @@ which_lakes <- str_extract(
   "(?<=fits/).*(?=_bh|ricker)"
 )
 
+
+ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
+ass_ints <- rep(ass_ints, each=length(which_lakes))
+which_lakes <- rep(which_lakes, length(which_lakes)-1)
+to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
+
+to_sim
+
 # run one lake:
-# run <- get_hcr(which_lake = "pigeon lake")
+# hcr_pars$n_draws <- 1
+# run <- get_hcr(which_lake = "pigeon lake", ass_int = 1)
 
-to_sim <- tibble(which_lake = which_lakes)
-
-# system.time( # 27 minutes
+# purrr 
+# system.time( 
 #  pwalk(to_sim, get_hcr)
 # )
 
