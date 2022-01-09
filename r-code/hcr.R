@@ -245,7 +245,8 @@ get_hcr <- function(which_lake = "lac ste. anne") {
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
-    "HARA_yields" = HARA_yields, "which_draws" = draw_idx
+    "HARA_yields" = HARA_yields, "post" = post, 
+    "leading_pars" = leading_pars 
   )
 
   # create name and save .rds files for each run
@@ -338,9 +339,8 @@ which_lakes <- str_extract(
 )
 
 # run one lake:
-# run <- get_hcr(which_lake = "pigeon lake", hcr_pars = hcr_pars)
+# run <- get_hcr(which_lake = "pigeon lake")
 
-hcr_pars$n_draws <- 100
 to_sim <- tibble(which_lake = which_lakes)
 
 # system.time( # 27 minutes

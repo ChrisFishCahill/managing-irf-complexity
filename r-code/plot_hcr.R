@@ -1,3 +1,53 @@
+# packages 
+library(paletteer)
+library(viridis)
+
+sim_files <- list.files("sims/", full.names = TRUE)
+sim_files <- sim_files[grep("bh_cr_6", sim_files)]
+names <- str_extract(
+  string = sim_files,
+  pattern = "(?<=sims/).*(?=_bh|ricker)"
+)
+
+big_list <-
+  sim_files %>%
+  purrr::set_names(names) %>%
+  purrr::map(readRDS) 
+
+all_posts <- 
+  big_list %>% 
+  purrr::map_dfr(~.x$post, .id = "lake") %>%
+  mutate(lake = gsub("_"," ", lake))
+
+p <- 
+  all_posts %>% 
+  ggplot(aes(x=year, y=w, colour=lake, group = .draw)) +
+  geom_line(colour = "#80b1d3", size=0.1, alpha=0.25)  +
+  ylab(expression(ln(w[t]))) + 
+  xlab("Year") + 
+  facet_wrap(~lake) + 
+  ggsidekick::theme_sleek() +
+  theme(legend.title = element_blank(), 
+        legend.position = "none") 
+  
+p 
+
+ggsave("plots/hcr_wts.pdf", width = 8,
+       height = 5)
+
+
+
+
+wts <- wt %>%
+  pivot_wider(
+    id_cols = -stan_file,
+    names_from = name,
+    values_from = med
+  )
+
+
+
+
 #----------------------------------------------------------------------
 # plots
 #----------------------------------------------------------------------
