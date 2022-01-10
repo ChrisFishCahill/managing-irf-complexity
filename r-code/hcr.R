@@ -34,7 +34,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   Ut_overall <- hcr_pars$Ut_overall
   sd_survey <- hcr_pars$sd_survey
   q_survey <- hcr_pars$q_survey
-  Ut_limit <- hcr_pars$Ut_limit
   sbo_prop <- hcr_pars$sbo_prop
 
   #--------------------------------------------------------------------
@@ -188,10 +187,15 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
             if (TAC < 0) {
               TAC <- 0
             }
-            Ut <- ifelse((TAC / vB_fish[t]) < Ut_limit, (TAC / vB_fish[t]), Ut_limit)
+            Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
           }
-          rett <- Ut / Ut_overall # rett = annual retention proportion
-
+          rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) #cap rett annual retention proportion at 1.0
+          
+          if(any(rett*ret_a > 1)){
+            break
+            message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
+          }
+          
           # stock-recruitment
           if (rec_ctl == "ricker") {
             Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
@@ -297,9 +301,8 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
-sd_survey <- 0.1 # survey observation error
+sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
-Ut_limit <- 0.9 # limit TAC mortality to < this value
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 
 # put it all in a tagged list
@@ -328,7 +331,7 @@ hcr_pars <- list(
 
 # extract some saved .stan fit names
 paths <- dir("fits/", pattern = "\\.rds$")
-paths <- paths[grep("ricker_cr_6", paths)]
+paths <- paths[grep("bh_cr_6", paths)]
 paths <- paste0(getwd(), "/fits/", paths)
 
 fits <- map(paths, readRDS) %>%
@@ -347,7 +350,7 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 to_sim
 
 # run one lake:
-run <- get_hcr(which_lake = "lake newell", ass_int = 1)
+#run <- get_hcr(which_lake = "lake newell", ass_int = 3)
 
 # purrr 
 # system.time( 
