@@ -60,8 +60,9 @@ transformed data {
   // calculate vul, length-age, M-age, fec-age 
   sbro = 0; // initialize
   for(a in 1:n_ages){ 
-    v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi;          
-    v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi;  
+    v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
+    // v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; -- used in paper
+    v_f_a[a] = (linf *(1 - exp(-vbk * ages[a])))^psi;  
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
     w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
