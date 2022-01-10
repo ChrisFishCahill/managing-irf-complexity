@@ -249,7 +249,16 @@ inits()$v
 
 This is useful for initializing starting values for parameters on different chains at slightly different locations. 
 
-Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and an `inits()` function to declare starting values for the Bayesian model.  We now call a compiled Stan model `m` via: 
+Now we have successfully subset the data for a specific lake, created the appropriate `stan_data` list, and an `inits()` function to declare starting values for the Bayesian model.  Without going into details on the .stan file (see other tutortials), we can now compile  Stan model `BERTA_single_lake.stan` with the following code.  Note that this compile statement is actually run in line 21 of the `run.R` script.  
+
+```{r, eval = FALSE}
+
+# compile the model
+m <- rstan::stan_model("src/BERTA_single_lake.stan", verbose = F)
+
+```
+
+Once that is completed, we can call the compiled model `m`: 
 
 ```{r, eval = FALSE}
 # run the model
