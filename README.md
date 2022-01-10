@@ -14,5 +14,5 @@ Additional notes:
 
 TODO for Chris: 
 * find newell bug
-* consider re-running newell with higher M
 * work on markdown lessons 
+* weep 
