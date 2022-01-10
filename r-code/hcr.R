@@ -192,8 +192,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) #cap rett annual retention proportion at 1.0
           
           if(any(rett*ret_a > 1)){
-            break
             message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
+            break
           }
           
           # stock-recruitment

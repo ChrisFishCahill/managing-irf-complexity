@@ -128,9 +128,12 @@ get_fit <- function(which_lake = "pigeon lake",
     rec_ctl = ifelse(rec_ctl == "ricker", 0, 1),
     cr_prior = cr_prior
   )
-
+  if(which_lake == "lake newell"){ 
+    # correct newell so fish don't get to 12 kg :(
+    stan_data$linf <- stan_data$lbar
+  }
   # create a function for start values
-  vk <- c(0.3, 0.3)
+  vk <- c(0.5, 0.3)
   inits <- function() {
     list(
       v = jitter(vk, amount = 0.1),
@@ -210,10 +213,10 @@ n_warmup = n_iter/2
 # test with a single lake / stock-recruitment function  
 
 fit <- get_fit(which_lake = "lake newell",
-               rec_ctl = "ricker",
+               rec_ctl = "bev-holt",
                cr_prior = 6,
-               n_iter = n_iter, n_chains = n_chains,
-               n_warmup = n_warmup)
+               n_iter = 300, n_chains = 2,
+               n_warmup = 300/2)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  

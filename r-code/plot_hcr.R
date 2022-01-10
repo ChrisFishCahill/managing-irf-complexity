@@ -10,11 +10,11 @@ library(ggplot2)
 library(dplyr)
 library(stringr)
 library(gridExtra)
-
+#TODO: figure out regex for sim_files()
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
-#sim_files <- sim_files[grep("bh_cr_6", sim_files)]
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_3", sim_files)]
 #sim_files <- sim_files[grep("ricker_cr_6", sim_files)]
 
 names <- str_extract(
@@ -64,6 +64,7 @@ my_data <- NA
 yield_list <- big_list %>%
   purrr::map(~ .x$tot_y) 
 
+# these loops are r-binding the total yield matrices for each file into one big dataframe
 for(i in names(yield_list)){
   lake_data <- yield_list[[i]]
   long_data <- 
@@ -110,7 +111,7 @@ p1 <- my_data %>%
 }
 
 bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=3)
-
+#bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=1)
 ggsave("plots/yield_isos.pdf", bigp,
        width = 8,
        height = 5
@@ -170,6 +171,7 @@ for(i in unique(my_data$lake)){
 }
 
 bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=3)
+#bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=1)
 
 ggsave("plots/hara_isos.pdf", bigp,
        width = 8,
