@@ -209,11 +209,11 @@ n_warmup = n_iter/2
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
 
-# fit <- get_fit(which_lake = "lac ste. anne",
-#                rec_ctl = "bev-holt",
-#                cr_prior = 6,
-#                n_iter = n_iter, n_chains = n_chains,
-#                n_warmup = n_warmup)
+fit <- get_fit(which_lake = "lake newell",
+               rec_ctl = "ricker",
+               cr_prior = 6,
+               n_iter = n_iter, n_chains = n_chains,
+               n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  

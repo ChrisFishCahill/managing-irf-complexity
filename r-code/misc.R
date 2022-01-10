@@ -100,3 +100,39 @@ v %>% ggplot(aes(x=value)) +
 
 str_extract(string = names(fits)[3], 
             pattern = "(?<=fits/).*(?=_bh|ricker)")) 
+
+file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, ".rds")
+
+#------------------------------------
+
+#debugging newell 
+linf <- 74
+lbar <- 57.57
+M <- 0.2
+theta <- 0.85
+phi <- 2.02
+vbk <- 0.2 
+wl_beta <- 3.28
+ages <- 2:20
+n_ages <- length(ages)
+v_a <- w_a <- l_a <- M_a <- Lo <- rep(NA, length(ages))
+
+for(a in 1:n_ages){
+  v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
+  l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
+  M_a[a] = M/l_a[a]^theta;
+  w_a[a] <- 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta
+  if(a == 1){ 
+    Lo[a] = 1;
+  } else{
+    Lo[a] = Lo[a-1]*exp(-M_a[a-1]); 
+  }
+}
+
+vbro <- sum(Lo * v_a * w_a)
+vbro
+
+
+
+data %>% group_by(name) %>% summarize(mean(beta_wl)) %>%
+  print(n=Inf)

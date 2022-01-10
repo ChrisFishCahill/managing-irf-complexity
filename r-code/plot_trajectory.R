@@ -42,7 +42,7 @@ r2 <-
       ) 
   }, .id = "stan_file") %>%
   mutate("name" = str_extract(string = stan_file, 
-                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
+                              pattern = "(?<=fits/).*(?=_bh|_ricker)")) %>%
   mutate(name = gsub("_", " ", name))
 
 r2$which <- "recruits"
@@ -63,7 +63,7 @@ ssb <- big_list %>% map_dfr(function(big_list) { # extract estimated ssb
     )
 }, .id = "stan_file") %>%
   mutate("name" = str_extract(string = stan_file, 
-                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
+                              pattern = "(?<=fits/).*(?=_bh|_ricker)")) %>%
   mutate(name = gsub("_", " ", name))
 
 ssb$which <- "female biomass"
@@ -79,7 +79,7 @@ ssb_c <- big_list %>% map_dfr(function(big_list) { # extract "observed" ssb
     )
 }, .id = "stan_file") %>%
   mutate("name" = str_extract(string = stan_file, 
-                              pattern = "(?<=fits/).*(?=_bh|ricker)")) %>%
+                              pattern = "(?<=fits/).*(?=_bh|_ricker)")) %>%
   mutate(name = gsub("_", " ", name))
 
 yr_dat <- data %>% 

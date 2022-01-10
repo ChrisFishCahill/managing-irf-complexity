@@ -14,10 +14,12 @@ library(gridExtra)
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
-sim_files <- sim_files[grep("bh_cr_6", sim_files)]
+#sim_files <- sim_files[grep("bh_cr_6", sim_files)]
+#sim_files <- sim_files[grep("ricker_cr_6", sim_files)]
+
 names <- str_extract(
   string = sim_files,
-  pattern = "(?<=sims/).*(?=_bh|ricker)"
+  pattern = "(?<=sims/).*(?=_bh|_ricker)"
 )
 
 big_list <-
@@ -176,7 +178,10 @@ ggsave("plots/hara_isos.pdf", bigp,
 
 #----------------------------------------------------------------------
 # 
+test <- my_data %>%
+  filter(lake == "lake newell")
 
+summary(test$value)
 
 p2 <- my_data %>%
   filter(lake == "lake newell") %>%

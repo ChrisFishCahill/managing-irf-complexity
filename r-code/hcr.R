@@ -32,7 +32,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   d_mort <- hcr_pars$d_mort
   ret_a <- hcr_pars$ret_a
   Ut_overall <- hcr_pars$Ut_overall
-  cv_survey <- hcr_pars$cv_survey
+  sd_survey <- hcr_pars$sd_survey
   q_survey <- hcr_pars$q_survey
   Ut_limit <- hcr_pars$Ut_limit
   sbo_prop <- hcr_pars$sbo_prop
@@ -43,7 +43,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   lake_str <- gsub(" ", "_", which_lake)
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
-  rec_ctl <- ifelse(grep("bh", names(fits)[fit_idx]), "bh", "ricker")
+  rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
 
   # extract estimated and derived parameters from BERTA
   devs <- fit %>%
@@ -123,8 +123,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
+  bmin_max_value <- ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
   c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
-  bmin_seq <- seq(from = 0, to = 1.0 * Ro_map * vbro, length.out = length(c_slope_seq))
+  bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
@@ -182,7 +183,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
-            vB_obs <- q_survey * vB_survey[t] * exp(cv_survey * (rnorm(1)) - 0.5 * (cv_survey)^2)
+            vB_obs <- q_survey * vB_survey[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
             TAC <- c_slope * (vB_obs - b_lrp)
             if (TAC < 0) {
               TAC <- 0
@@ -210,6 +211,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 
           # record performance metrics
           yield <- Ut_overall * rett * vB_fish[t]
+
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
@@ -278,7 +280,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
-n_draws <- 100
+n_draws <- 10
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
@@ -295,7 +297,7 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
-cv_survey <- 0.1 # survey observation error
+sd_survey <- 0.1 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 Ut_limit <- 0.9 # limit TAC mortality to < this value
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
@@ -314,7 +316,7 @@ hcr_pars <- list(
   "d_mort" = d_mort,
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
-  "cv_survey" = cv_survey,
+  "sd_survey" = sd_survey,
   "q_survey" = q_survey,
   "Ut_limit" = Ut_limit,
   "sbo_prop" = sbo_prop
@@ -326,16 +328,16 @@ hcr_pars <- list(
 
 # extract some saved .stan fit names
 paths <- dir("fits/", pattern = "\\.rds$")
+paths <- paths[grep("ricker_cr_6", paths)]
 paths <- paste0(getwd(), "/fits/", paths)
-paths <- paths[grep("bh_cr_6", paths)]
+
 fits <- map(paths, readRDS) %>%
   set_names(paths)
 
 which_lakes <- str_extract(
   string = paths,
-  "(?<=fits/).*(?=_bh|ricker)"
+  "(?<=fits/).*(?=_bh|_ricker)"
 )
-
 
 ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
 ass_ints <- rep(ass_ints, each=length(which_lakes))
@@ -345,17 +347,17 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 to_sim
 
 # run one lake:
-# hcr_pars$n_draws <- 1
-# run <- get_hcr(which_lake = "pigeon lake", ass_int = 1)
+run <- get_hcr(which_lake = "lake newell", ass_int = 1)
 
 # purrr 
 # system.time( 
 #  pwalk(to_sim, get_hcr)
 # )
 
+hcr_pars$n_draws <- 1
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
-system.time({ # 11 minutes
+system.time({ 
   future_pwalk(to_sim, get_hcr,
     .options = furrr_options(seed = TRUE)
   )
