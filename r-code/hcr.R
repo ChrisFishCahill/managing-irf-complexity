@@ -242,21 +242,25 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     colnames(prop_below) <- colnames(TAC_zero) <- round(bmin_seq, 2)
 
   yield_array <- yield_array / n_draws # expected yield seqs for each cslope, bmin
+  vB_fish_array <- vB_fish_array / n_draws # expected vul bio seq for each i,j
+  
   row_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[1]
   col_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[2]
   MSY_yields <- yield_array[row_idx, col_idx, ] # best MSY yields
-
+  MSY_vB_fish <- vB_fish_array[row_idx, col_idx, ] # vB for MSY yields
+  
   row_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[1]
   col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
   HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
+  HARA_vB_fish <- vB_fish_array[row_idx, col_idx, ] 
   
-  vB_fish_array <- vB_fish_array / n_draws # expected vul bio seq for each i,j
-
+    
   hcr_sim_list <- list(
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
     "HARA_yields" = HARA_yields, "vB_fish_array" = vB_fish_array, 
+    "MSY_vB_fish" = MSY_vB_fish, "HARA_vB_fish" = HARA_vB_fish, 
     "post" = post, "leading_pars" = leading_pars 
   )
   # create name and save .rds files for each run
@@ -352,6 +356,7 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 
 to_sim
 
+hcr_pars$n_draws <- 50
 to_sim <- tibble(which_lake = which_lakes, ass_int = 3)
 
 # run one lake:
