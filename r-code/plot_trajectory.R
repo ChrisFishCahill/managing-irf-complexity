@@ -7,8 +7,17 @@ library(purrr)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
 
+# read in the data from all lakes used in Cahill et al. 2021
+data <- readRDS("data/BERTA-wide-0-25.rds")
+
+contract_lakes <- c("lac ste. anne", "baptiste lake", 
+                    "pigeon lake", "calling lake", 
+                    "moose lake", "lake newell"
+)
+
 # declare some indeces 
 t <- 2000 # first survey year
+ages <- 2:20
 max_a <- max(ages)
 rec_a <- min(ages)
 initial_yr <- t - max_a + rec_a - 2 
