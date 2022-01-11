@@ -40,6 +40,7 @@ data {
   vector[length_Fseq] Fseq;            // sequence of values to iterate across for Fmsy
   int<lower=0> rec_ctl;                // Ricker (0), BH (1)
   real<lower=0> cr_prior;              // compensation ratio prior 
+  int<lower=0> vul_ctl;              // length2 (0) or logistic (1) fishing vul
 }
 transformed data {
   int<lower=0> caa_obs[n_obs];         // rowsums for survey k,t
@@ -56,13 +57,20 @@ transformed data {
   vector<lower=0>[n_ages] Lo;          // survivorship unfished (F=0) 
   real ln_ar_mean;                     // ln_ar mean
   int counter = 0;                     // counter for caa_obs
-  
+  real ah_vul = 3.5;                   // logistic selectivity parameter
+  real sd_vul = 0.5;                   // logistic selectivity parameter
   // calculate vul, length-age, M-age, fec-age 
   sbro = 0; // initialize
   for(a in 1:n_ages){ 
     v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
-    //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper
-    v_f_a[a] = (1 - exp(-vbk * ages[a]))^psi;  
+    if(vul_ctl == 0){
+      //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper - length^2
+      v_f_a[a] = (1 - exp(-vbk * ages[a]))^psi;  // length^2 selectivity 
+    }
+    if(vul_ctl == 1){
+      v_f_a[a] = 1 / (1 + exp(-(ages[a] - ah_vul) / sd_vul)); // logistic selectivity 
+    
+    }
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
     w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;

@@ -126,7 +126,8 @@ get_fit <- function(which_lake = "pigeon lake",
     length_Fseq = length(Fseq),
     Fseq = Fseq,
     rec_ctl = ifelse(rec_ctl == "ricker", 0, 1),
-    cr_prior = cr_prior
+    cr_prior = cr_prior, 
+    vul_ctl = 1 # 0 = length^2, 1 = logistic fishing vul 
   )
   # if(which_lake == "lake newell"){ 
   #   # correct newell so fish don't get to 12 kg :(
