@@ -1,6 +1,6 @@
 #----------------------------------------------------------------------
 # single lake version of BERTA run.R for AEP contract 
-# Cahill 2021
+# Cahill jan 2022
 #----------------------------------------------------------------------
 
 # libraries
@@ -237,9 +237,9 @@ to_fit2 <- to_fit
 to_fit2$rec_ctl <- "bev-holt"
 to_fit <- rbind(to_fit, to_fit2)
 
-# to_fit3 <- to_fit
-# to_fit3$cr_prior <- 12
-# to_fit <- rbind(to_fit, to_fit3)
+to_fit3 <- to_fit
+to_fit3$cr_prior <- 12
+to_fit <- rbind(to_fit, to_fit3)
 
 # set up parallel processing plan 
 future::plan(multisession)

@@ -284,7 +284,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
-n_draws <- 1
+n_draws <- 30
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
