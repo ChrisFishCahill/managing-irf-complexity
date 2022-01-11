@@ -127,7 +127,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
-  yield_array <- array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
+  yield_array <- vB_fish_array <- 
+    array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
 
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
@@ -217,6 +218,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           # record performance metrics
           yield <- Ut_overall * rett * vB_fish[t]
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
+          vB_fish_array[i, j, t] <- vB_fish_array[i, j, t] + vB_fish[t]
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
@@ -247,13 +249,15 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   row_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[1]
   col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
   HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
+  
+  vB_fish_array <- vB_fish_array / n_draws # expected vul bio seq for each i,j
 
   hcr_sim_list <- list(
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
-    "HARA_yields" = HARA_yields, "post" = post, 
-    "leading_pars" = leading_pars 
+    "HARA_yields" = HARA_yields, "vB_fish_array" = vB_fish_array, 
+    "post" = post, "leading_pars" = leading_pars 
   )
   # create name and save .rds files for each run
   file_name <- str_extract(
@@ -284,7 +288,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
-n_draws <- 30
+n_draws <- 5
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
@@ -301,7 +305,7 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
-sd_survey <- 0.4 # survey observation error
+sd_survey <- 0.1 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 
@@ -348,6 +352,8 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 
 to_sim
 
+to_sim <- tibble(which_lake = which_lakes, ass_int = 3)
+
 # run one lake:
 #run <- get_hcr(which_lake = "lake newell", ass_int = 3)
 
@@ -356,7 +362,6 @@ to_sim
 #  pwalk(to_sim, get_hcr)
 # )
 
-hcr_pars$n_draws <- 1
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({ 
