@@ -64,12 +64,11 @@ transformed data {
   for(a in 1:n_ages){ 
     v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
     if(vul_ctl == 0){
-      //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper - length^2
+      //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper 
       v_f_a[a] = (1 - exp(-vbk * ages[a]))^psi;  // length^2 selectivity 
     }
     if(vul_ctl == 1){
       v_f_a[a] = 1 / (1 + exp(-(ages[a] - ah_vul) / sd_vul)); // logistic selectivity 
-    
     }
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
