@@ -190,7 +190,7 @@ stan_data <- list(
   prior_sigma_v = c(0.1, 0.5),
   R0_mean = log(6),
   R0_sd = log(3),
-  ar_sd = 0.1,
+  ln_ar_sd = 0.1,
   prior_mean_w = 0,
   prior_sigma_w = 1.2,
   vbk = life_hist$vbk,
@@ -232,7 +232,7 @@ inits <- function() {
     amount = 0.1
     ),
     sigma_w = jitter(0.5, amount = 0.05),
-    ar = jitter(0.5, amount = 0.01)
+    ln_ar = jitter(0.5, amount = 0.01)
   )
 }
 ```
@@ -263,25 +263,29 @@ Once that is completed, we can call the compiled model `m`:
 ```{r, eval = FALSE}
 # run the model
 fit <-
-  rstan::sampling(
-    m,
-    data = stan_data,
-    pars =
-      c(
-        "ar_mean_kick", "F_ratio", "Fmsy", "MSY",
-        "G", "cr", "ar", "SPR", "br",
-        "SBR", "sbr0_kick", "R0", "v", "SSB",
-        "R2", "SSB_obs", "caa_pred", "b_ratio", "w"
-      ),
-    iter = n_iter,
-    warmup = n_warmup,
-    chains = n_chains,
-    init = inits,
-    control = list(
-      adapt_delta = 0.999,
-      max_treedepth = 15
+    rstan::sampling(
+      m,
+      data = stan_data,
+      pars =
+        c(
+          "F_ratio", "Fmsy", "MSY",
+          "G", "cr", "ln_ar", "SPR", "br", "Nat_array",
+          "SBR", "Ro", "v", "F_vec", "SSB",
+          "R2", "SSB_obs", "caa_pred", "b_ratio", "w", 
+          # report stuff: 
+          "sbro_report", "ln_ar_mean_report", "l_a_report", 
+          "Lo_report", "v_a_report", "v_f_a_report", 
+          "f_a_report", "w_a_report", "M_a_report"
+        ),
+      iter = n_iter,
+      warmup = n_warmup,
+      chains = n_chains,
+      init = inits,
+      control = list(
+        adapt_delta = 0.999,
+        max_treedepth = 15
+      )
     )
-  )
 ```
 
 Here, the `pars` argument simply tells Stan which parameters to monitor, `iter` determines the number of iterations to run the model for, `chains` specifies the number of chains to run, and `init` is an argument that accepts a function or list of start values for parameters in your model.

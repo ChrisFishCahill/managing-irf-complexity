@@ -43,10 +43,10 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
-
+  
   # extract estimated and derived parameters from BERTA
   devs <- fit %>%
-    spread_draws(Ro, ar, br) %>%
+    spread_draws(Ro, ln_ar, br) %>%
     sample_draws(n_draws)
 
   draw_idx <- unique(devs$.draw) # which posterior rows did sample_draws() take?
@@ -142,7 +142,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
 
         # set leading parameters from sampled draw
-        rec_a <- sub_post$ar[1]
+        rec_a <- exp(sub_post$ln_ar[1])
         rec_b <- sub_post$br[1]
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
@@ -182,7 +182,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
-            vB_obs <- q_survey * vB_survey[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
+            # q_survey no longer used
+            vB_obs <- vB_fish[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
             TAC <- c_slope * (vB_obs - b_lrp)
             if (TAC < 0) {
               TAC <- 0
@@ -215,7 +216,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 
           # record performance metrics
           yield <- Ut_overall * rett * vB_fish[t]
-
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           tot_y[i, j] <- tot_y[i, j] + yield
           tot_u[i, j] <- tot_u[i, j] + yield^0.3
@@ -284,7 +284,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
-n_draws <- 10
+n_draws <- 1
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
@@ -293,8 +293,8 @@ n_sim_yrs <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
 ages <- 2:20
 t <- 2000 # first survey year
 max_a <- max(ages) # max age
-rec_a <- min(ages) # age at recruitment
-initial_yr <- t - max_a + rec_a - 2 # 1980 = BERTA initial yr
+recruit_a <- min(ages) # age at recruitment
+initial_yr <- t - max_a + recruit_a - 2 # 1980 = BERTA initial yr
 initial_yr_minus_one <- initial_yr - 1
 d_mort <- 0.3 # discard mortality
 ah_ret <- 5
@@ -321,7 +321,6 @@ hcr_pars <- list(
   "Ut_overall" = Ut_overall,
   "sd_survey" = sd_survey,
   "q_survey" = q_survey,
-  "Ut_limit" = Ut_limit,
   "sbo_prop" = sbo_prop
 )
 

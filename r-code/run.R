@@ -105,7 +105,7 @@ get_fit <- function(which_lake = "pigeon lake",
     prior_sigma_v = c(0.1, 0.5),
     Ro_mean = log(6),
     Ro_sd = log(3),
-    ar_sd = 0.1,
+    ln_ar_sd = 0.1,
     prior_mean_w = 0,
     prior_sigma_w = 1.2,
     vbk = life_hist$vbk,
@@ -128,12 +128,12 @@ get_fit <- function(which_lake = "pigeon lake",
     rec_ctl = ifelse(rec_ctl == "ricker", 0, 1),
     cr_prior = cr_prior
   )
-  if(which_lake == "lake newell"){ 
-    # correct newell so fish don't get to 12 kg :(
-    stan_data$linf <- stan_data$lbar
-  }
+  # if(which_lake == "lake newell"){ 
+  #   # correct newell so fish don't get to 12 kg :(
+  #   stan_data$linf <- stan_data$lbar
+  # }
   # create a function for start values
-  vk <- c(0.5, 0.3)
+  vk <- c(0.5, 0.1)
   inits <- function() {
     list(
       v = jitter(vk, amount = 0.1),
@@ -143,7 +143,7 @@ get_fit <- function(which_lake = "pigeon lake",
                      stan_data$n_years - 2), 
                  amount = 0.1),
       sigma_w = jitter(0.5, amount = 0.05),
-      ar = jitter(0.5, amount = 0.01)
+      ln_ar = jitter(0.5, amount = 0.01)
     )
   }
 
@@ -155,11 +155,11 @@ get_fit <- function(which_lake = "pigeon lake",
       pars =
         c(
           "F_ratio", "Fmsy", "MSY",
-          "G", "cr", "ar", "SPR", "br", "Nat_array",
+          "G", "cr", "ln_ar", "SPR", "br", "Nat_array",
           "SBR", "Ro", "v", "F_vec", "SSB",
           "R2", "SSB_obs", "caa_pred", "b_ratio", "w", 
           # report stuff: 
-          "sbro_report", "ar_mean_report", "l_a_report", 
+          "sbro_report", "ln_ar_mean_report", "l_a_report", 
           "Lo_report", "v_a_report", "v_f_a_report", 
           "f_a_report", "w_a_report", "M_a_report"
         ),
@@ -200,8 +200,8 @@ get_fit <- function(which_lake = "pigeon lake",
 ages <- 2:20
 t <- 2000 # first survey year
 max_a <- max(ages)
-rec_a <- min(ages)
-initial_yr <- t - max_a + rec_a - 2 
+recruit_a <- min(ages)
+initial_yr <- t - max_a + recruit_a - 2 
 initial_yr_minus_one <- initial_yr - 1
 
 # declare HMC run parameters 
@@ -211,12 +211,12 @@ n_warmup = n_iter/2
 
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
-
-fit <- get_fit(which_lake = "lake newell",
-               rec_ctl = "bev-holt",
-               cr_prior = 6,
-               n_iter = 300, n_chains = 2,
-               n_warmup = 300/2)
+# 
+# fit <- get_fit(which_lake = "lake newell",
+#                rec_ctl = "bev-holt",
+#                cr_prior = 6,
+#                n_iter = 100, n_chains = 1,
+#                n_warmup = 50)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  
@@ -237,9 +237,9 @@ to_fit2 <- to_fit
 to_fit2$rec_ctl <- "bev-holt"
 to_fit <- rbind(to_fit, to_fit2)
 
-to_fit3 <- to_fit
-to_fit3$cr_prior <- 12
-to_fit <- rbind(to_fit, to_fit3)
+# to_fit3 <- to_fit
+# to_fit3$cr_prior <- 12
+# to_fit <- rbind(to_fit, to_fit3)
 
 # set up parallel processing plan 
 future::plan(multisession)

@@ -20,7 +20,7 @@ data {
   vector<lower=0>[2] prior_sigma_v;    // prior variance for F's (early and late)
   real<lower=0> Ro_mean;               // prior mean, Ro
   real<lower=0> Ro_sd;                 // prior sd, Ro
-  real<lower=0> ar_sd;                 // prior sd, ar
+  real<lower=0> ln_ar_sd;              // prior sd, ln_ar
   real<lower=0> prior_mean_w;          // prior sd
   real<lower=0> prior_sigma_w;         // prior sd
   real<lower=0> vbk;                   // lake specific vbk  
@@ -54,15 +54,15 @@ transformed data {
   vector[n_surveys] SSB_Cd;            // SSB obs denominator
   vector[n_surveys] SSB_C;             // SSB obs
   vector<lower=0>[n_ages] Lo;          // survivorship unfished (F=0) 
-  real ar_mean;                        // ar mean
+  real ln_ar_mean;                     // ln_ar mean
   int counter = 0;                     // counter for caa_obs
   
   // calculate vul, length-age, M-age, fec-age 
   sbro = 0; // initialize
   for(a in 1:n_ages){ 
     v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
-    // v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; -- used in paper
-    v_f_a[a] = (linf *(1 - exp(-vbk * ages[a])))^psi;  
+    //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper
+    v_f_a[a] = (1 - exp(-vbk * ages[a]))^psi;  
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
     w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
@@ -79,7 +79,7 @@ transformed data {
       }
       sbro += f_a[a]*Lo[a];
   }
-  ar_mean = log(cr_prior/sbro); 
+  ln_ar_mean = log(cr_prior/sbro); 
   
   // calculate the rowsums for each survey, observed SSB
   // SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
@@ -99,7 +99,7 @@ transformed data {
 parameters {
   vector<lower=0>[2] v;                              // early period F v[1] or late F v[2]
   real<lower=0> Ro;                                  // average unfished recruitment 
-  real ar;                                           // stock-recruit a
+  real ln_ar;                                        // ln stock-recruit a
   vector[n_years-2] w;                               // recruitment anomalies--first 2 yrs for initiazation
   real<lower=G_bound[1], upper=G_bound[2]> G;        // is population at equilibrium (1) or declining (<1)
   //real<lower=0> phi;                               // negative binomial parameter
@@ -127,7 +127,7 @@ transformed parameters {
   real<lower=0> counter_SSB;                         // hack for SBR calcs
   real<lower=0> cr;                                  // compensation ratio kick out to check math
   real<lower=0> sbro_report;                         // report sbro  
-  real ar_mean_report;                               // report the ar mean 
+  real ln_ar_mean_report;                            // report the ar mean 
   vector<lower=0>[n_ages] l_a_report;                // report length at age a 
   vector<lower=0>[n_ages] Lo_report;                 // report survivorship unfished (F=0) 
   vector<lower=0>[n_ages] v_a_report;                // report net vulnerability age a
@@ -138,7 +138,7 @@ transformed parameters {
   
   // calculate sbrf
   sbro_report = sbro; 
-  ar_mean_report = ar_mean; 
+  ln_ar_mean_report = ln_ar_mean; 
   sbrf_early = 0; 
   sbrf_late = 0; 
   for(a in 1:n_ages){
@@ -165,20 +165,20 @@ transformed parameters {
 
   // Calculate recruitment b's, Rinit's
   if(rec_ctl==0){ // ricker b
-    br = (ar + log(sbro)) / (Ro*sbro); 
+    br = (ln_ar + log(sbro)) / (Ro*sbro); 
   }
   if(rec_ctl==1){ // bev-holt b
-    br = (exp(ar)*sbro - 1)/ (Ro*sbro); 
+    br = (exp(ln_ar)*sbro - 1)/ (Ro*sbro); 
   }
   if(Rinit_ctl == 0){
     Rinit = G*Ro; 
   }
   if(Rinit_ctl == 1){
     if(rec_ctl==0){ // ricker Req
-      Rinit = (ar + log(sbrf_early)-log(G)) / (br*sbrf_early);
+      Rinit = (ln_ar + log(sbrf_early)-log(G)) / (br*sbrf_early);
     }
     if(rec_ctl==1){ // bev-holt Req
-      Rinit = (exp(ar)*(sbrf_early-1)) / (br*sbrf_early); 
+      Rinit = (exp(ln_ar)*(sbrf_early-1)) / (br*sbrf_early); 
     }
   }
   pinit = Rinit / Ro; 
@@ -197,7 +197,7 @@ transformed parameters {
   }
   
   // Initialize the N(at) array age structure for t = 1,2
-  cr = exp(ar)*sbro; 
+  cr = exp(ln_ar)*sbro; 
   for(t in 1:2){
     Nat_array[1, t] =  Rinit;
     if(t == 1){
@@ -229,10 +229,10 @@ transformed parameters {
 
   for(t in 3:n_years){
     if(rec_ctl==0){// ricker
-      Nat_array[1, t] = SSB[t-2]*exp(ar - br*SSB[t-2] + w[t-2]);
+      Nat_array[1, t] = SSB[t-2]*exp(ln_ar - br*SSB[t-2] + w[t-2]);
     }
     if(rec_ctl==1){// beverton-holt
-      Nat_array[1, t] = SSB[t-2]*exp(ar + w[t-2]) / (1 + br*SSB[t-2]);
+      Nat_array[1, t] = SSB[t-2]*exp(ln_ar + w[t-2]) / (1 + br*SSB[t-2]);
     }
     for(a in 2:n_ages){
       Nat_array[a, t] = Nat_array[a-1, t-1]*exp(-M_a[a-1] - v_f_a[a-1]*F_vec[t-1]);  
@@ -276,7 +276,7 @@ model {
   v[1] ~ normal(v_prior_early, prior_sigma_v[1]); 
   v[2] ~ normal(v_prior_late, prior_sigma_v[2]); 
   Ro ~ lognormal(Ro_mean, Ro_sd); 
-  ar ~ normal(ar_mean, ar_sd);
+  ln_ar ~ normal(ln_ar_mean, ln_ar_sd);
   G ~ normal(0,prior_sigma_G); 
   to_vector(w) ~ normal(prior_mean_w, prior_sigma_w); 
   
@@ -312,10 +312,10 @@ generated quantities{
       su = su*exp(-M_a[a] - Fseq[i]*v_f_a[a]); 
       }
       if(rec_ctl == 0){ // ricker
-        Req = log( exp(ar)*(sbrf) ) / (br*sbrf); // Botsford predction of Req for F[i]
+        Req = log( exp(ln_ar)*(sbrf) ) / (br*sbrf); // Botsford predction of Req for F[i]
       }
       if(rec_ctl == 1){ // bh
-        Req = ( exp(ar)*sbrf-1.0 ) / (br*sbrf); 
+        Req = ( exp(ln_ar)*sbrf-1.0 ) / (br*sbrf); 
       }
       Yeq = Req*ypr; // predicted equilibrium yield
       if(Yeq > MSY){
