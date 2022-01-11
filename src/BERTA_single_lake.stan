@@ -40,7 +40,7 @@ data {
   vector[length_Fseq] Fseq;            // sequence of values to iterate across for Fmsy
   int<lower=0> rec_ctl;                // Ricker (0), BH (1)
   real<lower=0> cr_prior;              // compensation ratio prior 
-  int<lower=0> vul_ctl;              // length2 (0) or logistic (1) fishing vul
+  int<lower=0> vul_ctl;                // length2 (0) or logistic (1) fishing vul
 }
 transformed data {
   int<lower=0> caa_obs[n_obs];         // rowsums for survey k,t
