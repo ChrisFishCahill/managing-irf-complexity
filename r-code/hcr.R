@@ -253,7 +253,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
   HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
   HARA_vB_fish <- vB_fish_array[row_idx, col_idx, ] 
-  
     
   hcr_sim_list <- list(
     "tot_y" = tot_y, "tot_u" = tot_u,
@@ -357,7 +356,7 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 to_sim
 
 hcr_pars$n_draws <- 50
-to_sim <- tibble(which_lake = which_lakes, ass_int = 3)
+to_sim <- tibble(which_lake = contract_lakes, ass_int = 3)
 
 # run one lake:
 #run <- get_hcr(which_lake = "lake newell", ass_int = 3)
