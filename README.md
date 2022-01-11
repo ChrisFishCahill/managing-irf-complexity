@@ -13,6 +13,5 @@ Additional notes:
 * There are two .stan files in the /src folder.  The first is BERTA.stan and the second is BERTA_single_lake.stan.  These correspond to the original and single-lake versions of BERTA used in Cahill et al. 2021, respectively. The BERTA.stan file is not used, but is here in case folks want to compare with the single lake version. 
 
 TODO for Chris: 
-* find newell bug
 * work on markdown lessons 
 * weep 
