@@ -6,15 +6,25 @@
 library(paletteer)
 library(viridis)
 library(purrr)
+# plotting code for hcr simulations
+# load packages: 
 library(ggplot2)
 library(dplyr)
 library(stringr)
 library(gridExtra)
-#TODO: figure out regex for sim_files()
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
 sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_3", sim_files)]
+
+# read in the data from all lakes used in Cahill et al. 2021
+data <- readRDS("data/BERTA-wide-0-25.rds")
+
+contract_lakes <- c("lac ste. anne", "baptiste lake", 
+                    "pigeon lake", "calling lake", 
+                    "moose lake", "lake newell"
+)
+
 #sim_files <- sim_files[grep("ricker_cr_6", sim_files)]
 
 names <- str_extract(
@@ -34,6 +44,7 @@ all_posts <-
 
 #----------------------------------------------------------------------
 # plot the recruitment anomaly w(t) sequences used in hcrs
+
 p <-
   all_posts %>%
   ggplot(aes(x = year, y = w, colour = lake, group = .draw)) +
@@ -55,11 +66,9 @@ ggsave("plots/hcr_wts.pdf",
   height = 5
 )
 
-
-#----------------------------------------------------------------------
-# plots
 #----------------------------------------------------------------------
 # make the yield isopleth plots
+
 my_data <- NA
 yield_list <- big_list %>%
   purrr::map(~ .x$tot_y) 
@@ -179,29 +188,183 @@ ggsave("plots/hara_isos.pdf", bigp,
 )
 
 #----------------------------------------------------------------------
-# 
-test <- my_data %>%
-  filter(lake == "lake newell")
+# plot vulnerable biomass vs. yield for msy policy
 
-summary(test$value)
+vb_list <- big_list %>%
+  purrr::map(~ .x$MSY_vB_fish) 
 
-p2 <- my_data %>%
-  filter(lake == "lake newell") %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
+names(vb_list) <- gsub("_", " ", names(vb_list))
+
+my_data <- tibble()
+
+for(i in names(vb_list)){
+  lake_data <- vb_list[[i]]
+  long_data <- tibble(MSY_vB = lake_data, 
+                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      lake = gsub("_", " ", i)
+  )
+  if(names(hara_list)[1]==i){
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+# now get MSY yields
+yields_list <- big_list %>%
+  purrr::map(~ .x$MSY_yields) 
+
+#names(yields_list) <- gsub("_", " ", names(yields_list))
+
+my_data2 <- tibble()
+
+for(i in names(yields_list)){
+  lake_data <- yields_list[[i]]
+  long_data <- tibble(MSY_yield = lake_data, 
+                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      lake = gsub("_", " ", i)
+  )
+  if(names(hara_list)[1]==i){
+    my_data2 <- long_data
+  } else {
+    my_data2 <- rbind(my_data2, long_data)
+  }
+}
+
+my_data$MSY_yields <- my_data2$MSY_yield
+p <-
+  my_data %>%
+  ggplot(aes(x = year, y = MSY_vB)) +
+  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+  ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
+  xlab("Year") +
+  facet_wrap(~lake, scales="free") +
   ggsidekick::theme_sleek() +
-  labs(fill = "Utility") +
-  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
-  scale_color_manual(values = c(NA, "black")) +
-  xlab("Limit reference biomass (kg)") + 
-  ggtitle(i) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  geom_line(aes(x=year, y=MSY_yields), colour="darkorange2", size=0.5)
+p
+
+ggsave("plots/vb_yield_msy_policy.pdf",
+       width = 8,
+       height = 5
+)
+
+#----------------------------------------------------------------------
+# vulnerable biomass vs. yield for hara 
+
+vb_list <- big_list %>%
+  purrr::map(~ .x$HARA_vB_fish) 
+
+names(vb_list) <- gsub("_", " ", names(vb_list))
+
+my_data <- tibble()
+
+for(i in names(vb_list)){
+  lake_data <- vb_list[[i]]
+  long_data <- tibble(Utility_vB = lake_data, 
+                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      lake = gsub("_", " ", i)
+  )
+  if(names(hara_list)[1]==i){
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+# now get hara yields
+yields_list <- big_list %>%
+  purrr::map(~ .x$HARA_yields) 
+
+#names(yields_list) <- gsub("_", " ", names(yields_list))
+
+my_data2 <- tibble()
+
+for(i in names(yields_list)){
+  lake_data <- yields_list[[i]]
+  long_data <- tibble(HARA_yield = lake_data, 
+                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      lake = gsub("_", " ", i)
+  )
+  if(names(hara_list)[1]==i){
+    my_data2 <- long_data
+  } else {
+    my_data2 <- rbind(my_data2, long_data)
+  }
+}
+
+my_data$HARA_yield <- my_data2$HARA_yield
+p <-
+  my_data %>%
+  ggplot(aes(x = year, y = Utility_vB)) +
+  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+  ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
+  xlab("Year") +
+  facet_wrap(~lake, scales="free") +
+  ggsidekick::theme_sleek() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  geom_line(aes(x=year, y=HARA_yield), colour="darkorange2", size=0.5)
+p
+
+ggsave("plots/vb_yield_hara_policy.pdf",
+       width = 8,
+       height = 5
+)
+
+#----------------------------------------------------------------------
+# Extra code below:  
+#
+#
+#----------------------------------------------------------------------
+
+yields_list <- big_list %>%
+  purrr::map(~ .x$MSY_yields) 
+
+#names(yields_list) <- gsub("_", " ", names(yields_list))
+
+my_data <- NA
+
+for(i in names(yields_list)){
+  lake_data <- yields_list[[i]]
+  long_data <- tibble(MSY_yield = lake_data, 
+                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      lake = gsub("_", " ", i)
+  )
+  if(names(hara_list)[1]==i){
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+p <-
+  my_data %>%
+  ggplot(aes(x = year, y = MSY_yield)) +
+  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+  ylab("Maximum yields from MSY policy") +
+  xlab("Year") +
+  facet_wrap(~lake, scales="free") +
+  ggsidekick::theme_sleek() +
   theme(
     legend.title = element_blank(),
     legend.position = "none",
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
+p
 
-p2
+ggsave("plots/yields.pdf",
+       width = 8,
+       height = 5
+)
+
 
 
 

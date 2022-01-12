@@ -291,7 +291,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # the goal of which is to find a stationary harvest control rule
 #----------------------------------------------------------------------
 
-n_draws <- 5
+n_draws <- 30
 rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
@@ -355,8 +355,7 @@ to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 
 to_sim
 
-hcr_pars$n_draws <- 50
-to_sim <- tibble(which_lake = contract_lakes, ass_int = 3)
+#to_sim <- tibble(which_lake = contract_lakes, ass_int = 3)
 
 # run one lake:
 #run <- get_hcr(which_lake = "lake newell", ass_int = 3)
