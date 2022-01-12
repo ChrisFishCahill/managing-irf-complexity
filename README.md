@@ -14,4 +14,7 @@ Additional notes:
 
 TODO for Chris: 
 * work on markdown lessons 
+* add comments on nnet vs. effort (full net equivalents)
+* note that n in data is silly; should be removed (BERTA tutorial)
+* within chunk of code is misbehaving / check if necessary in BERTA/run.R 
 * weep 
