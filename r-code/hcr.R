@@ -167,9 +167,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           slice() %>%
           unlist(., use.names = FALSE)
         
-        Ninit_yr_2 <- sub_post[
+        Rinit_yr_2 <- sub_post[
           which(sub_post$year == retro_initial_yr + 1),
-          which(colnames(sub_post) %in% ages)
+          which(colnames(sub_post) == 2)
         ] %>%
           slice() %>%
           unlist(., use.names = FALSE)
@@ -180,7 +180,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         # SSB, Rpred, vulnerable biomass vectors
         SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
         nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
-        nta[2, ] <- Ninit_yr_2 
+        nta[2, 1] <- Rinit_yr_2 
         t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
 
         # run age-structured model for sim years
@@ -312,7 +312,7 @@ max_a <- max(ages) # max age
 recruit_a <- min(ages) # age at recruitment
 initial_yr <- t - max_a + recruit_a - 2 # 1980 = BERTA initial yr
 initial_yr_minus_one <- initial_yr - 1
-d_mort <- 0.3 # discard mortality
+d_mort <- 0.01 # discard mortality
 ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
@@ -368,7 +368,7 @@ contract_lakes <- c("lac ste. anne", "baptiste lake",
                     "moose lake", "lake newell"
 )
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
-
+hcr_pars$n_draws <- 30
 # run one lake:
 #run <- get_hcr(which_lake = "lake newell", ass_int = 3)
 
