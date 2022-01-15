@@ -108,10 +108,10 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
       M_a_report[age]
     ) %>%
     filter(.draw %in% draw_idx[1]) # indexed on 1 bc not changing
-
   leading_pars$age <- ages # correct ages
   w_a <- leading_pars$w_a_report
   f_a <- leading_pars$f_a_report
+  
   v_survey <- leading_pars$v_a_report
   v_fish <- leading_pars$v_f_a_report
   Lo <- leading_pars$Lo_report
@@ -122,7 +122,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
-  bmin_max_value <- ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
+  bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
+  #bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
   c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
@@ -165,13 +166,21 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         ] %>%
           slice() %>%
           unlist(., use.names = FALSE)
+        
+        Ninit_yr_2 <- sub_post[
+          which(sub_post$year == retro_initial_yr + 1),
+          which(colnames(sub_post) %in% ages)
+        ] %>%
+          slice() %>%
+          unlist(., use.names = FALSE)
 
         # nta matrix
-        nta <- matrix(NA, nrow = length(wt), ncol = length(ages))
+        nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages)) # recruit @ age 2 
 
         # SSB, Rpred, vulnerable biomass vectors
         SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
         nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
+        nta[2, ] <- Ninit_yr_2 
         t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
 
         # run age-structured model for sim years
@@ -213,7 +222,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           }
 
           # set rec value for next t
-          nta[t + 1, 1] <- Rpred[t]
+          nta[t + 2, 1] <- Rpred[t]
 
           # record performance metrics
           yield <- Ut_overall * rett * vB_fish[t]
@@ -308,7 +317,7 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # max U that fishermen can exert
-sd_survey <- 0.1 # survey observation error
+sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 
@@ -352,10 +361,13 @@ ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
 ass_ints <- rep(ass_ints, each=length(which_lakes))
 which_lakes <- rep(which_lakes, length(which_lakes)-1)
 to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
-
 to_sim
 
-#to_sim <- tibble(which_lake = contract_lakes, ass_int = 3)
+contract_lakes <- c("lac ste. anne", "baptiste lake", 
+                    "pigeon lake", "calling lake", 
+                    "moose lake", "lake newell"
+)
+to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 
 # run one lake:
 #run <- get_hcr(which_lake = "lake newell", ass_int = 3)
