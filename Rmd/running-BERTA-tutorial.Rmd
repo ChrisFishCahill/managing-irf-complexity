@@ -60,6 +60,8 @@ Consequently, if one wanted to add new data to the `BERTA-wide-0-25.rds` file fr
 
 To add new information to the stocking dataframe, note that rows are lakes and columns are the number of Walleye stocked per hectare during 1980-2018 in that lake. Thus, if you want to add stocking values after 2018 you'd add new columns for the years of interest.  These are indexed from 1980 because BERTA hindcasts to reconstruct recruitment trends in years pre-FWIN.
 
+Lastly, note that the 'n' column was a thing I was using for de-bugging and has no meaning relevant to normal humans. 
+
 # Create a wrapper function
 Once the data are read into R, we can write a wrapper function called `get_fit()` that does the following:
 

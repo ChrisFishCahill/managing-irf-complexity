@@ -15,7 +15,7 @@ library(gridExtra)
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
-sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_3", sim_files)]
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_1", sim_files)]
 
 # read in the data from all lakes used in Cahill et al. 2021
 data <- readRDS("data/BERTA-wide-0-25.rds")
@@ -203,7 +203,7 @@ for(i in names(vb_list)){
                       year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
                       lake = gsub("_", " ", i)
   )
-  if(names(hara_list)[1]==i){
+  if(names(vb_list)[1]==i){
     my_data <- long_data
   } else {
     my_data <- rbind(my_data, long_data)
@@ -224,7 +224,7 @@ for(i in names(yields_list)){
                       year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
                       lake = gsub("_", " ", i)
   )
-  if(names(hara_list)[1]==i){
+  if(names(vb_list)[1]==i){
     my_data2 <- long_data
   } else {
     my_data2 <- rbind(my_data2, long_data)
@@ -252,6 +252,23 @@ ggsave("plots/vb_yield_msy_policy.pdf",
        width = 8,
        height = 5
 )
+
+p <-
+  my_data %>%
+  ggplot(aes(y = MSY_yields, x = MSY_vB)) +
+  geom_point() +
+  ylab("Optimum Yield") +
+  xlab("Vulnerable Biomass") +
+  facet_wrap(~lake, scales="free") +
+  ggsidekick::theme_sleek() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  ggtitle("MSY policies")
+p
+
 
 #----------------------------------------------------------------------
 # vulnerable biomass vs. yield for hara 
@@ -318,6 +335,22 @@ ggsave("plots/vb_yield_hara_policy.pdf",
        width = 8,
        height = 5
 )
+
+p <-
+  my_data %>%
+  ggplot(aes(y = HARA_yield, x = Utility_vB)) +
+  geom_point() +
+  ylab("Optimum Yield") +
+  xlab("Vulnerable Biomass") +
+  facet_wrap(~lake, scales="free") +
+  ggsidekick::theme_sleek() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  ggtitle("HARA policies")
+p
 
 #----------------------------------------------------------------------
 # Extra code below:  
