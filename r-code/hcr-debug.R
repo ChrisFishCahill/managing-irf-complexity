@@ -1,6 +1,5 @@
 #----------------------------------------------------------------------
-# Harvest control rules for Alberta Walleye lakes
-# Cahill & Walters 3 Jan 2022
+# stripped down hcr function to play around with results faster
 #----------------------------------------------------------------------
 # load packages
 library(tidyverse)
@@ -13,7 +12,6 @@ library(furrr)
 # devtools::install_github("seananderson/ggsidekick")
 
 #--------------------------------------------------------------------
-# write a function to take BERTA posteriors and run retrospective MSE
 
 get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   #--------------------------------------------------------------------
@@ -35,7 +33,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   sd_survey <- hcr_pars$sd_survey
   q_survey <- hcr_pars$q_survey
   sbo_prop <- hcr_pars$sbo_prop
-
+  
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
   #--------------------------------------------------------------------
@@ -43,59 +41,59 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
-  
+
   # extract estimated and derived parameters from BERTA
   devs <- fit %>%
-    spread_draws(Ro, ln_ar, br) %>%
+    spread_draws(Ro, ln_ar, br, cr) %>%
     sample_draws(n_draws)
-
+  
   draw_idx <- unique(devs$.draw) # which posterior rows did sample_draws() take?
-
+  
   w_devs <- fit %>%
     spread_draws(w[year]) %>%
     filter(.draw %in% draw_idx) %>% # force same .draw to be taken as above
     mutate(year = year + initial_yr_minus_one) # make years 1980-2028
-
+  
   # extract nta from stan
   nta_stan <- fit %>%
     spread_draws(Nat_array[age, year]) %>%
     pivot_wider(names_from = age, values_from = Nat_array) %>%
     filter(.draw %in% draw_idx) %>%
     mutate(year = year + initial_yr_minus_one)
-
+  
   # which columns have ages:
   age_cols <- which(!is.na(str_extract(
     string = colnames(nta_stan),
     pattern = "[0-9]|10[0-9]"
   )))
-
+  
   # rename age columns to correct ages 2-20
   colnames(nta_stan)[age_cols] <- ages
-
+  
   # extract MAP estimate of Ro from posterior (for indexing bmin)
   Ro_summary <- rstan::summary(fit, pars = "Ro")$summary
   Ro_map <- Ro_summary[, "mean"]
-
+  
   # extract the age structure corresponding to 1990
   nta_init <- nta_stan %>% filter(year == retro_initial_yr)
-
+  
   # extract w estimates from 1990-2015
   w_devs <- w_devs %>%
     filter(year %in% retro_initial_yr:retro_terminal_yr)
-
+  
   # join all those devs into one big tibble called "post"
   suppressMessages(
     post <- left_join(w_devs, nta_stan,
-      join_by = c(.draw, year)
+                      join_by = c(.draw, year)
     )
   )
-
+  
   suppressMessages(
     post <- left_join(post, devs,
-      join_by = .draw
+                      join_by = .draw
     ) %>% arrange(.draw)
   )
-
+  
   # extract leading parameters from stan to get vbro
   leading_pars <- fit %>%
     spread_draws(
@@ -111,26 +109,30 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   leading_pars$age <- ages # correct ages
   w_a <- leading_pars$w_a_report
   f_a <- leading_pars$f_a_report
-  
   v_survey <- leading_pars$v_a_report
   v_fish <- leading_pars$v_f_a_report
   Lo <- leading_pars$Lo_report
   M_a <- leading_pars$M_a_report
   vbro <- sum(Lo * v_survey * w_a)
   sbro <- sum(f_a * Lo)
-
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
-  bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
-  #bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
-  c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
-  bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
+  # bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
+  # bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
+  # c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
+  # bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
+  # tot_y <- tot_u <- prop_below <- TAC_zero <-
+  #   matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
+  # yield_array <- vB_fish_array <-
+  #   array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
+  bmin_max_value <- 0
+  c_slope_seq <- 0.01
+  bmin_seq <- bmin_max_value
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- vB_fish_array <- 
     array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
-
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
   #----------------------------------------------------------------------
@@ -142,23 +144,27 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
       for (k in seq_len(n_draws)) {
         # pick a single draw
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
-
+        
         # set leading parameters from sampled draw
-        rec_a <- exp(sub_post$ln_ar[1])
-        rec_b <- sub_post$br[1]
+        CR <- sub_post$cr[1]
+        #rec_b <- sub_post$br[1]
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
         vbo <- Ro * vbro
-
+        rec_a <- CR / sbro
+        # stock-recruitment b
+        if (rec_ctl == "ricker") { # Ricker
+          rec_b <- log(CR) / (Ro * sbro) #rec_a <-  / sbro # exp(sub_post$ln_ar[1])
+        }
+        if (rec_ctl == "bh") { # Beverton-Holt
+          rec_b <- (CR - 1) / sbo
+        }
+        
         wt <- sub_post$w
         wt_bar <- mean(wt)
         wt <- wt - wt_bar # correct nonzero wt over initialization period
         wt <- rep(wt, n_repeats)
-
-        # multiply recruitment anomalies after initial period by rec_var (ugly)
-        wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] <-
-          wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] * rec_var
-
+  
         # extract the initial age structure
         Ninit <- sub_post[
           which(sub_post$year == retro_initial_yr),
@@ -167,28 +173,28 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           slice() %>%
           unlist(., use.names = FALSE)
         
-        Rinit_yr_2 <- sub_post[
+        Ninit_yr_2 <- sub_post[
           which(sub_post$year == retro_initial_yr + 1),
-          which(colnames(sub_post) == 2)
+          which(colnames(sub_post) %in% ages)
         ] %>%
           slice() %>%
           unlist(., use.names = FALSE)
-
+        
         # nta matrix
-        nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages)) # recruit @ age 2 
-
+        nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages))
+        
         # SSB, Rpred, vulnerable biomass vectors
         SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
         nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
-        nta[2, 1] <- Rinit_yr_2 
+        nta[2, ] <- Ninit_yr_2
         t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
-
+        
         # run age-structured model for sim years
         for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # years 1 to (n_sim_year-1)
           SSB[t] <- sum(nta[t, ] * f_a * w_a)
           vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
           vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
-
+          
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
@@ -214,16 +220,16 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           if (rec_ctl == "bh") {
             Rpred[t] <- rec_a * SSB[t] * exp(wt[t]) / (1 + rec_b * SSB[t])
           }
-
+          
           # update the age structure
           for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
             nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) *
-              (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
+              (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))       
           }
-
+          
           # set rec value for next t
           nta[t + 2, 1] <- Rpred[t]
-
+          
           # record performance metrics
           yield <- Ut_overall * rett * vB_fish[t]
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
@@ -236,7 +242,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
       }
     }
   }
-
+  
   #--------------------------------------------------------------------
   # process simulation output - get annual values & return a list
   #--------------------------------------------------------------------
@@ -244,12 +250,12 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   tot_u <- tot_u / (n_draws * n_sim_yrs)
   prop_below <- prop_below / (n_draws * n_sim_yrs)
   TAC_zero <- TAC_zero / (n_draws * n_sim_yrs)
-
+  
   row.names(tot_y) <- row.names(tot_u) <-
     row.names(prop_below) <- row.names(TAC_zero) <- c_slope_seq
   colnames(tot_y) <- colnames(tot_u) <-
     colnames(prop_below) <- colnames(TAC_zero) <- round(bmin_seq, 2)
-
+  
   yield_array <- yield_array / n_draws # expected yield seqs for each cslope, bmin
   vB_fish_array <- vB_fish_array / n_draws # expected vul bio seq for each i,j
   
@@ -262,7 +268,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
   HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
   HARA_vB_fish <- vB_fish_array[row_idx, col_idx, ] 
-    
+  
   hcr_sim_list <- list(
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
@@ -272,36 +278,11 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     "post" = post, "leading_pars" = leading_pars 
   )
   # create name and save .rds files for each run
-  file_name <- str_extract(
-    string = names(fits)[fit_idx],
-    pattern = "(?<=fits/).*(?=.rds)"
-  )
-  file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, ".rds")
-  if (file.exists(file_name)) {
-    return(NULL)
-  } else {
-    saveRDS(hcr_sim_list, file = file_name)
-  }
+ return(hcr_sim_list)
 }
 
-#----------------------------------------------------------------------
-# declare some values for the simulations
-#----------------------------------------------------------------------
-#                             ***N.B.***
-# We need to preserve the historical frequency of weak and strong
-# year classes in our recruitment time series for the retrospective
-# analysis
-#
-# Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
-# reference period as most FWIN surveys have information on recruitment
-# to approximately 1990
-#
-# We will repeat this 26 yr sequence 8 times for 208 yr time horizon,
-# the goal of which is to find a stationary harvest control rule
-#----------------------------------------------------------------------
-
-n_draws <- 100
-rec_var <- 1.0 # variability of recruitment seqs after first seq
+n_draws <- 30
+rec_var <- 1.5 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -316,7 +297,7 @@ d_mort <- 0.3 # discard mortality
 ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
-Ut_overall <- 0.5 # max U that fishermen can exert
+Ut_overall <- 1.0 # max U that fishermen can exert
 sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
@@ -340,51 +321,59 @@ hcr_pars <- list(
   "sbo_prop" = sbo_prop
 )
 
-#----------------------------------------------------------------------
-# read in the stan fits and run retrospective mse
-#----------------------------------------------------------------------
+run <- get_hcr(which_lake = "lake newell", ass_int = 1)
 
-# extract some saved .stan fit names
-paths <- dir("fits/", pattern = "\\.rds$")
-paths <- paths[grep("bh_cr_6", paths)]
-paths <- paste0(getwd(), "/fits/", paths)
+my_df <- tibble(MSY_vB = run$MSY_vB_fish,
+                MSY_yields = run$MSY_yields, 
+                year = 1:hcr_pars$n_sim_yrs)
 
-fits <- map(paths, readRDS) %>%
-  set_names(paths)
+run$tot_y
 
-which_lakes <- str_extract(
-  string = paths,
-  "(?<=fits/).*(?=_bh|_ricker)"
-)
 
-ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
-ass_ints <- rep(ass_ints, each=length(which_lakes))
-which_lakes <- rep(which_lakes, length(which_lakes)-1)
-to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
-to_sim
-
-contract_lakes <- c("lac ste. anne", "baptiste lake", 
-                    "pigeon lake", "calling lake", 
-                    "moose lake", "lake newell"
-)
-to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
-# run one lake:
-#run <- get_hcr(which_lake = "lake newell", ass_int = 3)
-
-# purrr 
-# system.time( 
-#  pwalk(to_sim, get_hcr)
-# )
-
-options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
-future::plan(multisession)
-system.time({ 
-  future_pwalk(to_sim, get_hcr,
-    .options = furrr_options(seed = TRUE)
+long_data <- 
+  lake_data %>%
+  as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+  rename(
+    "cslope" = "Var1",
+    "bmin" = "Var2"
+  ) %>%
+  mutate(
+    cslope = as.numeric(as.character(cslope)),
+    bmin = as.numeric(as.character(bmin)), 
+    lake = gsub("_", " ", i)
   )
-})
+if(names(hara_list)[1]==i){
+  my_data <- long_data
+} else {
+  my_data <- rbind(my_data, long_data)
+}
 
-# remove all fits?
-# do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
-#----------------------------------------------------------------------
-# end
+
+
+p <-
+  my_df %>%
+  ggplot(aes(x = year, y = MSY_vB)) +
+  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+  ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
+  xlab("Year") +
+  ggsidekick::theme_sleek() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  geom_line(aes(x=year, y=MSY_yields), colour="darkorange2", size=0.5)
+p
+
+#ggsave("plots/newell2.pdf")
+
+# ass_int <- 10
+# t_last_ass <- 1 - ass_int
+# 
+# for (t in 1:100) { 
+#  print(t)
+#   if (t - t_last_ass == ass_int) { # assess every ass_int yrs
+#     t_last_ass <- t
+#     message("assessment happened")
+#   }
+# }

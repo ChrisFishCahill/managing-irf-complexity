@@ -2,12 +2,9 @@
 # hcr plots
 #----------------------------------------------------------------------
 
-# packages
 library(paletteer)
 library(viridis)
 library(purrr)
-# plotting code for hcr simulations
-# load packages: 
 library(ggplot2)
 library(dplyr)
 library(stringr)
@@ -61,10 +58,10 @@ p <-
   )
 p
 
-ggsave("plots/hcr_wts.pdf",
-  width = 8,
-  height = 5
-)
+# ggsave("plots/hcr_wts.pdf",
+#   width = 8,
+#   height = 5
+# )
 
 #----------------------------------------------------------------------
 # make the yield isopleth plots
@@ -115,7 +112,8 @@ p1 <- my_data %>%
     legend.title = element_blank(),
     legend.position = "none",
     plot.title = element_text(hjust = 0.5)
-  )
+  )  
+  #geom_vline(xintercept=10)
   plot_list[[which(unique(my_data$lake) == i )]] <- p1 
 }
 
@@ -266,7 +264,9 @@ p <-
     legend.position = "none",
     plot.title = element_text(face = "bold", hjust = 0.5)
   ) + 
-  ggtitle("MSY policies")
+  ggtitle("MSY policies") + 
+  geom_abline() +
+  geom_abline(slope=0.3)
 p
 
 
@@ -349,7 +349,10 @@ p <-
     legend.position = "none",
     plot.title = element_text(face = "bold", hjust = 0.5)
   ) + 
-  ggtitle("HARA policies")
+  ggtitle("HARA policies") +
+  geom_abline() +
+  geom_abline(slope=0.3) +
+  geom_abline(slope=0.2)
 p
 
 #----------------------------------------------------------------------
