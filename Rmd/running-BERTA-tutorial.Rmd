@@ -1,5 +1,5 @@
 ---
-title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial"
+title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial Part 1"
 author: "Christopher L. Cahill"
 date: "31 December 2021"
 output:

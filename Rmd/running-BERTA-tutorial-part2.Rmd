@@ -1,0 +1,42 @@
+---
+title: "Bayesian Estimation of Recruitment Trends in Alberta (BERTA) Tutorial Part 2"
+author: "Christopher L. Cahill"
+date: "16 January 2022 "
+output:
+  html_document: default
+  pdf_document: default
+highlight: tango
+urlcolor: blue
+---
+# Purpose 
+The purpose of this tutorial is to work through the `BERTA_single_lake.stan` script, which implements an age-structured population dynamics model as per Cahill et al. (2021).  This model is fitted to the catch at age data discussed in the `running-BERTA-tutorial.pdf`, and thus readers should be familiar with the first tutorial before proceeding here.  Even though the model in question is coded in Stan, there will be several examples in R to help build intuition for various sub-components of the .stan model. 
+
+# Goals
+- Understand the program block sections in a `.stan` file. 
+- Develop a brief understanding of Bayesian analysis and computing algorithms, including a general idea of how Stan draws values from the priors and then calculates model predictions.
+- Work through the transformed parameter section, and think through how this section takes random values drawn from the priors and data to calculate a model prediction.
+- Understand the model section of a `.stan` file. 
+- Using the generated quantities section to simulate Kobe plot quantities. 
+- Debugging with `print()` statements. 
+
+# Getting started
+The most up-to-date `BERTA_single_lake.stan` file is available at  
+  <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/src/BERTA_single_lake.stan>  
+    
+This file may change slightly from what is presented in this tutorial (i.e., Carl and Chris occasionally change things in this file, re-run all fits, and then pass this to our harvest control rule file to test whether the .stan file changes mattered).  
+
+# Resources: 
+
+Cahill et al. 2021.  Unveiling the recovery dynamics of Walleye after the invisible collapse.  CJFAS.  
+  Stan User Guide.  
+    
+
+<https://purrr.tidyverse.org/>
+
+<https://homerhanumat.github.io/r-notes/purrr-higher-order-functions-for-iteration.html>
+
+<http://mc-stan.org/shinystan/>
+
+<https://adv-r.hadley.nz/debugging.html>
+
+<https://whattheyforgot.org/debugging-r-code.html>
