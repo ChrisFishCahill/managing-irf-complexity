@@ -157,15 +157,15 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         wt_historical <- sub_post$w 
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
-        wt_historical <- rep(wt_historical, n_repeats)
+        wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
         
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
         wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates              
-        wt_sim[1] <- wt_re[1] # initialize the process
+        wt_sim[1] <- wt_re[1] # initialize the process for t = 1
         
         # create autoregressive wt_sim[t]
-        for(t in seq_len(n_sim_yrs)[-n_sim_yrs]){
+        for(t in seq_len(n_sim_yrs)[-n_sim_yrs]){ # t = 1 to 207
           wt_sim[t + 1] <- rho*wt_sim[t] + wt_re[t + 1]
         }
         
@@ -174,7 +174,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           wt_historical[1:n_historical_yrs]
         
         # calculate wt differently for yrs 26 +
-        for(t in n_historical_yrs:n_sim_yrs){
+        for(t in n_historical_yrs:n_sim_yrs){ # t = 26 to 208
           wt[t] = 0.5*wt_historical[t] + (1 - 0.5)*wt_sim[t]
         }
         
