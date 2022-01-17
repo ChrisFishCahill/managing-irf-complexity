@@ -37,7 +37,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   sbo_prop <- hcr_pars$sbo_prop
   rho <- hcr_pars$rho
   sd_wt <- hcr_pars$sd_wt
-  psi <- hcr_pars$psi
+  psi_wt <- hcr_pars$psi_wt
   n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
 
   #--------------------------------------------------------------------
@@ -175,7 +175,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 
         # calculate wt differently for yrs 26 +
         for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
-          wt[t] <- psi * wt_historical[t] + (1 - psi) * wt_sim[t]
+          wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
         }
 
         # extract the initial age structure
@@ -340,7 +340,7 @@ q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
-psi <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
+psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -360,7 +360,7 @@ hcr_pars <- list(
   "sbo_prop" = sbo_prop,
   "rho" = rho,
   "sd_wt" = sd_wt,
-  "psi" = psi
+  "psi_wt" = psi_wt
 )
 
 #----------------------------------------------------------------------
