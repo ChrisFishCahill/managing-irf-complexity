@@ -46,7 +46,7 @@ generated quantities{
   // models, data, and (optionally) pseudo-random numbers. 
 }
 ``` 
-In Stan, characters occurring after a `//` are not run.  Thus, these are similar to using `#` in R and can be used to comment code.
+In Stan, characters occurring after `//` are not run.  Thus, these are similar to using `#` in R and can be used to comment code.
 
 As per the comments in the above code, each of the program blocks does a specific thing. 
 
@@ -61,15 +61,15 @@ As per the comments in the above code, each of the program blocks does a specifi
 In an attempt to demonstrate how each of these sections can be used, and how to code something straightforward in Stan we consider the following example. The point here is to get you used to reading data into Stan from R and developing a `.stan` model. 
 
 ## Problem statement 
-Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Mussels at various locations along a 30 km river.  The experimental design of this survey started in the headwaters (km 0) and proceeded downstream (km 30), sampling mussels via a point count surveys every 5 km. Surveys were repeated at each location five times (misery).
+Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Mussels at various locations along a 30 km river.  The experimental design of this survey started in the headwaters (km 0) and proceeded downstream (km 30), sampling mussels via point count surveys every 5 km. Surveys were repeated at each location five times (misery).
 
-Your biologist friends tell you there is some industrial development planned for km 18.7, and they need to determine what the expected density of critters might be in that location given these data so that they can evaluate different management options. However, point count surveys only occurred at kms 15 and 20.  Can you help them? 
+Your biologist friends tell you there is some industrial development planned for km 18.7.  They need to determine what the expected density of critters in that location given these data so that they can evaluate alternative management options. However, point count surveys only occurred at kms 15 and 20.  Can you help them? 
 
 ### Simulate some fake data
 First we'll create some fake data for our toy problem. We start in R, and discuss stuff below. 
 
 ```{r}
-# simulate data for Gorbachev's  homing mussles
+# simulate data for Gorbachev's homing mussles
 # model form:
 # y_i ~ Poisson(lambda_i) # i is survey count
 # E(y_i) = lambda_i
@@ -122,7 +122,7 @@ summary(fit_glm)
 
 Cool, so this simple script simulated some fake data for our toy problem and then estimated it using {glm} in R.  Now let's write a .stan file for the exact same model.  
 
-Note that for the following code to work, you will have to save a .stan file (possible in R studio).  I named my script `mussels.stan`. 
+Note that for the following code to work, you will have to save a .stan file (possible in R studio by clicking file -> new file -> stan file).  I named my script `mussels.stan`. 
 
 ```stan
 data {
@@ -196,7 +196,9 @@ fit <-
     data = stan_data,
     pars =
       c(
-        "beta_0", "beta_1", "y_pred"
+        "beta_0", # intercept  
+        "beta_1", # slope for km 
+        "y_pred" # predicted count for my_km
       ),
     iter = 2000,
     warmup = 1000,
@@ -211,7 +213,7 @@ Note here that we are monitoring the parameters beta_0 and beta_1, and the deriv
 
 Play around with the number of iterations and warmup period and see what happens.  If you are playing with the run parameters, change the number of chains to 1 (it is easier to debug and see what is actually happening). 
 
-Voila, you've now coded a Bayesian Generalized Linear Model in Stan. The term y_pred is giving you the posterior predictive distribution (see Gelman et al. 2013) for the number of Gorbachev's Homing Mussels that are likely present at river km 18.7, complete with uncertainty intervals. 
+Voila, you've now coded a Bayesian Generalized Linear Model in Stan, and the world is now your oyster because GLMs show up all over the place (see Kery and Schaub 2012). The term y_pred is giving you the posterior predictive distribution (see Gelman et al. 2013) for the number of Gorbachev's Homing Mussels that are likely present at river km 18.7, complete with uncertainty intervals. 
 
 # Order of Stan operations
 A Stan file is perhaps a little counterintuitive if you are not used to Bayesian analysis. 
@@ -220,11 +222,11 @@ The file reads in data and transforms it in the transformed data { } block.  Not
 
 Thus, Stan jumps down to the model block and draws a single value for beta_0 and beta_1.  Next, it jumps back up into the transformed parameter block, and uses the parameter values it has drawn along with the data and transformed data to create a model prediction. This prediction is then passed back to the model section, where the likelihood terms are calculated (likelihood calculations require data and model predictions). 
 
-Stan, in the background, then creates a log probability function as the log of the priors plus the log likelihood(s). This log probability function is repeatedly evaluated for different random draws of the priors and passed to an algorithm that uses magic to accept some proportion of the random draws and which also helps it walk toward the most likely parameter values.  
+Stan, in the background, then creates a log probability function as the log of the priors plus the log likelihood(s). This log probability function is evaluated repeatedly for many random draws of the priors and is then passed to an algorithm that uses magic to accept some proportion of the random draws.  This algorithm also helps Stan walk toward the most likely parameter values.  
 
 Lastly, Stan will then pass these accepted parameter values to the generated quantities block.
 
-Stan does all this for you, which is pretty dope. 
+Stan does all this magic for you, which is pretty dope (it got me a Ph.D). 
 
 If you remind me in person, I will show you a video animation to give you an idea of how the Stan algorithms are working.
 
@@ -244,13 +246,16 @@ It is also worth noting that the Stan manual (see link below) is a remarkable co
 # Questions  
 Dr. Geezer doesn't trust statsitics and thus hates your silly model.  Dr. Geezer refuses to trust your model until you demonstrate that it adequately predicts the observed count data (a reasonable request). 
 
-1. Can you adapt the mussels.stan code to address this criticism? 
+1. Can you adapt the mussels.stan code to address this criticism?  Note you will have to compile the .stan model each time you change it. 
 2. How does your model compare to the Frequentist fit using the `glm()` function? 
-3. Do your answers change if you change the prior sd terms? Note you will have to compile the .stan model each time you change it. 
+3. Do your answers change if you change the prior sd terms?
 4. It turns out the biologists mistakenly told you the industrial development was going in at km 18.7, but it is actually km 28.7.  Can you adapt the code to generate a predictive distribution for mussel counts at km 28.7 instead? 
 5. What was the "true" expected number of mussels at km 28.7? 
 
 # Resources: 
+
+Kery and Schaub. 2012. Bayesian Population Analysis Using Winbugs.
+
 Cahill et al. 2021 CJFAS. 
 
 Gelman et al. 2013. Bayesian Data Analsyis. 
