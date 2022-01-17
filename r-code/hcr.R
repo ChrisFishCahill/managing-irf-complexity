@@ -13,7 +13,7 @@ library(furrr)
 # devtools::install_github("seananderson/ggsidekick")
 
 #--------------------------------------------------------------------
-# write a function to take BERTA posteriors and run retrospective MSE
+# write a function to take BERTA posteriors and run MSE
 
 get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   #--------------------------------------------------------------------
@@ -35,6 +35,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   sd_survey <- hcr_pars$sd_survey
   q_survey <- hcr_pars$q_survey
   sbo_prop <- hcr_pars$sbo_prop
+  rho <- hcr_pars$rho
+  sd_wt <- hcr_pars$sd_wt
+  n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
 
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
@@ -149,16 +152,32 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
         vbo <- Ro * vbro
-
-        wt <- sub_post$w
-        wt_bar <- mean(wt)
-        wt <- wt - wt_bar # correct nonzero wt over initialization period
-        wt <- rep(wt, n_repeats)
-
-        # multiply recruitment anomalies after initial period by rec_var (ugly)
-        wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] <-
-          wt[(length(retro_initial_yr:retro_terminal_yr) + 1):length(wt)] * rec_var
-
+        
+        # repeat the historical recruitment series 
+        wt_historical <- sub_post$w 
+        wt_bar <- mean(wt_historical)
+        wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
+        wt_historical <- rep(wt_historical, n_repeats)
+        
+        # generate auto-correlated w(t)'s
+        wt_sim <- wt <- rep(NA, length(wt_historical))
+        wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates              
+        wt_sim[1] <- wt_re[1] # initialize the process
+        
+        # create autoregressive wt_sim[t]
+        for(t in seq_len(n_sim_yrs)[-n_sim_yrs]){
+          wt_sim[t + 1] <- rho*wt_sim[t] + wt_re[t + 1]
+        }
+        
+        # set wt = BERTA estimated values for yrs 1-26 
+        wt[1:n_historical_yrs] <- 
+          wt_historical[1:n_historical_yrs]
+        
+        # calculate wt differently for yrs 26 +
+        for(t in n_historical_yrs:n_sim_yrs){
+          wt[t] = 0.5*wt_historical[t] + (1 - 0.5)*wt_sim[t]
+        }
+        
         # extract the initial age structure
         Ninit <- sub_post[
           which(sub_post$year == retro_initial_yr),
@@ -301,7 +320,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 #----------------------------------------------------------------------
 
 n_draws <- 100
-rec_var <- 1.0 # variability of recruitment seqs after first seq
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -320,11 +338,12 @@ Ut_overall <- 0.5 # max U that fishermen can exert
 sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
+rho <- 0.6 # correlation for recruitment terms 
+sd_wt <- 1.1 # std. dev w(t)'s 
 
 # put it all in a tagged list
 hcr_pars <- list(
   "n_draws" = n_draws,
-  "rec_var" = rec_var,
   "n_repeats" = n_repeats,
   "retro_initial_yr" = retro_initial_yr,
   "retro_terminal_yr" = retro_terminal_yr,
@@ -337,7 +356,9 @@ hcr_pars <- list(
   "Ut_overall" = Ut_overall,
   "sd_survey" = sd_survey,
   "q_survey" = q_survey,
-  "sbo_prop" = sbo_prop
+  "sbo_prop" = sbo_prop, 
+  "rho" = rho, 
+  "sd_wt" = sd_wt
 )
 
 #----------------------------------------------------------------------
@@ -369,7 +390,8 @@ contract_lakes <- c("lac ste. anne", "baptiste lake",
 )
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 # run one lake:
-#run <- get_hcr(which_lake = "lake newell", ass_int = 3)
+#
+run <- get_hcr(which_lake = "lake newell", ass_int = 3)
 
 # purrr 
 # system.time( 
