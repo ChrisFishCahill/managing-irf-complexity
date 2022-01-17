@@ -61,7 +61,7 @@ As per the comments in the above code, each of the program blocks does a specifi
 In an attempt to demonstrate how each of these sections can be used, and how to code something straightforward in Stan we consider the following example. The point here is to get you used to reading data into Stan from R and developing a `.stan` model. 
 
 ## Problem statement 
-Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Mussels at various locations along a 30 km river.  The experimental design of this survey started in the headwaters (km 0) and proceeded downstream (km 30), sampling mussels via point count surveys every 5 km. Surveys were repeated at each location five times (misery).
+Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Mussels at various locations along a 30 km river.  The experimental design of this survey started in the headwaters (km 0) and proceeded downstream (km 30), sampling mussels via point count surveys every 5 km. Surveys were repeated at each location three times (misery).
 
 Your biologist friends tell you there is some industrial development planned for km 18.7.  They need to determine what the expected density of critters is in that location so that they can evaluate alternative management options. However, point count surveys only occurred at kms 15 and 20.  Can you help them? 
 
