@@ -306,20 +306,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 #----------------------------------------------------------------------
 # declare some values for the simulations
 #----------------------------------------------------------------------
-#                             ***N.B.***
-# We need to preserve the historical frequency of weak and strong
-# year classes in our recruitment time series for the retrospective
-# analysis
-#
-# Thus, we will select 1990-2015 for these lakes for a 26 yr recruitment
-# reference period as most FWIN surveys have information on recruitment
-# to approximately 1990
-#
-# We will repeat this 26 yr sequence 8 times for 208 yr time horizon,
-# the goal of which is to find a stationary harvest control rule
-#----------------------------------------------------------------------
 
-n_draws <- 100
+n_draws <- 50
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -394,7 +382,7 @@ contract_lakes <- c(
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 # run one lake:
 #
-run <- get_hcr(which_lake = "lake newell", ass_int = 3)
+run <- get_hcr(which_lake = "lake newell", ass_int = 1)
 
 # purrr
 # system.time(
