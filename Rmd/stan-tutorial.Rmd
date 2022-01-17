@@ -225,7 +225,7 @@ Play around with the number of iterations and warmup period and see what happens
 
 Voila, you've now coded a Bayesian Generalized Linear Model in Stan, and the world is now your oyster because GLMs show up all over the place (see Kery and Schaub 2012). The term y_pred is giving you the posterior predictive distribution (see Gelman et al. 2013) for the number of Gorbachev's Homing Mussels that are likely present at river km 18.7, complete with uncertainty intervals. 
 
-# Order of Stan operations
+# Order of (Stan) operations
 A Stan file is perhaps a little counterintuitive if you are not used to Bayesian analysis. 
 
 The file reads in data and transforms it in the transformed data { } block.  Note the transformed data block was not used in this example.  After this, it is easiest to think of things in terms of "draws" from the prior distributions, which are specified in the model{ } block. 
