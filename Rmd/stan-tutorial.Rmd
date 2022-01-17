@@ -12,10 +12,10 @@ urlcolor: blue
 The purpose of this tutorial is to work through a simple Stan model. Because we ultimately want to be able to run and use a fairly complex age-structured Stan model, it will pay off in spades if we understand how a simpler model is specified in Stan.  
 
 # Goals
-- Understand the program block sections in a `.stan` file. 
-- Simulate and then estimate a model using fake data where truth is known.
-- Develop intution surrounding how Stan draws values from the priors and then calculates model predictions.
-- Debugging with low iterations and `print()` statements. 
+- Understand the program block sections in a `.stan` file 
+- Simulate and then estimate a model using fake data where truth is known
+- Develop intution surrounding how Stan draws values from the priors and then calculates model predictions
+- Debugging with low iterations and `print()` statements
 
 # Block sections in a `.stan` file: 
 Stan files are written in the Stan programming language, which is (at least to me) something of a cross between R, WINBUGS/JAGS, and C++. It is a Turing complete programming language, so anything you can do in R you generally can do in Stan (if you are enough of a masochist and indeed want to do that). It is important to recognize that variable or object declarations in Stan require you to be explicit.  Thus, you need to tell Stan whether something is a real, integer, vector, matrix, or whatever.
