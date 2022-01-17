@@ -37,6 +37,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   sbo_prop <- hcr_pars$sbo_prop
   rho <- hcr_pars$rho
   sd_wt <- hcr_pars$sd_wt
+  psi <- hcr_pars$psi
   n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
 
   #--------------------------------------------------------------------
@@ -46,7 +47,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
-  
+
   # extract estimated and derived parameters from BERTA
   devs <- fit %>%
     spread_draws(Ro, ln_ar, br) %>%
@@ -114,7 +115,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   leading_pars$age <- ages # correct ages
   w_a <- leading_pars$w_a_report
   f_a <- leading_pars$f_a_report
-  
+
   v_survey <- leading_pars$v_a_report
   v_fish <- leading_pars$v_f_a_report
   Lo <- leading_pars$Lo_report
@@ -126,12 +127,12 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
   bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
-  #bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
+  # bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
   c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
-  yield_array <- vB_fish_array <- 
+  yield_array <- vB_fish_array <-
     array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
 
   #----------------------------------------------------------------------
@@ -152,32 +153,31 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
         vbo <- Ro * vbro
-        
-        # repeat the historical recruitment series 
-        wt_historical <- sub_post$w 
+
+        # repeat the historical recruitment series
+        wt_historical <- sub_post$w
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
         wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
-        
+
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
-        wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates              
+        wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
-        
+
         # create autoregressive wt_sim[t]
-        for(t in seq_len(n_sim_yrs)[-n_sim_yrs]){ # t = 1 to 207
-          wt_sim[t + 1] <- rho*wt_sim[t] + wt_re[t + 1]
+        for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # t = 1 to 207
+          wt_sim[t + 1] <- rho * wt_sim[t] + wt_re[t + 1]
         }
-        
-        # set wt = BERTA estimated values for yrs 1-26 
-        wt[1:n_historical_yrs] <- 
-          wt_historical[1:n_historical_yrs]
-        
+
+        # set wt = BERTA estimated values for yrs 1-26
+        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
+
         # calculate wt differently for yrs 26 +
-        for(t in n_historical_yrs:n_sim_yrs){ # t = 26 to 208
-          wt[t] = 0.5*wt_historical[t] + (1 - 0.5)*wt_sim[t]
+        for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
+          wt[t] <- psi * wt_historical[t] + (1 - psi) * wt_sim[t]
         }
-        
+
         # extract the initial age structure
         Ninit <- sub_post[
           which(sub_post$year == retro_initial_yr),
@@ -185,7 +185,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         ] %>%
           slice() %>%
           unlist(., use.names = FALSE)
-        
+
         Rinit_yr_2 <- sub_post[
           which(sub_post$year == retro_initial_yr + 1),
           which(colnames(sub_post) == 2)
@@ -194,12 +194,12 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           unlist(., use.names = FALSE)
 
         # nta matrix
-        nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages)) # recruit @ age 2 
+        nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages)) # recruit @ age 2
 
         # SSB, Rpred, vulnerable biomass vectors
         SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
         nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
-        nta[2, 1] <- Rinit_yr_2 
+        nta[2, 1] <- Rinit_yr_2
         t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
 
         # run age-structured model for sim years
@@ -219,13 +219,13 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
             }
             Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
           }
-          rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) #cap rett annual retention proportion at 1.0
-          
-          if(any(rett*ret_a > 1)){
+          rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
+
+          if (any(rett * ret_a > 1)) {
             message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
             break
           }
-          
+
           # stock-recruitment
           if (rec_ctl == "ricker") {
             Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
@@ -271,24 +271,24 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 
   yield_array <- yield_array / n_draws # expected yield seqs for each cslope, bmin
   vB_fish_array <- vB_fish_array / n_draws # expected vul bio seq for each i,j
-  
+
   row_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[1]
   col_idx <- which(tot_y == max(tot_y), arr.ind = TRUE)[2]
   MSY_yields <- yield_array[row_idx, col_idx, ] # best MSY yields
   MSY_vB_fish <- vB_fish_array[row_idx, col_idx, ] # vB for MSY yields
-  
+
   row_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[1]
   col_idx <- which(tot_u == max(tot_u), arr.ind = TRUE)[2]
   HARA_yields <- yield_array[row_idx, col_idx, ] # best HARA yields
-  HARA_vB_fish <- vB_fish_array[row_idx, col_idx, ] 
-    
+  HARA_vB_fish <- vB_fish_array[row_idx, col_idx, ]
+
   hcr_sim_list <- list(
     "tot_y" = tot_y, "tot_u" = tot_u,
     "prop_below" = prop_below, "TAC_zero" = TAC_zero,
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
-    "HARA_yields" = HARA_yields, "vB_fish_array" = vB_fish_array, 
-    "MSY_vB_fish" = MSY_vB_fish, "HARA_vB_fish" = HARA_vB_fish, 
-    "post" = post, "leading_pars" = leading_pars 
+    "HARA_yields" = HARA_yields, "vB_fish_array" = vB_fish_array,
+    "MSY_vB_fish" = MSY_vB_fish, "HARA_vB_fish" = HARA_vB_fish,
+    "post" = post, "leading_pars" = leading_pars
   )
   # create name and save .rds files for each run
   file_name <- str_extract(
@@ -338,8 +338,9 @@ Ut_overall <- 0.5 # max U that fishermen can exert
 sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
-rho <- 0.6 # correlation for recruitment terms 
-sd_wt <- 1.1 # std. dev w(t)'s 
+rho <- 0.6 # correlation for recruitment terms
+sd_wt <- 1.1 # std. dev w(t)'s
+psi <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -356,9 +357,10 @@ hcr_pars <- list(
   "Ut_overall" = Ut_overall,
   "sd_survey" = sd_survey,
   "q_survey" = q_survey,
-  "sbo_prop" = sbo_prop, 
-  "rho" = rho, 
-  "sd_wt" = sd_wt
+  "sbo_prop" = sbo_prop,
+  "rho" = rho,
+  "sd_wt" = sd_wt,
+  "psi" = psi
 )
 
 #----------------------------------------------------------------------
@@ -379,28 +381,29 @@ which_lakes <- str_extract(
 )
 
 ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
-ass_ints <- rep(ass_ints, each=length(which_lakes))
-which_lakes <- rep(which_lakes, length(which_lakes)-1)
+ass_ints <- rep(ass_ints, each = length(which_lakes))
+which_lakes <- rep(which_lakes, length(which_lakes) - 1)
 to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
 to_sim
 
-contract_lakes <- c("lac ste. anne", "baptiste lake", 
-                    "pigeon lake", "calling lake", 
-                    "moose lake", "lake newell"
+contract_lakes <- c(
+  "lac ste. anne", "baptiste lake",
+  "pigeon lake", "calling lake",
+  "moose lake", "lake newell"
 )
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 # run one lake:
 #
 run <- get_hcr(which_lake = "lake newell", ass_int = 3)
 
-# purrr 
-# system.time( 
+# purrr
+# system.time(
 #  pwalk(to_sim, get_hcr)
 # )
 
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
-system.time({ 
+system.time({
   future_pwalk(to_sim, get_hcr,
     .options = furrr_options(seed = TRUE)
   )
