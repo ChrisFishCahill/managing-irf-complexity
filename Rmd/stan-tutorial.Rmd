@@ -66,7 +66,17 @@ Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Muss
 Your biologist friends tell you there is some industrial development planned for km 18.7.  They need to determine what the expected density of critters is in that location so that they can evaluate alternative management options. However, point count surveys only occurred at kms 15 and 20.  Can you help them? 
 
 ### Simulate some fake data
-First we'll create some fake data for our toy problem. We start in R, and discuss stuff below. 
+
+Let's load some packages: 
+
+```{r echo=T, results='hide', message = FALSE, warning=FALSE}
+# packages
+library(dplyr)
+library(ggplot2)
+library(rstan)
+```
+
+Now that the packages are loaded, we'll create some fake data for our toy problem. Let's think about a model form, simulate fake data using R, and plot it.  We'll even fit a Frequentist base R model to those simulated data: 
 
 ```{r}
 # simulate data for Gorbachev's homing mussles
@@ -75,13 +85,8 @@ First we'll create some fake data for our toy problem. We start in R, and discus
 # E(y_i) = lambda_i
 # Var(y_i) = lambda_i 
 # log(lambda_i) = beta_0 + beta_1*x1, where x1 is km  
-
-# packages
-library(dplyr)
-library(ggplot2)
-library(rstan)
-
 # define some (true) parameters and data for simulation
+
 n_replicates <- 3 # 3 surveys each location along river
 survey_locations <- seq(from = 0, to = 30, by = 5)
 n_surveys <- length(survey_locations) * n_replicates
