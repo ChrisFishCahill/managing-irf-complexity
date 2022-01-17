@@ -9,7 +9,7 @@ highlight: tango
 urlcolor: blue
 ---
 # Purpose 
-The purpose of this tutorial is to work through a simple Stan model. Because we ultimately want to be able to run and use a fairly complex age-structured Stan model, it will pay off in spades if we understand how a simpler model is specified in Stan.  
+The purpose of this tutorial is to work through a simple model in the Stan language. Stan is a state-of-the-art platform for statistical modeling and high-performance statistical computation.  Because we ultimately want to be able to run and use a fairly complex age-structured Stan model, it will pay off in spades if we understand how a simpler model is specified in Stan.  
 
 # Goals
 - Understand the program block sections in a `.stan` file 
@@ -127,7 +127,7 @@ Note that for the following code to work, you will have to save a .stan file (po
 ```stan
 data {
   int<lower=0> n_obs;      // number of observations 
-  int y_i[n_obs];          // counts
+  int<lower=0> y_i[n_obs]; // counts
   real<lower=0> km[n_obs]; // covariates 
   real<lower=0> my_km;     // which km to predict 
 }
@@ -156,6 +156,11 @@ generated quantities {
 }
 
 ```
+I'm expecting readers are familiar with Bayesian Population Analysis by Kery and Schaub (2012), but there are still a few things are worth mentioning with this code. First, we can put bounds on parameters (see data section). Second, the `~` indicates a sampling statement. The Stan user manual says the following about a sampling statement: 
+
+"The name “sampling statement” is meant to be suggestive, not interpreted literally. Conceptually, the variable y, which may be an unknown parameter or known, modeled data, is being declared to have the distribution indicated by the right-hand side of the sampling statement."
+
+Lastly, we can generate random numbers in Stan using functions with `_rng` in the name.  These are available for all standard distributions. See the generated quantities section for an example where I am generating Poisson random variables given the parameters estimated from the Mussel model.  Cool.
 
 Now we can compile this model in R: 
 
