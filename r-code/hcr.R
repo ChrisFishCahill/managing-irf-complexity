@@ -127,8 +127,12 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
   bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
-  # bmin_max_value <- ifelse(bmin_max_value > 100, 100, bmin_max_value)
-  c_slope_seq <- seq(from = 0.05, to = 1.0, by = 0.05)
+  if(which_lake == "calling lake"){
+    bmin_max_value <- 100
+  } else {
+    bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
+  }
+  c_slope_seq <- seq(from = 0.0, to = 1.0, by = 0.05)
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
@@ -153,7 +157,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
         vbo <- Ro * vbro
-
+        
         # repeat the historical recruitment series
         wt_historical <- sub_post$w
         wt_bar <- mean(wt_historical)
@@ -163,6 +167,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
         wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
+        # wt_re <- rt(n = n_sim_yrs, df = 5) # t-dist
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
 
         # create autoregressive wt_sim[t]
@@ -171,10 +176,11 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         }
 
         # set wt = BERTA estimated values for yrs 1-26
-        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
+        # wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
 
         # calculate wt differently for yrs 26 +
-        for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
+        #for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
+        for(t in 1:n_sim_yrs){ # t = 1 to 208
           wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
         }
 
@@ -328,7 +334,7 @@ q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
-psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
+psi_wt <- 0 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -382,13 +388,13 @@ contract_lakes <- c(
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 # run one lake:
 #
-run <- get_hcr(which_lake = "lake newell", ass_int = 1)
+# run <- get_hcr(which_lake = "lake newell", ass_int = 1)
 
 # purrr
 # system.time(
 #  pwalk(to_sim, get_hcr)
 # )
-
+hcr_pars$n_draws <- 30
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
@@ -401,3 +407,10 @@ system.time({
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
 #----------------------------------------------------------------------
 # end
+
+# play around with t vs. normal dist
+#ts <- rt(n = 1000, df = 5)
+#ns <- rnorm(1000, 0, sd=1.1)
+#par(mfrow=c(2,1))
+#hist(ns, xlim=c(-10,10))
+#hist(ts, xlim=c(-10,10))
