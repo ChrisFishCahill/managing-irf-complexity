@@ -9,6 +9,11 @@ library(ggplot2)
 library(dplyr)
 library(stringr)
 library(gridExtra)
+library(reshape2)
+
+retro_initial_yr <- 1990 # initial year for retrospective analysis
+retro_terminal_yr <- 2015
+
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
@@ -40,7 +45,8 @@ all_posts <-
   mutate(lake = gsub("_", " ", lake))
 
 #----------------------------------------------------------------------
-# plot the recruitment anomaly w(t) sequences used in hcrs
+# plot the recruitment anomaly w(t) sequences estimated by BERTA and used
+# for hcr simulation
 
 p <-
   all_posts %>%
@@ -62,6 +68,51 @@ p
 #   width = 8,
 #   height = 5
 # )
+
+my_data <- NA
+wt_list <- big_list %>%
+  purrr::map(~ .x$wt_seqs) 
+
+for(i in names(wt_list)){
+  lake_data <- wt_list[[i]]
+  long_data <- setNames(melt(lake_data), c('sim_yr','draw', 'wt'))
+  long_data$lake <- gsub("_", " ", i)
+  if(names(wt_list)[1]==i){
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+trace_data <- my_data %>%
+  filter(draw == 1) %>%
+  filter(sim_yr <= length(retro_initial_yr:retro_terminal_yr))
+
+trace_data2 <- my_data %>%
+  filter(draw == 1)
+
+p <-
+  my_data %>%
+  ggplot(aes(x = sim_yr, y = wt, colour = lake, group = draw)) +
+  geom_line(color = "#80b1d3", size = 0.05, alpha = 0.35) +
+  ylab(expression(ln(w[t]))) +
+  xlab("Year") +
+  facet_wrap(~lake) +
+  ggsidekick::theme_sleek() +
+  ggtitle("Recruitment anomaly sequences used for harvest control rule development") +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  ) + 
+  geom_line(data = trace_data2, aes(x = sim_yr, y = wt), color = "black", size = 0.3, 
+            alpha = 0.4) + 
+  geom_line(data = trace_data, aes(x = sim_yr, y = wt), color = "black", size = 0.3) 
+
+ggsave("plots/hcr_wts.pdf",
+  width = 8,
+  height = 5
+)
 
 #----------------------------------------------------------------------
 # make the yield isopleth plots
