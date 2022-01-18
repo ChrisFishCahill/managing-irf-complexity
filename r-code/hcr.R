@@ -136,9 +136,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
-  yield_array <- vB_fish_array <-
-    array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
-
+  yield_array <- vB_fish_array <- 
+    array(NA, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
+  wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
   #----------------------------------------------------------------------
@@ -176,11 +176,11 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         }
 
         # set wt = BERTA estimated values for yrs 1-26
-        # wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
+        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
 
         # calculate wt differently for yrs 26 +
-        #for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
-        for(t in 1:n_sim_yrs){ # t = 1 to 208
+        for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
+        #for(t in 1:n_sim_yrs){ # t = 1 to 208
           wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
         }
 
@@ -258,6 +258,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
           TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0)
         }
+        wt_seqs[ ,k] <- wt 
       }
     }
   }
@@ -294,7 +295,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     "yield_array" = yield_array, "MSY_yields" = MSY_yields,
     "HARA_yields" = HARA_yields, "vB_fish_array" = vB_fish_array,
     "MSY_vB_fish" = MSY_vB_fish, "HARA_vB_fish" = HARA_vB_fish,
-    "post" = post, "leading_pars" = leading_pars
+    "post" = post, "leading_pars" = leading_pars, "wt_seqs" = wt_seqs
   )
   # create name and save .rds files for each run
   file_name <- str_extract(
