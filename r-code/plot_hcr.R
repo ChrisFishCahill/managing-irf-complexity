@@ -83,10 +83,11 @@ for(i in names(wt_list)){
     my_data <- rbind(my_data, long_data)
   }
 }
+my_data$sim_yr <- my_data$sim_yr + 1989
 
 trace_data <- my_data %>%
   filter(draw == 1) %>%
-  filter(sim_yr <= length(retro_initial_yr:retro_terminal_yr))
+  filter(sim_yr <= retro_terminal_yr)
 
 trace_data2 <- my_data %>%
   filter(draw == 1)
@@ -281,44 +282,46 @@ for(i in names(yields_list)){
 }
 
 my_data$MSY_yields <- my_data2$MSY_yield
-p <-
-  my_data %>%
-  ggplot(aes(x = year, y = MSY_vB)) +
-  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
-  ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
-  xlab("Year") +
-  facet_wrap(~lake, scales="free") +
-  ggsidekick::theme_sleek() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  ) + 
-  geom_line(aes(x=year, y=MSY_yields), colour="darkorange2", size=0.5)
-p
+my_data[which(my_data$year == max(my_data$year) ), c("MSY_vB", "MSY_yields")] = NA
 
-ggsave("plots/vb_yield_msy_policy.pdf",
-       width = 8,
-       height = 5
-)
-
-p <-
-  my_data %>%
-  ggplot(aes(y = MSY_yields, x = MSY_vB)) +
-  geom_point() +
-  ylab("Optimum Yield") +
-  xlab("Vulnerable Biomass") +
-  facet_wrap(~lake, scales="free") +
-  ggsidekick::theme_sleek() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  ) + 
-  ggtitle("MSY policies") + 
-  geom_abline() +
-  geom_abline(slope=0.3)
-p
+# p <-
+#   my_data %>%
+#   ggplot(aes(x = year, y = MSY_vB)) +
+#   geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+#   ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
+#   xlab("Year") +
+#   facet_wrap(~lake, scales="free") +
+#   ggsidekick::theme_sleek() +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(face = "bold", hjust = 0.5)
+#   ) + 
+#   geom_line(aes(x=year, y=MSY_yields), colour="darkorange2", size=0.5)
+# p
+# 
+# ggsave("plots/vb_yield_msy_policy.pdf",
+#        width = 8,
+#        height = 5
+# )
+# 
+# p <-
+#   my_data %>%
+#   ggplot(aes(y = MSY_yields, x = MSY_vB)) +
+#   geom_point() +
+#   ylab("Optimum Yield") +
+#   xlab("Vulnerable Biomass") +
+#   facet_wrap(~lake, scales="free") +
+#   ggsidekick::theme_sleek() +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(face = "bold", hjust = 0.5)
+#   ) + 
+#   ggtitle("MSY policies") + 
+#   geom_abline() +
+#   geom_abline(slope=0.3)
+# p
 
 
 #----------------------------------------------------------------------
@@ -366,21 +369,23 @@ for(i in names(yields_list)){
 }
 
 my_data$HARA_yield <- my_data2$HARA_yield
-p <-
-  my_data %>%
-  ggplot(aes(x = year, y = Utility_vB)) +
-  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
-  ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
-  xlab("Year") +
-  facet_wrap(~lake, scales="free") +
-  ggsidekick::theme_sleek() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  ) + 
-  geom_line(aes(x=year, y=HARA_yield), colour="darkorange2", size=0.5)
-p
+my_data[which(my_data$year == max(my_data$year) ), c("Utility_vB", "HARA_yield")] = NA
+  
+# p <-
+#   my_data %>%
+#   ggplot(aes(x = year, y = Utility_vB)) +
+#   geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+#   ylab("Biomass vulnerable to fishing (blue) or yield (orange) ") +
+#   xlab("Year") +
+#   facet_wrap(~lake, scales="free") +
+#   ggsidekick::theme_sleek() +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(face = "bold", hjust = 0.5)
+#   ) + 
+#   geom_line(aes(x=year, y=HARA_yield), colour="darkorange2", size=0.5)
+# p
 
 ggsave("plots/vb_yield_hara_policy.pdf",
        width = 8,
