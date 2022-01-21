@@ -394,6 +394,7 @@ contract_lakes <- c(
 #  pwalk(to_sim, get_hcr)
 # )
 
+to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
