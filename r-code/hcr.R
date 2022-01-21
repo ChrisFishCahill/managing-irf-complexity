@@ -211,7 +211,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         # run age-structured model for sim years
         for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # years 1 to (n_sim_year-1)
           SSB[t] <- sum(nta[t, ] * f_a * w_a)
-          vB_fish[t] <- sum(nta[t, ] * v_fish * w_a)
+          vB_fish[t] <- sum(nta[t, ] * v_fish * w_a * ret_a) # without ret_a, overestimate yield
           vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
 
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
