@@ -129,10 +129,7 @@ get_fit <- function(which_lake = "pigeon lake",
     cr_prior = cr_prior, 
     vul_ctl = 1 # 0 = length^2, 1 = logistic fishing vul 
   )
-  # if(which_lake == "lake newell"){ 
-  #   # correct newell so fish don't get to 12 kg :(
-  #   stan_data$linf <- stan_data$lbar
-  # }
+  
   # create a function for start values
   vk <- c(0.5, 0.1)
   inits <- function() {
@@ -213,11 +210,11 @@ n_warmup = n_iter/2
 #----------------------------------------------------------------------
 # test with a single lake / stock-recruitment function  
 # 
-# fit <- get_fit(which_lake = "lake newell",
-#                rec_ctl = "bev-holt",
-#                cr_prior = 6,
-#                n_iter = 100, n_chains = 1,
-#                n_warmup = 50)
+fit <- get_fit(which_lake = "lake newell",
+               rec_ctl = "bev-holt",
+               cr_prior = 6,
+               n_iter = n_iter, n_chains = n_chains,
+               n_warmup = n_warmup)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  
