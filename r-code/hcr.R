@@ -137,7 +137,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- vB_fish_array <- 
-    array(NA, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
+    array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
   wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
@@ -213,7 +213,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           SSB[t] <- sum(nta[t, ] * f_a * w_a)
           vB_fish[t] <- sum(nta[t, ] * v_fish * w_a * ret_a) # without ret_a, overestimate yield
           vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
-
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
@@ -262,7 +261,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
       }
     }
   }
-
   #--------------------------------------------------------------------
   # process simulation output - get annual values & return a list
   #--------------------------------------------------------------------
@@ -386,7 +384,7 @@ contract_lakes <- c(
   "pigeon lake", "calling lake",
   "moose lake", "lake newell"
 )
-to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
+
 # run one lake:
 #
 # run <- get_hcr(which_lake = "lake newell", ass_int = 1)
@@ -395,7 +393,7 @@ to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 # system.time(
 #  pwalk(to_sim, get_hcr)
 # )
-hcr_pars$n_draws <- 30
+
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
