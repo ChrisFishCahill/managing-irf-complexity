@@ -329,7 +329,7 @@ d_mort <- 0.3 # discard mortality
 ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
-Ut_overall <- 0.7 # annual capture rate of fully vulnerable fish
+Ut_overall <- 0.5 # annual capture rate of fully vulnerable fish
 sd_survey <- 0.4 # survey observation error
 q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
