@@ -393,25 +393,25 @@ ggsave("plots/vb_yield_hara_policy.pdf",
        height = 5
 )
 
-p <-
-  my_data %>%
-  ggplot(aes(y = HARA_yield, x = Utility_vB)) +
-  geom_point() +
-  ylab("Optimum Yield") +
-  xlab("Vulnerable Biomass") +
-  facet_wrap(~lake, scales="free") +
-  ggsidekick::theme_sleek() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  ) + 
-  ggtitle("HARA policies") +
-  geom_abline() +
-  geom_abline(slope=0.3) +
-  geom_abline(slope=0.2)
-p
-
+# p <-
+#   my_data %>%
+#   ggplot(aes(y = HARA_yield, x = Utility_vB)) +
+#   geom_point() +
+#   ylab("Optimum Yield") +
+#   xlab("Vulnerable Biomass") +
+#   facet_wrap(~lake, scales="free") +
+#   ggsidekick::theme_sleek() +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(face = "bold", hjust = 0.5)
+#   ) + 
+#   ggtitle("HARA policies") +
+#   geom_abline() +
+#   geom_abline(slope=0.3) +
+#   geom_abline(slope=0.2)
+# p
+# 
 #----------------------------------------------------------------------
 # So I took a look at the x,y combinations of yield,utility that are “sampled” when we 
 # calculate grids of yield and utility versus blim and cslope (the two isopleth diagrams 
