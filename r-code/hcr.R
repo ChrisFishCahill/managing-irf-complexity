@@ -33,7 +33,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   ret_a <- hcr_pars$ret_a
   Ut_overall <- hcr_pars$Ut_overall
   sd_survey <- hcr_pars$sd_survey
-  q_survey <- hcr_pars$q_survey
   sbo_prop <- hcr_pars$sbo_prop
   rho <- hcr_pars$rho
   sd_wt <- hcr_pars$sd_wt
@@ -216,7 +215,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
           if (t - t_last_ass == ass_int) { # assess every ass_int yrs
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
-            # q_survey no longer used
             vB_obs <- vB_fish[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
             TAC <- c_slope * (vB_obs - b_lrp)
             if (TAC < 0) {
@@ -329,7 +327,6 @@ sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # annual capture rate of fully vulnerable fish
 sd_survey <- 0.4 # survey observation error
-q_survey <- 1.0 # Cahill et al. 2021 assumed q_survey = 1.0
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
@@ -349,7 +346,6 @@ hcr_pars <- list(
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
   "sd_survey" = sd_survey,
-  "q_survey" = q_survey,
   "sbo_prop" = sbo_prop,
   "rho" = rho,
   "sd_wt" = sd_wt,
