@@ -13,6 +13,7 @@ library(reshape2)
 
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
+n_repeats <- 8
 
 #----------------------------------------------------------------------
 # read in the hcr sim files
@@ -250,7 +251,7 @@ my_data <- tibble()
 for(i in names(vb_list)){
   lake_data <- vb_list[[i]]
   long_data <- tibble(MSY_vB = lake_data, 
-                      year = retro_initial_yr:(retro_initial_yr + 8*length(retro_initial_yr:retro_terminal_yr) - 1), 
+                      year = retro_initial_yr:(retro_initial_yr + n_repeats*length(retro_initial_yr:retro_terminal_yr) - 1), 
                       lake = gsub("_", " ", i)
   )
   if(names(vb_list)[1]==i){
@@ -412,7 +413,113 @@ p <-
 p
 
 #----------------------------------------------------------------------
-# Extra code below:  
+# So I took a look at the x,y combinations of yield,utility that are “sampled” when we 
+# calculate grids of yield and utility versus blim and cslope (the two isopleth diagrams 
+# that you are outputting), as in attached spreadsheet example.  For each fixed blim, I 
+# plot utility (y) vs yield (x) for increasing values of cslope, as points, and put such 
+# points on an x,y plot for several blim values color coded by blim value.  This approach 
+# does map out the achievable yield, utility combinations achievable using the linear HCR, 
+# and maybe you could set up a similar plot with the outputs you used to construct the isopleth 
+# diagrams.  What I found interesting and a bit surprising in those plots is that for at least 
+# one lake (or generally when I use average growth, maturity schedules across lakes), it appears 
+# to be possible to get a quite substantial increase in mean yield by increasing bmin from its 
+# optimum value of zero for max utility to a value partway to the optimum for yield, i.e. there 
+# can be a substantial gain in yield from having a low, non-zero blim , with almost no loss in 
+# mean utility.  If this prediction holds up for the shrimp HCR, would mean that we could propose 
+# non-zero blim values that satisfy DFOs insistence on having a blim in the HCR, with very little
+# impact on what matters to the shrimp fishermen (utility, almost never having complete closures). 
+#----------------------------------------------------------------------
+# Let's try and code up this (^) disaster
+
+tot_y_list <- big_list %>%
+  purrr::map(~ .x$tot_y) 
+
+tot_u_list <- big_list %>%
+  purrr::map(~ .x$tot_u) 
+
+#tot_y <- tot_y_list[["baptiste_lake"]]
+#tot_u <- tot_u_list[["baptiste_lake"]]
+
+# get all the yield data 
+my_y_data <- tibble()
+for(i in names(tot_y_list)){
+  lake_data <- tot_y_list[[i]]
+  y_df <- lake_data %>%
+    as.data.frame.table(., responseName = "x_yield", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2", 
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)), 
+      lake = gsub("_", " ", i)
+    )
+  if(names(tot_y_list)[1]==i){
+    my_y_data <- y_df
+  } else {
+    my_y_data <- rbind(my_y_data, y_df)
+  }
+}
+
+# get all the utility data 
+my_u_data <- tibble()
+for(i in names(tot_u_list)){
+  lake_data <- tot_u_list[[i]]
+  u_df <- lake_data %>%
+    as.data.frame.table(., responseName = "y_utility", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2", 
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)), 
+      lake = gsub("_", " ", i)
+    )
+  if(names(tot_u_list)[1]==i){
+    my_u_data <- u_df
+  } else {
+    my_u_data <- rbind(my_u_data, u_df)
+  }
+}
+
+frontier <- left_join(my_y_data, my_u_data)
+
+plot_list <- vector('list', length(unique(frontier$lake)))
+for(i in unique(frontier$lake)){
+  yint <- frontier %>%
+    filter(lake == i) %>%
+    summarize(value = max(y_utility)*0.8)
+  p1 <- frontier %>%
+    filter(lake == i) %>%
+    ggplot(aes(x = x_yield, y = y_utility, z = bmin, colour = as.factor(bmin))) +
+    geom_line() + 
+    ggsidekick::theme_sleek() +
+    geom_point() +
+    scale_color_viridis(discrete=TRUE) +
+    #scale_color_manual(values = viridis(n = num_colors)) +
+    xlab("Yield") +
+    ylab("Utility") + 
+    ggtitle(i) +
+    theme(
+      legend.title = element_blank(),
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.5)
+    ) + 
+    geom_hline(yintercept = yint$value)
+  plot_list[[which(unique(my_data$lake) == i )]] <- p1 
+}
+
+bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=3)
+
+ggsave("plots/frontier.pdf", bigp,
+       width = 8,
+       height = 5
+)
+
+#----------------------------------------------------------------------
+# Extra plotting code below:  
 #
 #
 #----------------------------------------------------------------------
