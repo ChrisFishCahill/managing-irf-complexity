@@ -63,7 +63,9 @@ In an attempt to demonstrate how each of these sections can be used, and how to 
 ## Problem statement 
 Let's suppose that some poor soul's dissertation counted Gorbachev's Homing Mussels at various locations along a 30 km river.  The experimental design of this survey started in the headwaters (km 0) and proceeded downstream (km 30), sampling mussels via point count surveys every 5 km. Surveys were repeated at each location three times (misery).
 
-Your biologist friends tell you there is some industrial development planned for km 18.7.  They need to determine what the expected density of critters is in that location so that they can evaluate alternative management options. However, point count surveys only occurred at kms 15 and 20.  Can you help them? 
+Your biologist friends tell you there is an industrial development planned for km 18.7.  They need to determine the expected distribution of survey counts of critters in that location so that they can undertake a power analysis to help them determine how a cost-effective number of surveys to conduct.  Survey variability is a function of two things: variability of the underlying ecological process(es) of interest and sampling error.
+
+However, the graduate student's point count surveys only occurred at kms 15 and 20.  Can you help them? 
 
 ### Simulate some fake data
 
@@ -84,7 +86,7 @@ Now that the packages are loaded, we'll create some fake data for our toy proble
 # y_i ~ Poisson(lambda_i) # i is survey count
 # E(y_i) = lambda_i
 # Var(y_i) = lambda_i 
-# log(lambda_i) = beta_0 + beta_1*x1, where x1 is km  
+# log(lambda_i) = beta_0 + beta_1*x1, where x1 is km--this is process component
 # define some (true) parameters and data for simulation
 
 n_replicates <- 3 # 3 surveys each location along river
@@ -99,7 +101,7 @@ mu <- exp(beta_0 + beta_1*survey_locations)
 
 # generate the "observed" data
 set.seed(235) # make sure everyone gets same "random" numbers
-y_i <- rpois(n_surveys, mu)
+y_i <- rpois(n_surveys, mu) # process + sampling error
 
 data <- data.frame(
   "y_i" = y_i, "km" = rep(survey_locations, n_replicates),
@@ -236,7 +238,7 @@ Stan, in the background, then creates a log probability function as the log of t
 
 Lastly, Stan will then pass these accepted parameter values to the generated quantities block.
 
-Stan does all this magic for you, which is pretty dope (it got me a Ph.D). 
+Stan does all this magic for you, which is pretty dope. 
 
 If you remind me in person, I will show you a video animation to give you an idea of how the Stan algorithms are working.
 
@@ -261,6 +263,7 @@ Dr. Geezer doesn't trust statsitics and thus hates your silly model.  Dr. Geezer
 3. Do your answers change if you change the prior sd terms?
 4. It turns out the biologists mistakenly told you the industrial development was going in at km 18.7, but it is actually km 28.7.  Can you adapt the code to generate a predictive distribution for mussel counts at km 28.7 instead? 
 5. What was the "true" expected number of mussels at km 28.7? 
+6. If biologists went to this location and conducted a point count survey, what is the most probable count they would obtain, and what are its 95% credible intervals? 
 
 # Resources: 
 
