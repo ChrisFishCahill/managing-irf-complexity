@@ -413,23 +413,9 @@ ggsave("plots/vb_yield_hara_policy.pdf",
 # p
 # 
 #----------------------------------------------------------------------
-# So I took a look at the x,y combinations of yield,utility that are “sampled” when we 
-# calculate grids of yield and utility versus blim and cslope (the two isopleth diagrams 
-# that you are outputting), as in attached spreadsheet example.  For each fixed blim, I 
-# plot utility (y) vs yield (x) for increasing values of cslope, as points, and put such 
-# points on an x,y plot for several blim values color coded by blim value.  This approach 
-# does map out the achievable yield, utility combinations achievable using the linear HCR, 
-# and maybe you could set up a similar plot with the outputs you used to construct the isopleth 
-# diagrams.  What I found interesting and a bit surprising in those plots is that for at least 
-# one lake (or generally when I use average growth, maturity schedules across lakes), it appears 
-# to be possible to get a quite substantial increase in mean yield by increasing bmin from its 
-# optimum value of zero for max utility to a value partway to the optimum for yield, i.e. there 
-# can be a substantial gain in yield from having a low, non-zero blim , with almost no loss in 
-# mean utility.  If this prediction holds up for the shrimp HCR, would mean that we could propose 
-# non-zero blim values that satisfy DFOs insistence on having a blim in the HCR, with very little
-# impact on what matters to the shrimp fishermen (utility, almost never having complete closures). 
+# Let's make a plot of the frontier of tradeoffs between utility and yield
+# policies for simple linear hcrs 
 #----------------------------------------------------------------------
-# Let's try and code up this (^) disaster
 
 tot_y_list <- big_list %>%
   purrr::map(~ .x$tot_y) 
@@ -520,8 +506,6 @@ ggsave("plots/frontier.pdf", bigp,
 
 #----------------------------------------------------------------------
 # Extra plotting code below:  
-#
-#
 #----------------------------------------------------------------------
 
 yields_list <- big_list %>%
