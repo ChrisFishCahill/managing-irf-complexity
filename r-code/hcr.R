@@ -8,7 +8,6 @@ library(tidybayes)
 library(purrr)
 library(future)
 library(furrr)
-# library(rstan)
 # install.packages("devtools")
 # devtools::install_github("seananderson/ggsidekick")
 
@@ -38,6 +37,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   sd_wt <- hcr_pars$sd_wt
   psi_wt <- hcr_pars$psi_wt
   n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
+  grid_size <- hcr_pars$grid_size
 
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
@@ -131,7 +131,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
   }
-  c_slope_seq <- seq(from = 0.0, to = 1.0, by = 0.05)
+  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = grid_size)
   bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
@@ -146,6 +146,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     for (j in seq_along(bmin_seq)) {
       b_lrp <- bmin_seq[j]
       set.seed(83) # challenge each bmin, cslope combo with same set of rec seqs
+      wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
+      set.seed(24)
       for (k in seq_len(n_draws)) {
         # pick a single draw
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
@@ -165,8 +167,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
-        wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
-        # wt_re <- rt(n = n_sim_yrs, df = 5) # t-dist
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
 
         # create autoregressive wt_sim[t]
@@ -331,6 +331,7 @@ sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*s
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
 psi_wt <- 0 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
+grid_size <- 75 # how many bmins or cslopes
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -349,7 +350,8 @@ hcr_pars <- list(
   "sbo_prop" = sbo_prop,
   "rho" = rho,
   "sd_wt" = sd_wt,
-  "psi_wt" = psi_wt
+  "psi_wt" = psi_wt, 
+  "grid_size" = grid_size
 )
 
 #----------------------------------------------------------------------
