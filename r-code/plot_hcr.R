@@ -119,6 +119,10 @@ ggsave("plots/hcr_wts.pdf",
   height = 5
 )
 
+my_data %>% filter(lake == "pigeon lake") %>%
+  ggplot(aes(x = sim_yr, y = wt, colour = lake, group = draw)) +
+  geom_line(color = "#80b1d3", size = 0.05, alpha = 0.35)
+
 #----------------------------------------------------------------------
 # make the yield isopleth plots
 

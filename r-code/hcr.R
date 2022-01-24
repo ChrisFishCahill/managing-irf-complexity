@@ -131,8 +131,11 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
   }
-  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = grid_size)
-  bmin_seq <- seq(from = 0, to = bmin_max_value, length.out = length(c_slope_seq))
+  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = 10)
+  bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2) )
+  bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
+  bmin_seq <- c(bmin_seq_low, bmin_seq_high)
+  
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- vB_fish_array <- 
@@ -145,9 +148,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     c_slope <- c_slope_seq[i]
     for (j in seq_along(bmin_seq)) {
       b_lrp <- bmin_seq[j]
-      set.seed(83) # challenge each bmin, cslope combo with same set of rec seqs
+      set.seed(24) # challenge each bmin, cslope combo with same set of rec seqs
       wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
-      set.seed(24)
       for (k in seq_len(n_draws)) {
         # pick a single draw
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
@@ -310,7 +312,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
 # declare some values for the simulations
 #----------------------------------------------------------------------
 
-n_draws <- 50
+n_draws <- 30
 n_repeats <- 8 # recruitment repeats
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -330,8 +332,8 @@ sd_survey <- 0.4 # survey observation error
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
-psi_wt <- 0 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
-grid_size <- 75 # how many bmins or cslopes
+psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
+grid_size <- 50 # how many bmins or cslopes
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -384,13 +386,10 @@ contract_lakes <- c(
 )
 
 # run one lake:
-#
 # run <- get_hcr(which_lake = "lake newell", ass_int = 1)
 
 # purrr
-# system.time(
 #  pwalk(to_sim, get_hcr)
-# )
 
 to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
