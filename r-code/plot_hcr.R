@@ -483,7 +483,7 @@ for (i in names(tot_u_list)) {
 }
 
 frontier <- left_join(my_y_data, my_u_data)
-frontier$bmin <- round(frontier$bmin, 0)
+frontier$bmin <- round(frontier$bmin, 1)
 
 plot_list <- vector("list", length(unique(frontier$lake)))
 for (i in unique(frontier$lake)) {
@@ -505,49 +505,49 @@ for (i in unique(frontier$lake)) {
       bmin <= 20
     ) %>%
     ggplot(aes(x = x_yield, y = y_utility, z = bmin, colour = as.factor(bmin))) +
-    geom_line() +
     ggsidekick::theme_sleek() +
-    geom_point() +
+    geom_point(size=0.75) +
     scale_color_manual(values = my_colors) +
-    # scale_color_brewer(palette = "Set2") +
     xlab("Yield") +
     ylab("Utility") +
     ggtitle(i) +
     labs(color = "blim") +
     theme(
-      # legend.title = element_blank(),
-      # legend.box="vertical",
       legend.position = "right",
-      plot.title = element_text(hjust = 0.5)
+      plot.title = element_text(hjust = 0.5), 
+      legend.title.align=0.5
     ) +
-    guides(fill=guide_legend(ncol=4,bycol=TRUE)) +
-    geom_hline(yintercept = yint$value, linetype = "dashed")
+    geom_hline(yintercept = yint$value, linetype = "dashed") + 
+    guides(colour=guide_legend(override.aes = list(size=1.5)))  
   plot_list[[which(unique(my_data$lake) == i)]] <- p1
 }
 
-bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 3)
+#bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 1, nrow=1, newpage=T)
 
-ggsave("plots/frontier.pdf", bigp,
-  width = 11.0,
-  height = 8
+ml <- marrangeGrob(plot_list, nrow=1, ncol=1, newpage = T, top=NULL)
+
+ggsave("plots/frontier.pdf", ml,
+  width = 11,
+  height = 8.0
 )
 
-lsa <- frontier %>%
-  filter(lake == "lac ste. anne", 
-         bmin == 6)
-lsa %>%
-ggplot(aes(x = cslope, y = y_utility)) +
-  geom_line() +
-  ggsidekick::theme_sleek() +
-  geom_point() 
-lsa %>%
-  ggplot(aes(x = cslope, y = x_yield)) +
-  geom_line() +
-  ggsidekick::theme_sleek() +
-  geom_point() + 
-  geom_rug()
-
-plot(lsa$x_yield ~lsa$cslope)
+# some checks
+# lsa <- frontier %>%
+#   filter(lake == "pigeon lake", 
+#          bmin == 2.7)
+# lsa %>%
+# ggplot(aes(x = cslope, y = y_utility)) +
+#   geom_line() +
+#   ggsidekick::theme_sleek() +
+#   geom_point() 
+# lsa %>%
+#   ggplot(aes(x = cslope, y = x_yield)) +
+#   geom_line() +
+#   ggsidekick::theme_sleek() +
+#   geom_point()  
+#   #geom_rug()
+# 
+# plot(lsa$x_yield)
 
 #----------------------------------------------------------------------
 # Extra plotting code below:
