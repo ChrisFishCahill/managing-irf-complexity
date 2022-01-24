@@ -10,6 +10,7 @@ library(dplyr)
 library(stringr)
 library(gridExtra)
 library(reshape2)
+library(RColorBrewer)
 
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -530,6 +531,23 @@ ggsave("plots/frontier.pdf", bigp,
   width = 11.0,
   height = 8
 )
+
+lsa <- frontier %>%
+  filter(lake == "lac ste. anne", 
+         bmin == 6)
+lsa %>%
+ggplot(aes(x = cslope, y = y_utility)) +
+  geom_line() +
+  ggsidekick::theme_sleek() +
+  geom_point() 
+lsa %>%
+  ggplot(aes(x = cslope, y = x_yield)) +
+  geom_line() +
+  ggsidekick::theme_sleek() +
+  geom_point() + 
+  geom_rug()
+
+plot(lsa$x_yield ~lsa$cslope)
 
 #----------------------------------------------------------------------
 # Extra plotting code below:
