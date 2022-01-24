@@ -131,7 +131,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
   }
-  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = 10)
+  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = 30)
   bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2) )
   bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
@@ -149,7 +149,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     for (j in seq_along(bmin_seq)) {
       b_lrp <- bmin_seq[j]
       set.seed(24) # challenge each bmin, cslope combo with same set of rec seqs
-      wt_re <- rnorm(n_sim_yrs, 0, sd_wt) # generate n_sim_yrs random deviates
+      wt_re_mat <- matrix(rnorm(n = n_sim_yrs*n_draws, mean=0, sd=sd_wt), nrow=n_sim_yrs, ncol=n_draws) # generate random deviates
       for (k in seq_len(n_draws)) {
         # pick a single draw
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
@@ -166,7 +166,10 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
         wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
-
+        
+        # set the random effect vector
+        wt_re <- wt_re_mat[,k]
+        
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
@@ -333,7 +336,7 @@ sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*s
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
 psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
-grid_size <- 50 # how many bmins or cslopes
+grid_size <- 75 # how many bmins or cslopes
 
 # put it all in a tagged list
 hcr_pars <- list(
