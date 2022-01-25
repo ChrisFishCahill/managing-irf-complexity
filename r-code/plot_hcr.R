@@ -19,7 +19,7 @@ n_repeats <- 8
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
-sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_1", sim_files)]
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_5", sim_files)]
 
 # read in the data from all lakes used in Cahill et al. 2021
 data <- readRDS("data/BERTA-wide-0-25.rds")
@@ -490,6 +490,9 @@ for (i in unique(frontier$lake)) {
   yint <- frontier %>%
     filter(lake == i) %>%
     summarize(value = max(y_utility) * 0.8)
+  xint <- frontier %>% filter(lake == i) %>%
+    summarize(value = max(x_yield) * 0.8)
+  
   n_bins <- frontier %>%
     filter(
       lake == i,
@@ -498,6 +501,7 @@ for (i in unique(frontier$lake)) {
     ) %>%
     summarize(n_bins = length(unique(bmin)))
   my_colors <- colorRampPalette(brewer.pal(8, "Dark2"))(n_bins$n_bins)
+  my_colors[1] <- "black"
   p1 <- frontier %>%
     filter(
       lake == i,
@@ -506,6 +510,8 @@ for (i in unique(frontier$lake)) {
     ) %>%
     ggplot(aes(x = x_yield, y = y_utility, z = bmin, colour = as.factor(bmin))) +
     ggsidekick::theme_sleek() +
+    geom_rect(xmin=xint$value, xmax=Inf, ymin=yint$value, ymax=Inf,
+              colour = "black", fill = "grey", alpha=0.05, linetype = "dashed", inherit.aes=FALSE) + 
     geom_point(size=0.75) +
     scale_color_manual(values = my_colors) +
     xlab("Yield") +
@@ -517,23 +523,74 @@ for (i in unique(frontier$lake)) {
       plot.title = element_text(hjust = 0.5), 
       legend.title.align=0.5
     ) +
-    geom_hline(yintercept = yint$value, linetype = "dashed") + 
     guides(colour=guide_legend(override.aes = list(size=1.5)))  
   plot_list[[which(unique(my_data$lake) == i)]] <- p1
 }
 
-#bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 1, nrow=1, newpage=T)
+bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 3, nrow=2)
 
-ml <- marrangeGrob(plot_list, nrow=1, ncol=1, newpage = T, top=NULL)
-
-ggsave("plots/frontier.pdf", ml,
-  width = 11,
-  height = 8.0
+ggsave("plots/frontier.pdf", bigp,
+       width = 16,
+       height = 8.0
 )
+
+#---------------------------------------------------------------------
+# take the frontiers, make a plot of all HCRs achieving > 80% maximum utility, yield
+SSB <- 0:50 # note SSB should read biomass vulnerable to fishing; changed below in ggplot()
+my_df <- NA
+for (l in unique(frontier$lake)) {
+  d <- frontier %>%
+    filter(lake == l) %>%
+    filter(x_yield >= 0.8 * max(x_yield) & y_utility >= 0.8 * max(y_utility))
+
+  TAC <- matrix(NA, nrow = length(SSB), ncol = nrow(d))
+
+  for (i in 1:nrow(d)) {
+    TAC[, i] <- d$cslope[i] * (SSB - d$bmin[i])
+  }
+  TAC[which(TAC < 0)] <- NA
+  TAC <- setNames(melt(TAC), c("SSB", "group", "TAC"))
+  TAC$SSB <- rep(0:50, nrow(d))
+  TAC$lake <- l
+  if (frontier$lake[1] == l) {
+    my_df <- TAC
+  } else {
+    my_df <- rbind(my_df, TAC)
+  }
+}
+
+p <- my_df %>% ggplot(aes(x = SSB, y = TAC, group = group)) + 
+  xlab("Biomass Vulnerable to Fishing (kg/ha)") +
+  ylab("TAC (kg/ha)") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 50), 
+                     breaks = c(0,5,10,15,20,30,40,50)) + 
+  geom_line(alpha = 0.1, size = 0.1) + 
+  ggsidekick::theme_sleek() +
+  theme(axis.text=element_text(size=8), 
+        panel.spacing = unit(1.1, "lines"), 
+        plot.title = element_text(face = "bold", hjust = 0.5)
+  ) +
+  facet_wrap(~lake) + 
+  ggtitle("Linear harvest control rules that achieve `pretty good` HARA utility and yield") 
+p 
+
+ggsave("plots/purdy_good_hcrs.pdf",
+       width = 8,
+       height = 5
+)
+
+
+# ml <- marrangeGrob(plot_list, nrow=1, ncol=1, newpage = T, top=NULL)
+# 
+# ggsave("plots/frontier.pdf", ml,
+#   width = 11,
+#   height = 8.0
+# )
 
 # some checks
 # lsa <- frontier %>%
-#   filter(lake == "pigeon lake", 
+#   filter(lake == "pigeon lake",
 #          bmin == 2.7)
 # lsa %>%
 # ggplot(aes(x = cslope, y = y_utility)) +
@@ -548,6 +605,56 @@ ggsave("plots/frontier.pdf", ml,
 #   #geom_rug()
 # 
 # plot(lsa$x_yield)
+install.packages("scatterplot3d") # Install
+library("scatterplot3d") # load
+colors <- my_colors
+
+my_seq <- seq(from = 0, to = 365, by = 10)
+
+pdf("plots/3dfrontier.pdf",
+ width = 11, height = 8
+)
+
+par(mfrow = c(2, 3), mar = c(4, 4, 2, 2))
+
+for(i in unique(frontier$lake)){
+my_dat <- frontier %>%
+  filter(lake == i, 
+         x_yield > 0,
+         bmin <= 20)
+colors <- my_colors[as.factor(my_dat$bmin)]
+scatterplot3d(my_dat$x_yield,  my_dat$bmin, my_dat$y_utility,
+              color= colors,
+              angle = 260, 
+              xlab = "Yield",
+              ylab = "blim",
+              zlab = "Utility", 
+              pch=21, 
+              main = i, 
+              box = T, grid = F)
+}
+dev.off()
+
+devtools::install_github("AckerDWM/gg3D")
+library(gg3D)
+lsa <- frontier %>%
+  filter(lake == "pigeon lake", 
+         x_yield > 0,
+         bmin <= 20)
+lsa %>%
+ggplot(aes(x = x_yield, y = y_utility, z = bmin)) +
+  geom_point(size=0.75) +
+  theme_void() + 
+  #scale_color_manual(values = my_colors) +
+  #xlab("Yield") +
+  #ylab("Utility") +
+  axes_3D() + 
+  stat_3D()
+
+ggplot(iris, aes(x=Petal.Width, y=Sepal.Width, z=Petal.Length, color=Species)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D()
 
 #----------------------------------------------------------------------
 # Extra plotting code below:
