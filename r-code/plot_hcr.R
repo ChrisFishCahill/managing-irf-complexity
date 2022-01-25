@@ -534,23 +534,45 @@ ggsave("plots/frontier.pdf", bigp,
        height = 8.0
 )
 
+# ml <- marrangeGrob(plot_list, nrow=1, ncol=1, newpage = T, top=NULL)
+# 
+# ggsave("plots/frontier.pdf", ml,
+#   width = 11,
+#   height = 8.0
+# )
+
 #---------------------------------------------------------------------
-# take the frontiers, make a plot of all HCRs achieving > 80% maximum utility, yield
-SSB <- 0:50 # note SSB should read biomass vulnerable to fishing; changed below in ggplot()
+# take the frontiers, make a plot of all HCRs achieving purdy good utility, yield
+vB <- 0:50 
 my_df <- NA
 for (l in unique(frontier$lake)) {
+  if(l == "baptiste lake"){wut_percent <- 0.98}
+  if(l == "calling lake"){wut_percent <- 0.98}
+  if(l == "lac ste. anne"){wut_percent <- 0.994}
+  if(l == "lake newell"){wut_percent <- 0.991}
+  if(l == "moose lake"){wut_percent <- 0.993}
+  if(l == "pigeon lake"){wut_percent <- 0.94}
+  # find maximum obtainable yield, utility:
+  yint <- frontier %>%
+    filter(lake == l) %>%
+    summarize(value = max(y_utility) )
+  xint <- frontier %>% filter(lake == l) %>%
+    summarize(value = max(x_yield) )
+  
   d <- frontier %>%
     filter(lake == l) %>%
-    filter(x_yield >= 0.8 * max(x_yield) & y_utility >= 0.8 * max(y_utility))
+    filter(x_yield >= wut_percent * xint$value & 
+          y_utility >= wut_percent * yint$value
+          )
 
-  TAC <- matrix(NA, nrow = length(SSB), ncol = nrow(d))
+  TAC <- matrix(NA, nrow = length(vB), ncol = nrow(d))
 
   for (i in 1:nrow(d)) {
-    TAC[, i] <- d$cslope[i] * (SSB - d$bmin[i])
+    TAC[, i] <- d$cslope[i] * (vB - d$bmin[i])
   }
   TAC[which(TAC < 0)] <- NA
-  TAC <- setNames(melt(TAC), c("SSB", "group", "TAC"))
-  TAC$SSB <- rep(0:50, nrow(d))
+  TAC <- setNames(melt(TAC), c("vB", "group", "TAC"))
+  TAC$vB <- rep(0:50, nrow(d))
   TAC$lake <- l
   if (frontier$lake[1] == l) {
     my_df <- TAC
@@ -559,35 +581,30 @@ for (l in unique(frontier$lake)) {
   }
 }
 
-p <- my_df %>% ggplot(aes(x = SSB, y = TAC, group = group)) + 
+p <- my_df %>% ggplot(aes(x = vB, y = TAC, group = group)) + 
   xlab("Biomass Vulnerable to Fishing (kg/ha)") +
   ylab("TAC (kg/ha)") +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) + 
   scale_x_continuous(expand = c(0, 0), limits = c(0, 50), 
                      breaks = c(0,5,10,15,20,30,40,50)) + 
-  geom_line(alpha = 0.1, size = 0.1) + 
+  geom_line(alpha = 1, size = 1.0) + 
   ggsidekick::theme_sleek() +
   theme(axis.text=element_text(size=8), 
         panel.spacing = unit(1.1, "lines"), 
         plot.title = element_text(face = "bold", hjust = 0.5)
   ) +
   facet_wrap(~lake) + 
-  ggtitle("Linear harvest control rules that achieve `pretty good` HARA utility and yield") 
+  ggtitle("Best linear HCRs that achieve both HARA utility and yield") 
 p 
 
-ggsave("plots/purdy_good_hcrs.pdf",
+ggsave("plots/purdy_good_hcrs_best.pdf",
        width = 8,
        height = 5
 )
 
-
-# ml <- marrangeGrob(plot_list, nrow=1, ncol=1, newpage = T, top=NULL)
-# 
-# ggsave("plots/frontier.pdf", ml,
-#   width = 11,
-#   height = 8.0
-# )
-
+#----------------------------------------------------------------------
+# Extra plotting code below:
+#----------------------------------------------------------------------
 # some checks
 # lsa <- frontier %>%
 #   filter(lake == "pigeon lake",
@@ -605,256 +622,192 @@ ggsave("plots/purdy_good_hcrs.pdf",
 #   #geom_rug()
 # 
 # plot(lsa$x_yield)
-install.packages("scatterplot3d") # Install
-library("scatterplot3d") # load
-colors <- my_colors
 
-my_seq <- seq(from = 0, to = 365, by = 10)
-
-pdf("plots/3dfrontier.pdf",
- width = 11, height = 8
-)
-
-par(mfrow = c(2, 3), mar = c(4, 4, 2, 2))
-
-for(i in unique(frontier$lake)){
-my_dat <- frontier %>%
-  filter(lake == i, 
-         x_yield > 0,
-         bmin <= 20)
-colors <- my_colors[as.factor(my_dat$bmin)]
-scatterplot3d(my_dat$x_yield,  my_dat$bmin, my_dat$y_utility,
-              color= colors,
-              angle = 260, 
-              xlab = "Yield",
-              ylab = "blim",
-              zlab = "Utility", 
-              pch=21, 
-              main = i, 
-              box = T, grid = F)
-}
-dev.off()
-
-devtools::install_github("AckerDWM/gg3D")
-library(gg3D)
-lsa <- frontier %>%
-  filter(lake == "pigeon lake", 
-         x_yield > 0,
-         bmin <= 20)
-lsa %>%
-ggplot(aes(x = x_yield, y = y_utility, z = bmin)) +
-  geom_point(size=0.75) +
-  theme_void() + 
-  #scale_color_manual(values = my_colors) +
-  #xlab("Yield") +
-  #ylab("Utility") +
-  axes_3D() + 
-  stat_3D()
-
-ggplot(iris, aes(x=Petal.Width, y=Sepal.Width, z=Petal.Length, color=Species)) + 
-  theme_void() +
-  axes_3D() +
-  stat_3D()
-
-#----------------------------------------------------------------------
-# Extra plotting code below:
-#----------------------------------------------------------------------
-
-yields_list <- big_list %>%
-  purrr::map(~ .x$MSY_yields)
-
-# names(yields_list) <- gsub("_", " ", names(yields_list))
-
-my_data <- NA
-
-for (i in names(yields_list)) {
-  lake_data <- yields_list[[i]]
-  long_data <- tibble(
-    MSY_yield = lake_data,
-    year = retro_initial_yr:(retro_initial_yr + 8 * length(retro_initial_yr:retro_terminal_yr) - 1),
-    lake = gsub("_", " ", i)
-  )
-  if (names(hara_list)[1] == i) {
-    my_data <- long_data
-  } else {
-    my_data <- rbind(my_data, long_data)
-  }
-}
-
-p <-
-  my_data %>%
-  ggplot(aes(x = year, y = MSY_yield)) +
-  geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
-  ylab("Maximum yields from MSY policy") +
-  xlab("Year") +
-  facet_wrap(~lake, scales = "free") +
-  ggsidekick::theme_sleek() +
-  theme(
-    legend.title = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  )
-p
-
-ggsave("plots/yields.pdf",
-  width = 8,
-  height = 5
-)
-
-
-
-
-
-
-
-# yield plot
-tot_y2 <-
-  as.data.frame.table(tot_y, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  )
-
-
-
-
-
-tot_u2 <-
-  as.data.frame.table(tot_u, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  )
-highlight <- tot_u2 %>%
-  filter(value == max(value))
-
-# utility plot
-p2 <- tot_u2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Utility") +
-  geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
-  scale_color_manual(values = c(NA, "black")) +
-  xlab("Limit reference biomass (kg)")
-p2
-
-prop_below2 <-
-  as.data.frame.table(prop_below, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  ) %>%
-  mutate(color = max(value) == value)
-
-# proportion failing plot
-p3 <- prop_below2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Proportion of years \nbelow 10% of average \nunfished SSB") +
-  scale_fill_viridis_d(direction = -1) +
-  xlab("Limit reference biomass (kg)")
-
-p3
-
-TAC_zero2 <-
-  as.data.frame.table(TAC_zero, responseName = "value", dnn = c("cslope", "bmin")) %>%
-  rename(
-    "cslope" = "Var1",
-    "bmin" = "Var2"
-  ) %>%
-  mutate(
-    cslope = as.numeric(as.character(cslope)),
-    bmin = as.numeric(as.character(bmin))
-  ) %>%
-  mutate(color = max(value) == value)
-
-# zero catch
-p4 <- TAC_zero2 %>%
-  ggplot(aes(bmin, cslope, z = value)) +
-  geom_contour_filled(bins = 15) +
-  ggsidekick::theme_sleek() +
-  labs(fill = "Proportion of years \nwith no harvest") +
-  scale_fill_viridis_d(direction = -1) +
-  xlab("Limit reference biomass (kg)")
-
-p4
-
-# make the comparison plot for policies
-msys <- data.frame(
-  "yield" = MSY_yields,
-  "Policy" = "MSY policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
-) %>%
-  filter(year <= retro_terminal_yr)
-
-haras <- data.frame(
-  "yield" = HARA_yields,
-  "Policy" = "HARA policy",
-  "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
-) %>%
-  filter(year <= retro_terminal_yr)
-
-# obs_yields <- yields %>%
-#   select(year, med) %>%
-#   filter(year <= terminal_yr) %>%
-#   filter(year >= initialization_yr) %>%
-#   mutate(
-#     "yield" = med,
-#     "Policy" = "historical yield",
-#     "year" = year
+# yields_list <- big_list %>%
+#   purrr::map(~ .x$MSY_yields)
+# 
+# # names(yields_list) <- gsub("_", " ", names(yields_list))
+# 
+# my_data <- NA
+# 
+# for (i in names(yields_list)) {
+#   lake_data <- yields_list[[i]]
+#   long_data <- tibble(
+#     MSY_yield = lake_data,
+#     year = retro_initial_yr:(retro_initial_yr + 8 * length(retro_initial_yr:retro_terminal_yr) - 1),
+#     lake = gsub("_", " ", i)
+#   )
+#   if (names(hara_list)[1] == i) {
+#     my_data <- long_data
+#   } else {
+#     my_data <- rbind(my_data, long_data)
+#   }
+# }
+# 
+# p <-
+#   my_data %>%
+#   ggplot(aes(x = year, y = MSY_yield)) +
+#   geom_line(colour = "#80b1d3", size = 0.5, alpha = 1) +
+#   ylab("Maximum yields from MSY policy") +
+#   xlab("Year") +
+#   facet_wrap(~lake, scales = "free") +
+#   ggsidekick::theme_sleek() +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(face = "bold", hjust = 0.5)
+#   )
+# p
+# 
+# ggsave("plots/yields.pdf",
+#   width = 8,
+#   height = 5
+# )
+# 
+# # yield plot
+# tot_y2 <-
+#   as.data.frame.table(tot_y, responseName = "value", dnn = c("cslope", "bmin")) %>%
+#   rename(
+#     "cslope" = "Var1",
+#     "bmin" = "Var2"
 #   ) %>%
-#   select("yield", "Policy", "year")
-
-all_yields <- rbind(msys, haras) # , obs_yields
-p5 <- all_yields %>%
-  ggplot(aes(x = year, y = yield, linetype = Policy, color = Policy)) +
-  geom_line(size = 1.5) +
-  scale_linetype_manual(values = c("dotted", "solid")) + # , "solid"
-  scale_color_manual(values = c("black", "grey")) + # , "black"
-  xlab("Year") +
-  ylab("Yield (kg)") +
-  ggsidekick::theme_sleek() +
-  guides(fill = guide_legend(title = ""))
-p5
-
-
-
-# plot title for area
-which_x <- min(all_yields$year)
-hjust <- 0
-size <- 3
-
-p5 <- p5 +
-  annotate("text", which_x, Inf,
-    vjust = 3, hjust = hjust,
-    label = which_lake, size = size
-  )
-
-my_plot <- cowplot::plot_grid(p1, p2, p3, p4,
-  nrow = 2
-)
-
-filename <- paste0("plots/", which_lake, "_cr6_hcr_plot.pdf")
-filename <- gsub(" ", "_", filename)
-my_tableau <- cowplot::plot_grid(p5, my_plot, nrow = 2, rel_heights = c(0.4, 0.6))
-ggsave(
-  filename = filename,
-  width = 10, height = 11, units = "in"
-)
+#   mutate(
+#     cslope = as.numeric(as.character(cslope)),
+#     bmin = as.numeric(as.character(bmin))
+#   )
+# 
+# tot_u2 <-
+#   as.data.frame.table(tot_u, responseName = "value", dnn = c("cslope", "bmin")) %>%
+#   rename(
+#     "cslope" = "Var1",
+#     "bmin" = "Var2"
+#   ) %>%
+#   mutate(
+#     cslope = as.numeric(as.character(cslope)),
+#     bmin = as.numeric(as.character(bmin))
+#   )
+# highlight <- tot_u2 %>%
+#   filter(value == max(value))
+# 
+# # utility plot
+# p2 <- tot_u2 %>%
+#   ggplot(aes(bmin, cslope, z = value)) +
+#   geom_contour_filled(bins = 15) +
+#   ggsidekick::theme_sleek() +
+#   labs(fill = "Utility") +
+#   geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
+#   scale_color_manual(values = c(NA, "black")) +
+#   xlab("Limit reference biomass (kg)")
+# p2
+# 
+# prop_below2 <-
+#   as.data.frame.table(prop_below, responseName = "value", dnn = c("cslope", "bmin")) %>%
+#   rename(
+#     "cslope" = "Var1",
+#     "bmin" = "Var2"
+#   ) %>%
+#   mutate(
+#     cslope = as.numeric(as.character(cslope)),
+#     bmin = as.numeric(as.character(bmin))
+#   ) %>%
+#   mutate(color = max(value) == value)
+# 
+# # proportion failing plot
+# p3 <- prop_below2 %>%
+#   ggplot(aes(bmin, cslope, z = value)) +
+#   geom_contour_filled(bins = 15) +
+#   ggsidekick::theme_sleek() +
+#   labs(fill = "Proportion of years \nbelow 10% of average \nunfished SSB") +
+#   scale_fill_viridis_d(direction = -1) +
+#   xlab("Limit reference biomass (kg)")
+# 
+# p3
+# 
+# TAC_zero2 <-
+#   as.data.frame.table(TAC_zero, responseName = "value", dnn = c("cslope", "bmin")) %>%
+#   rename(
+#     "cslope" = "Var1",
+#     "bmin" = "Var2"
+#   ) %>%
+#   mutate(
+#     cslope = as.numeric(as.character(cslope)),
+#     bmin = as.numeric(as.character(bmin))
+#   ) %>%
+#   mutate(color = max(value) == value)
+# 
+# # zero catch
+# p4 <- TAC_zero2 %>%
+#   ggplot(aes(bmin, cslope, z = value)) +
+#   geom_contour_filled(bins = 15) +
+#   ggsidekick::theme_sleek() +
+#   labs(fill = "Proportion of years \nwith no harvest") +
+#   scale_fill_viridis_d(direction = -1) +
+#   xlab("Limit reference biomass (kg)")
+# 
+# p4
+# 
+# # make the comparison plot for policies
+# msys <- data.frame(
+#   "yield" = MSY_yields,
+#   "Policy" = "MSY policy",
+#   "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
+# ) %>%
+#   filter(year <= retro_terminal_yr)
+# 
+# haras <- data.frame(
+#   "yield" = HARA_yields,
+#   "Policy" = "HARA policy",
+#   "year" = retro_initial_yr:(retro_initial_yr + n_sim_yrs - 1)
+# ) %>%
+#   filter(year <= retro_terminal_yr)
+# 
+# # obs_yields <- yields %>%
+# #   select(year, med) %>%
+# #   filter(year <= terminal_yr) %>%
+# #   filter(year >= initialization_yr) %>%
+# #   mutate(
+# #     "yield" = med,
+# #     "Policy" = "historical yield",
+# #     "year" = year
+# #   ) %>%
+# #   select("yield", "Policy", "year")
+# 
+# all_yields <- rbind(msys, haras) # , obs_yields
+# p5 <- all_yields %>%
+#   ggplot(aes(x = year, y = yield, linetype = Policy, color = Policy)) +
+#   geom_line(size = 1.5) +
+#   scale_linetype_manual(values = c("dotted", "solid")) + # , "solid"
+#   scale_color_manual(values = c("black", "grey")) + # , "black"
+#   xlab("Year") +
+#   ylab("Yield (kg)") +
+#   ggsidekick::theme_sleek() +
+#   guides(fill = guide_legend(title = ""))
+# p5
+# 
+# 
+# 
+# # plot title for area
+# which_x <- min(all_yields$year)
+# hjust <- 0
+# size <- 3
+# 
+# p5 <- p5 +
+#   annotate("text", which_x, Inf,
+#     vjust = 3, hjust = hjust,
+#     label = which_lake, size = size
+#   )
+# 
+# my_plot <- cowplot::plot_grid(p1, p2, p3, p4,
+#   nrow = 2
+# )
+# 
+# filename <- paste0("plots/", which_lake, "_cr6_hcr_plot.pdf")
+# filename <- gsub(" ", "_", filename)
+# my_tableau <- cowplot::plot_grid(p5, my_plot, nrow = 2, rel_heights = c(0.4, 0.6))
+# ggsave(
+#   filename = filename,
+#   width = 10, height = 11, units = "in"
+# )
 
 # EXTRA stuff to get wt sequences to CJ
 
