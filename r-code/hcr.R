@@ -382,11 +382,11 @@ ass_ints <- c(1, 3, 5, 10) # how often to assess / run FWIN
 sd_surveys <- c(0.05, 0.4)
 d_morts <- c(0.03, 0.15, 0.3)
 
+# use expand grid to get all possible combinations 
 to_fit <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
 names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "ass_int")
 
 glimpse(to_fit)
-
 
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
