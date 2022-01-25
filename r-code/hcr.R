@@ -348,7 +348,6 @@ hcr_pars <- list(
   "ages" = ages,
   "initial_yr" = initial_yr,
   "initial_yr_minus_one" = initial_yr_minus_one,
-  "d_mort" = d_mort,
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
   "sd_survey" = sd_survey,
