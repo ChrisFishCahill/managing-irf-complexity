@@ -328,12 +328,10 @@ max_a <- max(ages) # max age
 recruit_a <- min(ages) # age at recruitment
 initial_yr <- t - max_a + recruit_a - 2 # 1980 = BERTA initial yr
 initial_yr_minus_one <- initial_yr - 1
-d_mort <- 0.3 # discard mortality
 ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # annual capture rate of fully vulnerable fish
-sd_survey <- 0.5 # survey observation error
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
@@ -378,14 +376,15 @@ which_lakes <- str_extract(
   "(?<=fits/).*(?=_bh|_ricker)"
 )
 
+# things to simulate hcrs across
 ass_ints <- c(1, 3, 5, 10) # how often to assess / run FWIN
-sd_surveys <- c(0.05, 0.4)
-d_morts <- c(0.03, 0.15, 0.3)
+sd_surveys <- c(0.05, 0.4) # survey sd
+d_morts <- c(0.03, 0.15, 0.3) # discard mortalities
 
-# use expand grid to get all possible combinations 
+# use expand.grid() and distinct() to get all possible combinations 
 to_fit <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
-names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "ass_int")
-
+names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
+to_fit <- to_fit %>% distinct()
 glimpse(to_fit)
 
 # contract_lakes <- c(
@@ -401,6 +400,9 @@ glimpse(to_fit)
 # to_sim <- tibble(which_lake = contract_lakes, ass_int = 1, 
 #                  sd_survey = 0.05, d_mort = 0.3)
 
+# if you run all these combinations your gov computer 
+# you cannot hold me legally responsible if it explodes
+if(FALSE){ 
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
@@ -408,6 +410,7 @@ system.time({
     .options = furrr_options(seed = TRUE)
   )
 })
+}
 
 # remove all fits?
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
