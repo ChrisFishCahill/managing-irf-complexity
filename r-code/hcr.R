@@ -380,10 +380,10 @@ sd_surveys <- c(0.05, 0.4) # survey sd
 d_morts <- c(0.03, 0.15, 0.3) # discard mortalities
 
 # use expand.grid() and distinct() to get all possible combinations 
-to_fit <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
-names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
-to_fit <- to_fit %>% distinct()
-glimpse(to_fit)
+to_sim <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
+names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
+to_sim <- to_sim %>% distinct()
+glimpse(to_sim)
 
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
@@ -395,7 +395,7 @@ glimpse(to_fit)
 # purrr
 #  pwalk(to_sim, get_hcr)
 # 
-# to_sim <- tibble(which_lake = contract_lakes, ass_int = 1, 
+# to_sim <- tibble(which_lake = contract_lakes, ass_int = 1,
 #                  sd_survey = 0.05, d_mort = 0.3)
 
 # if you run all these combinations your gov computer 
