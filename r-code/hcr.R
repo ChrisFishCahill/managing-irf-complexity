@@ -385,8 +385,7 @@ d_morts <- c(0.03, 0.15, 0.3)
 to_fit <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
 names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "ass_int")
 
-to_sim$sd_survey = rep(sd_surveys, each = nrow(to_sim) / length(sd_surveys))
-to_sim$d_morts = rep(d_morts, each = nrow(to_sim) / length(d_morts))
+glimpse(to_fit)
 
 
 # contract_lakes <- c(
