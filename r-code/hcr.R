@@ -350,7 +350,6 @@ hcr_pars <- list(
   "initial_yr_minus_one" = initial_yr_minus_one,
   "ret_a" = ret_a,
   "Ut_overall" = Ut_overall,
-  "sd_survey" = sd_survey,
   "sbo_prop" = sbo_prop,
   "rho" = rho,
   "sd_wt" = sd_wt,
