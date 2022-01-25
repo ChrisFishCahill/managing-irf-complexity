@@ -391,12 +391,12 @@ glimpse(to_sim)
 #   "moose lake", "lake newell"
 # )
 # run one lake:
-# run <- get_hcr(which_lake = "lake newell", ass_int = 1)
+# run <- get_hcr(which_lake = "lac ste. anne", ass_int = 1,
+#                sd_survey = 0.05, d_mort = 0.03)
 # purrr
-#  pwalk(to_sim, get_hcr)
-# 
-# to_sim <- tibble(which_lake = contract_lakes, ass_int = 1,
-#                  sd_survey = 0.05, d_mort = 0.3)
+# to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1, 
+#                   sd_survey = 0.05, d_mort = 0.03)
+# pwalk(to_sim, get_hcr)
 
 # if you run all these combinations your gov computer 
 # you cannot hold me legally responsible if it explodes
