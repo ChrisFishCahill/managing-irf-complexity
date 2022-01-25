@@ -14,12 +14,12 @@ library(furrr)
 #--------------------------------------------------------------------
 # write a function to take BERTA posteriors and run MSE
 
-get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
+get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1, 
+                    sd_survey = 0.05, d_mort = 0.3) {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
   n_draws <- hcr_pars$n_draws
-  rec_var <- hcr_pars$rec_var
   n_repeats <- hcr_pars$n_repeats
   retro_initial_yr <- hcr_pars$retro_initial_yr
   retro_terminal_yr <- hcr_pars$retro_terminal_yr
@@ -28,10 +28,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   n_ages <- length(ages)
   initial_yr <- hcr_pars$initial_yr
   initial_yr_minus_one <- hcr_pars$initial_yr_minus_one
-  d_mort <- hcr_pars$d_mort
   ret_a <- hcr_pars$ret_a
   Ut_overall <- hcr_pars$Ut_overall
-  sd_survey <- hcr_pars$sd_survey
   sbo_prop <- hcr_pars$sbo_prop
   rho <- hcr_pars$rho
   sd_wt <- hcr_pars$sd_wt
@@ -121,6 +119,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   M_a <- leading_pars$M_a_report
   vbro <- sum(Lo * v_survey * w_a)
   sbro <- sum(f_a * Lo)
+  
+  # set column in post to sbro for plotting
+  post$sbro <- sbro
 
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
@@ -131,7 +132,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
   } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
   }
-  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = 30)
+  c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
   bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2) )
   bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
@@ -303,7 +304,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1) {
     string = names(fits)[fit_idx],
     pattern = "(?<=fits/).*(?=.rds)"
   )
-  file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, ".rds")
+  file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, 
+                      "_sd_", sd_survey, "_d_mort_", d_mort, ".rds")
   if (file.exists(file_name)) {
     return(NULL)
   } else {
@@ -331,12 +333,12 @@ ah_ret <- 5
 sd_ret <- 1
 ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
 Ut_overall <- 0.5 # annual capture rate of fully vulnerable fish
-sd_survey <- 0.4 # survey observation error
+sd_survey <- 0.5 # survey observation error
 sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
 psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
-grid_size <- 75 # how many bmins or cslopes
+grid_size <- 75 # how many bmins, round(grid_size/2) gives how many cslope 
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -376,25 +378,30 @@ which_lakes <- str_extract(
   "(?<=fits/).*(?=_bh|_ricker)"
 )
 
-ass_ints <- c(1, 3, 5, 7, 10) # how often to assess / run FWIN
-ass_ints <- rep(ass_ints, each = length(which_lakes))
-which_lakes <- rep(which_lakes, length(which_lakes) - 1)
-to_sim <- tibble(which_lake = which_lakes, ass_int = ass_ints)
-to_sim
+ass_ints <- c(1, 3, 5, 10) # how often to assess / run FWIN
+sd_surveys <- c(0.05, 0.4)
+d_morts <- c(0.03, 0.15, 0.3)
 
-contract_lakes <- c(
-  "lac ste. anne", "baptiste lake",
-  "pigeon lake", "calling lake",
-  "moose lake", "lake newell"
-)
+to_fit <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
+names(to_fit) <- c("which_lake", "ass_int", "sd_survey", "ass_int")
 
+to_sim$sd_survey = rep(sd_surveys, each = nrow(to_sim) / length(sd_surveys))
+to_sim$d_morts = rep(d_morts, each = nrow(to_sim) / length(d_morts))
+
+
+# contract_lakes <- c(
+#   "lac ste. anne", "baptiste lake",
+#   "pigeon lake", "calling lake",
+#   "moose lake", "lake newell"
+# )
 # run one lake:
 # run <- get_hcr(which_lake = "lake newell", ass_int = 1)
-
 # purrr
 #  pwalk(to_sim, get_hcr)
+# 
+# to_sim <- tibble(which_lake = contract_lakes, ass_int = 1, 
+#                  sd_survey = 0.05, d_mort = 0.3)
 
-to_sim <- tibble(which_lake = contract_lakes, ass_int = 1)
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
@@ -407,10 +414,3 @@ system.time({
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
 #----------------------------------------------------------------------
 # end
-
-# play around with t vs. normal dist
-#ts <- rt(n = 1000, df = 5)
-#ns <- rnorm(1000, 0, sd=1.1)
-#par(mfrow=c(2,1))
-#hist(ns, xlim=c(-10,10))
-#hist(ts, xlim=c(-10,10))

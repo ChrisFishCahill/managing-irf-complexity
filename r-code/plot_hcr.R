@@ -602,6 +602,13 @@ ggsave("plots/purdy_good_hcrs_best.pdf",
        height = 5
 )
 
+d2 <- frontier %>%
+  filter(lake == l)
+pmax(d2$x_yield, d2$y_utility)
+
+
+
+
 #----------------------------------------------------------------------
 # Extra plotting code below:
 #----------------------------------------------------------------------
@@ -874,3 +881,25 @@ ggsave("plots/purdy_good_hcrs_best.pdf",
 #   ylab("Recruitment Anomaly ln(wt)") +
 #   ggsidekick::theme_sleek()
 #----------------------------------------------------------------------
+# get sbos for carl 
+
+# d <- all_posts %>%
+#   group_by(lake) %>%
+#   mutate( sbro = unique(sbro), 
+#           Ro = Ro, 
+#           sbo = sbro*Ro)
+# sbos <- d %>% group_by(lake) %>%
+#   summarize(sbos = unique(sbo)) 
+# 
+# sbos <- as.data.frame(sbos)
+# sbo_mat <- matrix(NA, nrow= sum(sbos$lake=="pigeon lake"), ncol = length(unique(sbos$lake)))
+# colnames(sbo_mat) <- unique(sbos$lake)
+# 
+# for(i in unique(sbos$lake)){
+#   sub_dat <- subset(sbos, lake ==i)
+#   sbo_mat[,i] = sub_dat$sbos
+# }
+# sbo_avg <- colMeans(sbo_mat)
+
+# write.csv(sbo_mat, "data/sbo_all_draws.csv")
+# write.csv(sbo_avg, "data/sbo_avg.csv")
