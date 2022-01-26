@@ -385,12 +385,12 @@ names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
+# one lake -- you must understand the Tao of Programming before transcending structure
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
 #   "pigeon lake", "calling lake",
 #   "moose lake", "lake newell"
 # )
-# run one lake:
 # run <- get_hcr(which_lake = "lac ste. anne", ass_int = 1,
 #                sd_survey = 0.05, d_mort = 0.03)
 # purrr
