@@ -385,6 +385,7 @@ names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
+#----------------------------------------------------------------------
 # one lake -- you must understand the Tao of Programming before transcending structure
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
@@ -397,9 +398,9 @@ glimpse(to_sim)
 # to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1, 
 #                   sd_survey = 0.05, d_mort = 0.03)
 # pwalk(to_sim, get_hcr)
+#----------------------------------------------------------------------
 
-# if you run all these combinations your gov computer 
-# you cannot hold me legally responsible if it explodes
+# if you run all these your gov computer may explode
 if(FALSE){ 
 options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
