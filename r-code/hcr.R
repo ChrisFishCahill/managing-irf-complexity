@@ -386,7 +386,9 @@ to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
 #----------------------------------------------------------------------
-# one lake -- you must understand the Tao of Programming before transcending structure
+# one lake at a time 
+# i.e., you must understand the Tao of Programming before transcending structure
+# 
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
 #   "pigeon lake", "calling lake",
