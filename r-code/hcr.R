@@ -122,6 +122,9 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   
   # set column in post to sbro for plotting
   post$sbro <- sbro
+  post$Ro_map <- Ro_map
+  post$vbro <- vbro
+  post$vbo <- Ro_map * vbro 
 
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
