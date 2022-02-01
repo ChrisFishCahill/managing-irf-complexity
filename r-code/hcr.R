@@ -120,7 +120,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   vbro <- sum(Lo * v_survey * w_a)
   sbro <- sum(f_a * Lo)
   
-  # set column in post to sbro for plotting
+  # put some extra stuff in post
   post$sbro <- sbro
   post$Ro_map <- Ro_map
   post$vbro <- vbro
