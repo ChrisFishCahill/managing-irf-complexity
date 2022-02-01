@@ -123,8 +123,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   # put some extra stuff in post
   post$sbro <- sbro
   post$Ro_map <- Ro_map
-  post$vbro <- vbro
-  post$vbo <- Ro_map * vbro 
+  post$vbro <- vbro # biomass vulnerable per recruit *surveys*
+  post$vbo <- sum(Ro_map * Lo * v_fish * w_a) # biomass vulnerable to *fishing*
 
   #----------------------------------------------------------------------
   # set up cslope, bmin sequences and performance metric output matrices
