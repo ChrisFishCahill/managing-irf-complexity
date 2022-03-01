@@ -72,11 +72,11 @@ transformed data {
     }
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
     M_a[a] = M/l_a[a]^theta;
+    // relative weight at age assumed to follow vb
     w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
     if(a < a50){
         f_a[a] = 0; 
       } else { 
-        // relative weight at age assumed to follow vb
         f_a[a] = fmax(0, (l_a[a]^wl_beta)); 
       }
       if(a == 1){ 
