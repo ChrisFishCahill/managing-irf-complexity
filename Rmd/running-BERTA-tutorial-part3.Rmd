@@ -1,0 +1,149 @@
+---
+title: "running-BERTA-tutorial-part3"
+author: "Christopher L. Cahill"
+date: "28 Feb 2022 "
+output:
+  html_document: default
+  pdf_document: default
+highlight: tango
+urlcolor: blue
+---
+# Purpose 
+The purpose of this tutorial is to work through the calculations and population dynamics model in the `BERTA_single_lake.stan` file, which is a single lake version of the model fitted in Cahill et al. (2021). Readers should familiarize themselves with tutorials 1 and 2 before reading further, and it is assumed readers already know how to compile a `.stan` file, read data into that file from R, and run that model.  
+
+# Goals
+- Understand the main components of the `BERTA_single_lake.stan` file 
+- Develop intuition for how the `.stan` file takes data and parameters to generate population dynamics predictions
+- Discuss the equilibrium Maximum Sustainable Yield (MSY) and F_MSY calculations
+
+# Data block: 
+The data block in lines 6-44 brings in all relevant information from Fall Walleye Index Netting (FWIN) surveys, relevant life history parameters, and a number of values are used for setting lake-specific informative priors.  This section also includes several so-called "control" values that allow users to toggle among different model run options (e.g., Ricker vs. Beverton-Holt recruitment dynamics).  
+
+These control variables should all have `_ctl` in the variable name.  I do this so that I did not have to recompile the model (which takes a lot of time) for many different model variants. Each of the values in the data section should be defined or commented, and thus we will not discuss it further. 
+
+# Transformed data block: 
+The transformed data block runs from line 45 to 105. This section is only run once, and it transforms data (see data block) and calculates things that you need to run your model.  Lines 46-61 declare the integer, real, and vector values that we will use to store the calculations in this section. 
+
+```stan
+// calculate vul, length-age, M-age, fec-age 
+sbro = 0; // initialize
+for(a in 1:n_ages){ 
+  v_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^phi; 
+  if(vul_ctl == 0){
+    //v_f_a[a] = ((linf/lbar)*(1 - exp(-vbk * ages[a])))^psi; // used in paper 
+    v_f_a[a] = (1 - exp(-vbk * ages[a]))^psi;  // length^2 selectivity 
+  }
+  if(vul_ctl == 1){
+    v_f_a[a] = 1 / (1 + exp(-(ages[a] - ah_vul) / sd_vul)); // logistic selectivity 
+  }
+  l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
+  M_a[a] = M/l_a[a]^theta;
+  w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
+  if(a < a50){
+    f_a[a] = 0; 
+  } else { 
+    // relative weight at age assumed to follow vb
+    f_a[a] = fmax(0, (l_a[a]^wl_beta)); 
+  }
+  if(a == 1){ 
+    Lo[a] = 1;
+  } else{
+    Lo[a] = Lo[a-1]*exp(-M_a[a-1]); 
+  }
+  sbro += f_a[a]*Lo[a];
+}
+ln_ar_mean = log(cr_prior/sbro); 
+``` 
+This probably looks complex, but it isn't the end of the world.  It is a fancy looking loop across ages a that calculates 
+
+* Spawner biomass per recruit in the unfished condition `sbro`
+* Vulnerability at age to the survey nets `v_a[]` 
+* Vulnerability at age to fishing `v_f_a[]`.  
+* Relative length at age `l_a[]` 
+* Lorenzen instantaneous natural mortality at age `M_a[]`
+* Weight at age `w_a[]`
+* Relative fecundity at age `f_a[]`, which is assumed to scale with `w_a[]` above age at 50% maturity `a50`
+* Survivorship at age `Lo[]`
+* A lake specific informative prior for the mean of the natural log of stock-recruit $\alpha$ `ln_ar_mean`
+
+These are fairly common inputs for an age structured stock assessment model.  If you are confused, check out Walters and Martell (2004) box 3.1 or the equations in Cahill et al. (2021). Similarly, these can be viewed in "leading parameters" section on the spreadsheets that Carl and I shared with Laura and Andy in January-February 2022. 
+
+You should be aware that we are assuming a different vulnerability to fishing `v_f_a[]` function than what was used in Cahill et al. (2021).  We did this to ensure the simulation testing and harvest control rule development was more conservative, and this change doesn't change the main results from Cahill et al. (2021).   
+
+The rest of the transformed data block looks hard but is actually just some goofy code that I used to make the "observed" Spawning Stock Biomass (SSB) values for plots: 
+
+```stan
+// calculate the rowsums for each survey, observed SSB
+// SSB_C(t)=sum over a of fec(a)*C(a,t)/[vage(a)Nnet(t)Paged(t)]
+for(i in 1:n_surveys){
+  SSB_Cn[i] = 0; 
+  SSB_Cd[i] = 0; 
+  SSB_C[i] = 0; 
+  for(a in 1:n_ages){
+   counter = counter + 1; 
+   SSB_Cn[i] += f_a[a]*caa[i, a]*(1/v_a[a]); 
+   caa_obs[counter] = caa[i,a]; 
+  }
+  SSB_Cd[i] = prop_aged[i]*effort[i]; 
+  SSB_C[i] = SSB_Cn[i] / SSB_Cd[i];
+}
+``` 
+
+All this is doing is calculating the "observed" SSB `SSB_C[]` for each year t as 
+
+$$ 
+SSB_{C_t} =  \sum_{a=2}^{a = 20} \frac{f_a  \cdot catch_{a,t}}{ v_a \cdot nnet_{t} \cdot paged_{t}} 
+$$
+
+Here, $catch_{a,t}$ is the catch in the FWIN nets of age a fish in year t, $nnet_{a,t}$ and and $paged_{a,t}$ are the number of nets set and the proportion of critters with age estimates in year t, respectively. Again, these values specifically are used for plotting later on once we fit the model to data.
+
+# Parameters block:
+
+The parameters block has all estimated parameters in a stan file. In our case, these are: 
+
+```stan
+parameters {
+  vector<lower=0>[2] v;                              // early period F v[1] or late F v[2]
+  real<lower=0> Ro;                                  // average unfished recruitment 
+  real ln_ar;                                        // ln stock-recruit a
+  vector[n_years-2] w;                               // recruitment anomalies--first 2 yrs for initiazation
+  real<lower=G_bound[1], upper=G_bound[2]> G;        // is population at equilibrium (1) or declining (<1)
+  //real<lower=0> phi;                               // negative binomial parameter
+  //vector<lower=0, upper=1>[n_lakes] su_stock;      // estimate stocked fish survival
+}
+``` 
+This chunk of code declares all estimated parameters. All parameters are described in their comments.  In total, how many parameters is this `.stan` file estimating? 
+
+# Transformed parameters block:
+
+This section of code takes your data, transformed data, and parameters and runs the population dynamics model to create predictions, which will be contrasted against your observations in the {model} section below. This is the chunk of code that is doing most of the calculations. 
+
+For the purposes of understanding this section of code, let's assume for the time being that we have a single value for each of the parameters described in the previous section.  This will help us see what is going on in terms of the calculations and the miserable loops. 
+
+### Simulate some fake data
+
+Let's load some packages: 
+
+
+
+# Questions  
+Dr. Geezer doesn't trust statsitics and thus hates your silly model.  Dr. Geezer refuses to trust your model until you demonstrate that it adequately predicts the observed count data (a reasonable request). 
+
+1. Can you adapt the mussels.stan code to address this criticism?  Note you will have to compile the .stan model each time you change it. 
+2. How does your model compare to the Frequentist fit using the `glm()` function? 
+3. Do your answers change if you change the prior sd terms?
+4. It turns out the biologists mistakenly told you the industrial development was going in at km 18.7, but it is actually km 28.7.  Can you adapt the code to generate a predictive distribution for mussel counts at km 28.7 instead? 
+5. What was the "true" expected number of mussels at km 28.7? 
+6. If biologists went to this location and conducted a point count survey, what is the most probable count they would obtain, and what are its 95% credible intervals? 
+
+# Resources: 
+
+Kery and Schaub. 2012. Bayesian Population Analysis Using Winbugs.
+
+Cahill et al. 2021. Unveiling the recovery dynamics of walleye after the invisible collapse. CJFAS. 
+
+Gelman et al. 2013. Bayesian Data Analsyis. 
+
+<https://mc-stan.org/users/documentation/>
+
+<http://mc-stan.org/shinystan/>
