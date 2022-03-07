@@ -11,6 +11,7 @@ library(stringr)
 library(gridExtra)
 library(reshape2)
 library(RColorBrewer)
+library(grid)
 
 retro_initial_yr <- 1990 # initial year for retrospective analysis
 retro_terminal_yr <- 2015
@@ -19,7 +20,7 @@ n_repeats <- 8
 #----------------------------------------------------------------------
 # read in the hcr sim files
 sim_files <- list.files("sims/", full.names = TRUE)
-sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_5", sim_files)]
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_1_sd_0.4_d_mort_0.3", sim_files)]
 
 # read in the data from all lakes used in Cahill et al. 2021
 data <- readRDS("data/BERTA-wide-0-25.rds")
@@ -114,11 +115,12 @@ p <-
     alpha = 0.4
   ) +
   geom_line(data = trace_data, aes(x = sim_yr, y = wt), color = "black", size = 0.3)
+p
 
-ggsave("plots/hcr_wts.pdf",
-  width = 8,
-  height = 5
-)
+# ggsave("plots/hcr_wts.pdf",
+#   width = 8,
+#   height = 5
+# )
 
 my_data %>% filter(lake == "pigeon lake") %>%
   ggplot(aes(x = sim_yr, y = wt, colour = lake, group = draw)) +
@@ -179,8 +181,9 @@ for (i in unique(my_data$lake)) {
 }
 
 bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 3)
+
 # bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=1)
-ggsave("plots/yield_isos.pdf", bigp,
+ggsave("plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.pdf", bigp,
   width = 8,
   height = 5
 )
@@ -602,13 +605,307 @@ ggsave("plots/purdy_good_hcrs_best.pdf",
        height = 5
 )
 
-d2 <- frontier %>%
-  filter(lake == l)
-pmax(d2$x_yield, d2$y_utility)
+#----------------------------------------------------------------------
+# let's see if we can visualize hcrs across simulation runs :(
+# read in the hcr sim files
+sim_files <- list.files("sims/", full.names = TRUE)
+sim_files <- sim_files[grep("bh_cr_6_hcr", sim_files)]
+sim_files <- sim_files[grep("sd_0.05_d_mort_0.3", sim_files)]
+sim_files
+
+names <- str_extract(
+  string = sim_files,
+  pattern = "(?<=sims/).*(?=_bh|_ricker)"
+)
+
+ass_ints <- str_extract(
+  string = sim_files,
+  pattern = "(?<=hcr_).*(?=_sd)"
+)
+
+new_names <- paste(names, ass_ints, sep="_")
+
+big_list <-
+  sim_files %>%
+  purrr::set_names(new_names) %>%
+  purrr::map(readRDS)
+
+#extract best yield cslope and bmin for each 
+names(big_list)
+
+my_data <- NA
+yield_list <- big_list %>%
+  purrr::map(~ .x$tot_y)
+
+# these loops are r-binding the total yield matrices for each file into one big dataframe
+for (i in names(yield_list)) {
+  lake_data <- yield_list[[i]]
+  long_data <-
+    lake_data %>%
+    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2"
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)),
+      lake = gsub("_", " ", i)
+    )
+  if (names(yield_list)[1] == i) {
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+res_table <- data.frame(bmin = rep(NA, length(unique(my_data$lake))), 
+                        cslope = rep(NA, length(unique(my_data$lake))), 
+                        lake = rep(NA, length(unique(my_data$lake))),
+                        value = rep(NA, length(unique(my_data$lake))))
+
+for (i in unique(my_data$lake)) {
+  highlight <- my_data %>%
+    filter(lake == i) %>%
+    filter(value == max(value))
+  counter <- which(unique(my_data$lake)==i) 
+  res_table$bmin[counter] <- highlight$bmin
+  res_table$cslope[counter] <- highlight$cslope
+  res_table$lake[counter] <- highlight$lake
+  res_table$value[counter] <- highlight$value
+}
+res_table$ass_ints <- ass_ints
+res_table$lake <- names
+
+ass_ints <- str_extract(
+  string = res_table$ass_ints,
+  pattern = "(?<=ass_int_).*"
+)
+
+res_table$ass_ints <- as.numeric(ass_ints)
+
+#re-order based on ass_ints
+res_table <- 
+  res_table %>%
+  group_by(lake) %>%
+  arrange(ass_ints, .by_group=T)
+
+res_table %>%
+  ggplot(aes(x=ass_ints, y=value, colour=lake)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks=c(1,3,5,10)) + 
+  ggtitle("Yield vs. assessment interval, sd = 0.4, dmort = 0.3") + 
+  ylab("Yield") + 
+  xlab("Assessment interval (yrs)")
+
+res_table$y_int <- - res_table$cslope*res_table$bmin
+
+res_table$lake <- gsub("_", " ", res_table$lake)
+
+my_colors <- colorRampPalette(brewer.pal(8, "Greys"))(length(unique(res_table$ass_ints)))
+#my_colors <- c('#7b3294','#c2a5cf','#a6dba0','#008837')
+p <- 
+  res_table %>%
+  ggplot() + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 50)) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 50), 
+                     breaks = c(0,5,10,15,20,25,30,35,40,45, 50)) + 
+  geom_abline(aes(intercept = y_int, slope = cslope,
+                  colour=as.factor(ass_ints)), size=1.15) +
+  ggsidekick::theme_sleek() + 
+  xlab("Biomass Vulnerable to Fishing (kg/ha)") +
+  ylab("TAC (kg/ha)") +
+  theme(axis.text=element_text(size=8), 
+        panel.spacing = unit(1.1, "lines"), 
+        plot.title = element_text(face = "bold", hjust = 0.5), 
+        legend.title.align=0.5
+  ) +
+  facet_wrap(~lake) +
+  labs(color = "Assessment \ninterval") +
+  scale_colour_grey(start = 0) + 
+  #scale_color_manual(values = my_colors) +
+  ggtitle("Best linear HCRs for yield objective given discard mortality = 0.3 and survey sd = 0.05")
+p
+
+ggsave("plots/yields_sensitivity_sd_0.05_dmort_0.3.pdf", p,
+       width = 8,
+       height = 5
+)
+
+res_table$objective <- "yield"
+
+#----------------------------------------------------------------------
+# let's see if we can visualize hcrs across simulation runs for HARA
+# read in the hcr sim files
+sim_files <- list.files("sims/", full.names = TRUE)
+sim_files <- sim_files[grep("bh_cr_6_hcr", sim_files)]
+sim_files <- sim_files[grep("sd_0.05_d_mort_0.3", sim_files)]
+sim_files
+
+names <- str_extract(
+  string = sim_files,
+  pattern = "(?<=sims/).*(?=_bh|_ricker)"
+)
+
+ass_ints <- str_extract(
+  string = sim_files,
+  pattern = "(?<=hcr_).*(?=_sd)"
+)
+
+new_names <- paste(names, ass_ints, sep="_")
+
+big_list <-
+  sim_files %>%
+  purrr::set_names(new_names) %>%
+  purrr::map(readRDS)
+
+#extract best yield cslope and bmin for each 
+names(big_list)
+
+my_data <- NA
+yield_list <- big_list %>%
+  purrr::map(~ .x$tot_u) #NOTE I HAVE CHANGED TOT_Y TO TOT_U
+
+# these loops are r-binding the total yield matrices for each file into one big dataframe
+for (i in names(yield_list)) {
+  lake_data <- yield_list[[i]]
+  long_data <-
+    lake_data %>%
+    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2"
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)),
+      lake = gsub("_", " ", i)
+    )
+  if (names(yield_list)[1] == i) {
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+res_table_hara <- data.frame(bmin = rep(NA, length(unique(my_data$lake))), 
+                        cslope = rep(NA, length(unique(my_data$lake))), 
+                        lake = rep(NA, length(unique(my_data$lake))),
+                        value = rep(NA, length(unique(my_data$lake))))
+
+for (i in unique(my_data$lake)) {
+  highlight <- my_data %>%
+    filter(lake == i) %>%
+    filter(value == max(value))
+  counter <- which(unique(my_data$lake)==i) 
+  res_table_hara$bmin[counter] <- highlight$bmin
+  res_table_hara$cslope[counter] <- highlight$cslope
+  res_table_hara$lake[counter] <- highlight$lake
+  res_table_hara$value[counter] <- highlight$value
+}
+res_table_hara$ass_ints <- ass_ints
+res_table_hara$lake <- names
+
+ass_ints <- str_extract(
+  string = res_table_hara$ass_ints,
+  pattern = "(?<=ass_int_).*"
+)
+
+res_table_hara$ass_ints <- as.numeric(ass_ints)
+
+#re-order based on ass_ints
+res_table_hara <- 
+  res_table_hara %>%
+  group_by(lake) %>%
+  arrange(ass_ints, .by_group=T)
+
+res_table_hara %>%
+  ggplot(aes(x=ass_ints, y=value, colour=lake)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks=c(1,3,5,10)) + 
+  ggtitle("Yield vs. assessment interval, sd = 0.4, dmort = 0.3") + 
+  ylab("Yield") + 
+  xlab("Assessment interval (yrs)")
+
+res_table_hara$y_int <- - res_table_hara$cslope*res_table_hara$bmin
+
+res_table_hara$lake <- gsub("_", " ", res_table_hara$lake)
+
+res_table_hara$objective <- "hara"
+res_table_hara
+
+# put yield and hara dfs together
+res_table  <- rbind(res_table, res_table_hara)
+res_table$linetype <- ifelse(res_table$objective=="yield", "solid", "dashed")
+res_table$objective <- ifelse(res_table$objective == "yield", "Yield", "HARA")
+#my_colors <- colorRampPalette(brewer.pal(8, "Blues"))(length(unique(res_table$ass_ints)))
+# my_colors <- c('#7b3294','#c2a5cf','#a6dba0','#008837')
+
+#next bit necessary for stupid legend
+GeomAbline$draw_key <- function(data, params, size) 
+{
+  segmentsGrob(0, 0.5, 1, 0.5, gp = gpar(col = alpha(data$colour, 
+                                                     data$alpha), lwd = data$size * .pt, lty = data$linetype, 
+                                         lineend = "butt"))
+}  
+
+p <- 
+  res_table %>%
+  ggplot() + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 30)) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 30), 
+                     breaks = c(0,5,10,15,20,25,30)) + 
+  geom_abline(aes(intercept = y_int, slope = cslope,
+                  colour=as.factor(ass_ints), 
+                  linetype= objective), 
+              size=0.5
+              ) +
+  ggsidekick::theme_sleek() + 
+  scale_colour_grey(start = 0.2) +
+  xlab("Biomass Vulnerable to Fishing (kg/ha)") +
+  ylab("Total Allowable Catch (kg/ha)") +
+  theme(axis.text=element_text(size=8), 
+        panel.spacing = unit(1.1, "lines"), 
+        plot.title = element_text(face = "bold", hjust = 0.5), 
+        legend.title.align=0.5 
+  ) +
+  facet_wrap(~lake) +
+  labs(color = "Assessment \ninterval", 
+       linetype = "Management \n objective") +
+  #scale_color_manual(values = my_colors) +
+  scale_linetype_manual(values=c("dotted", "solid")) + 
+  ggtitle("Best linear HCRs for Yield and HARA management objectives \ngiven discard mortality = 0.3 and survey sd = 0.05")
+p
+
+ggsave("plots/Yield_HARA_dmort_0.3_sd_0.05.pdf", p,
+       width = 8,
+       height = 5
+)
+
+# p1 <- my_data %>%
+#   fil
 
 
 
-
+# p1 <- my_data %>%
+#   filter(lake == i) %>%
+#   ggplot(aes(bmin, cslope, z = value)) +
+#   geom_contour_filled(bins = 15) +
+#   ggsidekick::theme_sleek() +
+#   labs(fill = "Yield") +
+#   geom_point(data = highlight, aes(x = bmin, y = cslope), size = 1.75, show.legend = F) +
+#   scale_color_manual(values = c(NA, "black")) +
+#   xlab("Limit reference biomass (kg)") +
+#   ggtitle(i) +
+#   theme(
+#     legend.title = element_blank(),
+#     legend.position = "none",
+#     plot.title = element_text(hjust = 0.5)
+#   )
+# # geom_vline(xintercept=10)
+# plot_list[[which(unique(my_data$lake) == i)]] <- p1
 #----------------------------------------------------------------------
 # Extra plotting code below:
 #----------------------------------------------------------------------
