@@ -15,7 +15,8 @@ library(furrr)
 # write a function to take BERTA posteriors and run MSE
 
 get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1, 
-                    sd_survey = 0.05, d_mort = 0.3) {
+                    sd_survey = 0.05, d_mort = 0.3, 
+                    rule = c("linear", "precautionary") {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
@@ -145,6 +146,11 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   yield_array <- vB_fish_array <- 
     array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
   wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
+  
+  if(rule=="precautionary"){
+    c_slope_seq <- 1
+    b_lrp <- 1
+  }
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
   #----------------------------------------------------------------------
@@ -225,7 +231,23 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
             vB_obs <- vB_fish[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
-            TAC <- c_slope * (vB_obs - b_lrp)
+            
+            if(rule == "linear"){
+             TAC <- c_slope * (vB_obs - b_lrp)
+            }
+            
+            if(rule == "precautionary"){
+             if(vB_obs < b_lrp) { 
+               TAC <- 0
+             }
+             if(vB_obs > = 0.4*Bmsy && vB_obs <= 0.8*Bmsy){
+               TAC <- some linear thing 
+             }
+             if(vB_obs > 0.8*Bmsy){
+               TAC <- Fish at MSY 
+             }
+            }
+            
             if (TAC < 0) {
               TAC <- 0
             }
