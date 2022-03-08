@@ -1354,3 +1354,140 @@ max_yields %>%
   geom_point() + geom_abline() + 
   xlab("Precautionary HCR maximum yield") + 
   ylab("Simple HCR maximum yield")
+
+
+#-------------------------------------------------------------------------
+# This section compares the precautionary and linear harvest control rules for HARA
+#-------------------------------------------------------------------------
+# read in the hcr sim files
+sim_files <- list.files("sims/", full.names = TRUE)
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_1_sd_0.4_d_mort_0.3", sim_files)]
+
+# read in the data from all lakes used in Cahill et al. 2021
+data <- readRDS("data/BERTA-wide-0-25.rds")
+
+contract_lakes <- c(
+  "lac ste. anne", "baptiste lake",
+  "pigeon lake", "calling lake",
+  "moose lake", "lake newell"
+)
+
+# sim_files <- sim_files[grep("ricker_cr_6", sim_files)]
+
+names <- str_extract(
+  string = sim_files,
+  pattern = "(?<=sims/).*(?=_bh|_ricker)"
+)
+
+big_list <-
+  sim_files %>%
+  purrr::set_names(names) %>%
+  purrr::map(readRDS)
+
+all_posts <-
+  big_list %>%
+  purrr::map_dfr(~ .x$post, .id = "lake") %>%
+  mutate(lake = gsub("_", " ", lake))
+
+my_data <- NA
+yield_list <- big_list %>%
+  purrr::map(~ .x$tot_u)
+
+# these loops are r-binding the total yield matrices for each file into one big dataframe
+for (i in names(yield_list)) {
+  lake_data <- yield_list[[i]]
+  long_data <-
+    lake_data %>%
+    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2"
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)),
+      lake = gsub("_", " ", i)
+    )
+  if (names(yield_list)[1] == i) {
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+
+max_yields <- 
+  my_data %>%
+  group_by(lake) %>%
+  filter(value == max(value)) %>%
+  distinct()
+
+# now, get the rectilinear rules
+# read in the hcr sim files
+sim_files <- list.files("sims/", full.names = TRUE)
+sim_files <- sim_files[grep("bh_cr_6_hcr_ass_int_1_sd_0.4_d_mort_0.3_rule_precautionary", sim_files)]
+
+contract_lakes <- c(
+  "lac ste. anne", "baptiste lake",
+  "pigeon lake", "calling lake",
+  "moose lake", "lake newell"
+)
+
+# sim_files <- sim_files[grep("ricker_cr_6", sim_files)]
+
+names <- str_extract(
+  string = sim_files,
+  pattern = "(?<=sims/).*(?=_bh|_ricker)"
+)
+
+big_list <-
+  sim_files %>%
+  purrr::set_names(names) %>%
+  purrr::map(readRDS)
+
+all_posts <-
+  big_list %>%
+  purrr::map_dfr(~ .x$post, .id = "lake") %>%
+  mutate(lake = gsub("_", " ", lake))
+
+my_data <- NA
+yield_list <- big_list %>%
+  purrr::map(~ .x$tot_u)
+
+# these loops are r-binding the total yield matrices for each file into one big dataframe
+for (i in names(yield_list)) {
+  lake_data <- yield_list[[i]]
+  long_data <-
+    lake_data %>%
+    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
+    rename(
+      "cslope" = "Var1",
+      "bmin" = "Var2"
+    ) %>%
+    mutate(
+      cslope = as.numeric(as.character(cslope)),
+      bmin = as.numeric(as.character(bmin)),
+      lake = gsub("_", " ", i)
+    )
+  if (names(yield_list)[1] == i) {
+    my_data <- long_data
+  } else {
+    my_data <- rbind(my_data, long_data)
+  }
+}
+# rm(my_data)
+precautionary_yields <- 
+  my_data %>%
+  group_by(lake) %>%
+  filter(value == max(value)) %>%
+  distinct()
+
+max_yields$precautionary_yields <- precautionary_yields$value
+
+max_yields %>%
+  ggplot(aes(x=precautionary_yields, y = value))+ 
+  geom_point() + geom_abline() + 
+  xlab("Precautionary HCR HARA yield") + 
+  ylab("Simple HCR HARA yield") + 
+  ggtitle("HARA") + 
+  scale_y_continuous(limits=c(0,3)) + 
+  scale_x_continuous(limits=c(0,3))
