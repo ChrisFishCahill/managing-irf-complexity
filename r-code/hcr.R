@@ -14,14 +14,9 @@ library(furrr)
 #--------------------------------------------------------------------
 # write a function to take BERTA posteriors and run MSE
 
-get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1, 
+get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1, 
                     sd_survey = 0.05, d_mort = 0.3, 
-                    rule = c("linear", "precautionary") {
-  #--------------------------------------------------------------------
-  # check stuff
-  #--------------------------------------------------------------------
-  rule <- match.arg(rule)                    
-  
+                    rule = c("linear", "precautionary")) {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
@@ -42,20 +37,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   psi_wt <- hcr_pars$psi_wt
   n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
   grid_size <- hcr_pars$grid_size
-  
-  #--------------------------------------------------------------------
-  #Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
-  #--------------------------------------------------------------------
-  if(rule == "precautionary"){
-  B_may <- may_data %>% 
-    filter(lake == which_lake) %>%
-    select(c("BMAY"))
-  
-  U_may <- may_data %>% 
-    filter(lake == which_lake) %>%
-    select(c("UMAY"))
-  }
-  
+
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
   #--------------------------------------------------------------------
@@ -63,6 +45,21 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
+  
+  #--------------------------------------------------------------------
+  #Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
+  #--------------------------------------------------------------------
+  if(rule == "precautionary"){
+    B_may <- may_data %>% 
+      filter(lake == gsub("_", " ", which_lake)) %>%
+      select(c("BMAY"))
+    B_may <- B_may$BMAY
+    
+    U_may <- may_data %>% 
+      filter(lake == gsub("_", " ", which_lake)) %>%
+      select(c("UMAY"))
+    U_may <- U_may$UMAY
+  }
 
   # extract estimated and derived parameters from BERTA
   devs <- fit %>%
@@ -159,16 +156,18 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
   
+  if(rule=="precautionary"){ 
+    # only considering one rectilinear rule, so set loops to one
+    c_slope_seq <- 1
+    bmin_seq <- 1
+  }
+
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
   yield_array <- vB_fish_array <- 
     array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
   wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
-  
-  if(rule=="precautionary"){
-    c_slope_seq <- 1
-    b_lrp <- 1
-  }
+
   #----------------------------------------------------------------------
   # run retrospective simulation for each cslope, bmin, draw, and sim yr
   #----------------------------------------------------------------------
@@ -260,7 +259,7 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
              if(vB_obs < b_lrp) { 
                TAC <- 0
              }
-             if(vB_obs > = b_lrp && vB_obs <= u_lrp){
+             if(vB_obs >= b_lrp && vB_obs <= u_lrp){
                TAC <- c_slope * (vB_obs - b_lrp)
              }
              if(vB_obs > u_lrp){
@@ -273,7 +272,6 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
             Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
           }
           rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
-
           if (any(rett * ret_a > 1)) {
             message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
             break
@@ -429,6 +427,7 @@ to_sim <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
 names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
+to_sim$rule <- "linear"
 
 #----------------------------------------------------------------------
 # one lake at a time 
@@ -460,5 +459,16 @@ system.time({
 
 # remove all fits?
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
+#----------------------------------------------------------------------
+# Try to run the precautionary rules
+may_data <- read.csv("data/may_yield_calcs.csv")
+
+# run <- get_hcr(which_lake = "pigeon lake", ass_int = 1,
+#                 sd_survey = 0.4, d_mort = 0.3, rule = "precautionary")
+
+to_sim <- data.frame(which_lake = which_lakes, ass_int=1, 
+                      sd_survey=0.4, d_mort=0.3, rule = "precautionary")
+pwalk(to_sim, get_hcr)
+
 #----------------------------------------------------------------------
 # end

@@ -204,4 +204,4 @@ for (i in unique(may_data$lake)) {
 }
 
 may_data %>%
- write.csv(.,file = "C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/data/may_yield_calcs.csv")
+  write.csv(., file = "C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/data/may_yield_calcs.csv")
