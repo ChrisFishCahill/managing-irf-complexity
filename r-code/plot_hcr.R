@@ -1315,45 +1315,23 @@ all_posts <-
   purrr::map_dfr(~ .x$post, .id = "lake") %>%
   mutate(lake = gsub("_", " ", lake))
 
-my_data <- NA
 yield_list <- big_list %>%
-  purrr::map(~ .x$tot_y)
+  purrr::map_dfr(~ .x$tot_y)
+max_yields$precautionary_yields <- NA
 
-# these loops are r-binding the total yield matrices for each file into one big dataframe
+# add precautionary rules to max_yields df
 for (i in names(yield_list)) {
   lake_data <- yield_list[[i]]
-  long_data <-
-    lake_data %>%
-    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
-    rename(
-      "cslope" = "Var1",
-      "bmin" = "Var2"
-    ) %>%
-    mutate(
-      cslope = as.numeric(as.character(cslope)),
-      bmin = as.numeric(as.character(bmin)),
-      lake = gsub("_", " ", i)
-    )
-  if (names(yield_list)[1] == i) {
-    my_data <- long_data
-  } else {
-    my_data <- rbind(my_data, long_data)
-  }
+  idx <- grep(gsub("_", " ", i), max_yields$lake)
+  max_yields$precautionary_yields[idx] <- lake_data[1]
 }
-# rm(my_data)
-precautionary_yields <- 
-  my_data %>%
-  group_by(lake) %>%
-  filter(value == max(value)) %>%
-  distinct()
-
-max_yields$precautionary_yields <- precautionary_yields$value
 
 max_yields %>%
   ggplot(aes(x=precautionary_yields, y = value))+ 
   geom_point() + geom_abline() + 
   xlab("Precautionary HCR maximum yield") + 
-  ylab("Simple HCR maximum yield")
+  ylab("Simple HCR maximum yield") + 
+  ggtitle("maximum yield objective")
 
 
 #-------------------------------------------------------------------------
@@ -1449,45 +1427,22 @@ all_posts <-
   purrr::map_dfr(~ .x$post, .id = "lake") %>%
   mutate(lake = gsub("_", " ", lake))
 
-my_data <- NA
 yield_list <- big_list %>%
   purrr::map(~ .x$tot_u)
+max_yields$precautionary_yields <- NA
 
-# these loops are r-binding the total yield matrices for each file into one big dataframe
+# add precautionary rules to max_yields df
 for (i in names(yield_list)) {
   lake_data <- yield_list[[i]]
-  long_data <-
-    lake_data %>%
-    as.data.frame.table(., responseName = "value", dnn = c("cslope", "bmin")) %>%
-    rename(
-      "cslope" = "Var1",
-      "bmin" = "Var2"
-    ) %>%
-    mutate(
-      cslope = as.numeric(as.character(cslope)),
-      bmin = as.numeric(as.character(bmin)),
-      lake = gsub("_", " ", i)
-    )
-  if (names(yield_list)[1] == i) {
-    my_data <- long_data
-  } else {
-    my_data <- rbind(my_data, long_data)
-  }
+  idx <- grep(gsub("_", " ", i), max_yields$lake)
+  max_yields$precautionary_yields[idx] <- lake_data[1]
 }
-# rm(my_data)
-precautionary_yields <- 
-  my_data %>%
-  group_by(lake) %>%
-  filter(value == max(value)) %>%
-  distinct()
-
-max_yields$precautionary_yields <- precautionary_yields$value
 
 max_yields %>%
   ggplot(aes(x=precautionary_yields, y = value))+ 
   geom_point() + geom_abline() + 
   xlab("Precautionary HCR HARA yield") + 
   ylab("Simple HCR HARA yield") + 
-  ggtitle("HARA") + 
+  ggtitle("HARA objective") + 
   scale_y_continuous(limits=c(0,3)) + 
   scale_x_continuous(limits=c(0,3))
