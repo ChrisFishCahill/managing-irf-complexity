@@ -237,14 +237,18 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
             }
             
             if(rule == "precautionary"){
+             Bmsy <- SOMETHING HERE--pull from may calculations
+             Fmsy <- SOMETHING HERE--pull from may calculations
+             b_lrp <- 0.4*Bmsy
+             u_lrp <- 0.8*Bmsy
              if(vB_obs < b_lrp) { 
                TAC <- 0
              }
-             if(vB_obs > = 0.4*Bmsy && vB_obs <= 0.8*Bmsy){
+             if(vB_obs > = b_lrp && vB_obs <= u_lrp){
                TAC <- some linear thing 
              }
-             if(vB_obs > 0.8*Bmsy){
-               TAC <- Fish at MSY 
+             if(vB_obs > u_lrp){
+               TAC <- Fish at F_MSY 
              }
             }
             
