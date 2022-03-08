@@ -256,7 +256,6 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
             if(rule == "precautionary"){
              b_lrp <- 0.4*B_may
              u_lrp <- 0.8*B_may
-             TAC <- vB_obs*U_may*(vB_obs - b_lrp) / (u_lrp - b_lrp)
              Ut <- U_may*(vB_obs - b_lrp) / (u_lrp - b_lrp)
              if(Ut < 0){
                Ut <- 0 
