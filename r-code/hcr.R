@@ -466,5 +466,7 @@ to_sim <- data.frame(which_lake = which_lakes, ass_int=1,
                       sd_survey=0.4, d_mort=0.3, rule = "precautionary")
 pwalk(to_sim, get_hcr)
 
+#remove precautionary sims? 
+do.call(file.remove, list(list.files("sims/", pattern = "precautionary", full.names = TRUE)))
 #----------------------------------------------------------------------
 # end
