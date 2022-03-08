@@ -42,7 +42,20 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
   psi_wt <- hcr_pars$psi_wt
   n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
   grid_size <- hcr_pars$grid_size
-
+  
+  #--------------------------------------------------------------------
+  #Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
+  #--------------------------------------------------------------------
+  if(rule == "precautionary"){
+  B_may <- may_data %>% 
+    filter(lake == which_lake) %>%
+    select(c("BMAY"))
+  
+  U_may <- may_data %>% 
+    filter(lake == which_lake) %>%
+    select(c("UMAY"))
+  }
+  
   #--------------------------------------------------------------------
   # subset lake-specific posterior from all fits
   #--------------------------------------------------------------------
@@ -242,21 +255,18 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
             }
             
             if(rule == "precautionary"){
-             Bmsy <- SOMETHING HERE--pull from may calculations
-             Fmsy <- SOMETHING HERE--pull from may calculations
-             b_lrp <- 0.4*Bmsy
-             u_lrp <- 0.8*Bmsy
+             b_lrp <- 0.4*B_may
+             u_lrp <- 0.8*B_may
              if(vB_obs < b_lrp) { 
                TAC <- 0
              }
              if(vB_obs > = b_lrp && vB_obs <= u_lrp){
-               TAC <- some linear thing 
+               TAC <- c_slope * (vB_obs - b_lrp)
              }
              if(vB_obs > u_lrp){
-               TAC <- Fish at F_MSY 
+               TAC <- U_may*vB_obs
              }
             }
-            
             if (TAC < 0) {
               TAC <- 0
             }
@@ -339,7 +349,8 @@ get_hcr <- function(which_lake = "lac ste. anne", ass_int = 1,
     pattern = "(?<=fits/).*(?=.rds)"
   )
   file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, 
-                      "_sd_", sd_survey, "_d_mort_", d_mort, ".rds")
+                      "_sd_", sd_survey, "_d_mort_", d_mort, 
+                      "_rule_", rule,".rds")
   if (file.exists(file_name)) {
     return(NULL)
   } else {
@@ -429,10 +440,10 @@ glimpse(to_sim)
 #   "moose lake", "lake newell"
 # )
 # run <- get_hcr(which_lake = "lac ste. anne", ass_int = 1,
-#                sd_survey = 0.05, d_mort = 0.03)
+#                sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # purrr
 # to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1, 
-#                   sd_survey = 0.05, d_mort = 0.03)
+#                  sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # pwalk(to_sim, get_hcr)
 #----------------------------------------------------------------------
 
