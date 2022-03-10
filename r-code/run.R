@@ -186,6 +186,7 @@ get_fit <- function(which_lake = "pigeon lake",
   if(cr_prior == 12){
     stan_file <- stan_file %>% gsub(".rds", "_cr_12.rds", .)
   }
+  browser()
   if (file.exists(stan_file)) {
     return(NULL)
   } else {
@@ -213,8 +214,8 @@ n_warmup = n_iter/2
 # fit <- get_fit(which_lake = "lac ste. anne",
 #                rec_ctl = "bev-holt",
 #                cr_prior = 6,
-#                n_iter = n_iter, n_chains = n_chains,
-#                n_warmup = n_warmup)
+#                n_iter = 300, n_chains = 1,
+#                n_warmup = 150)
 
 #----------------------------------------------------------------------
 # naughty functional programming black magjicks  
