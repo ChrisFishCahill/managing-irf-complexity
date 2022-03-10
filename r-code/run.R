@@ -186,7 +186,6 @@ get_fit <- function(which_lake = "pigeon lake",
   if(cr_prior == 12){
     stan_file <- stan_file %>% gsub(".rds", "_cr_12.rds", .)
   }
-  browser()
   if (file.exists(stan_file)) {
     return(NULL)
   } else {
