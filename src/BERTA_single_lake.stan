@@ -56,7 +56,7 @@ transformed data {
   vector[n_surveys] SSB_C;             // SSB obs
   vector<lower=0>[n_ages] Lo;          // survivorship unfished (F=0) 
   real ln_ar_mean;                     // ln_ar mean
-  int j = 0;                           // counter for caa_obs
+  int counter = 0;                     // counter for caa_obs
   real ah_vul = 3.5;                   // logistic selectivity parameter
   real sd_vul = 0.5;                   // logistic selectivity parameter
   // calculate vul, length-age, M-age, fec-age 
@@ -95,9 +95,9 @@ transformed data {
     SSB_Cd[i] = 0; 
     SSB_C[i] = 0; 
     for(a in 1:n_ages){
-      j = j + 1; 
+      counter = counter + 1; 
       SSB_Cn[i] += f_a[a]*caa[i, a]*(1/v_a[a]); 
-      caa_obs[j] = caa[i,a]; 
+      caa_obs[counter] = caa[i,a]; 
     }
     SSB_Cd[i] = prop_aged[i]*effort[i]; 
     SSB_C[i] = SSB_Cn[i] / SSB_Cd[i];
