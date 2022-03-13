@@ -320,11 +320,11 @@ generated quantities{
       }
       if(rec_ctl == 0){ // ricker
         // Req = log( exp(ln_ar)*(sbrf) ) / (br*sbrf); // Botsford predction of Req for F[i] - used in paper
-        Req = log(exp(ln_ar + 0.5*prior_sigma_w) * (sbrf) ) / (br*sbrf); // accounts for recruitment variability 
+        Req = log(exp(ln_ar + 0.5*prior_sigma_w^2) * (sbrf) ) / (br*sbrf); // accounts for recruitment variability 
       }
       if(rec_ctl == 1){ // bh
        // Req = ( exp(ln_ar)*sbrf-1.0 ) / (br*sbrf); // used in paper 
-        Req = (exp(ln_ar + 0.5*prior_sigma_w)*sbrf - 1.0) / (br*sbrf); // accounts for recruitment variability
+        Req = (exp(ln_ar + 0.5*prior_sigma_w^2)*sbrf - 1.0) / (br*sbrf); // accounts for recruitment variability
       }
       Yeq = Req*ypr; // predicted equilibrium yield
       if(Yeq > MSY){
