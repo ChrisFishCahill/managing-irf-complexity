@@ -340,5 +340,5 @@ generated quantities{
    // Kobe plot calculations 
    F_early_ratio = v[1] / Fmsy;
    F_ratio = v[2] / Fmsy;
-   b_ratio = SSB_bar / (Ro*sbro);
+   b_ratio = SSB_bar / (Ro*exp(0.5*prior_sigma_w^2)*sbro);
 }
