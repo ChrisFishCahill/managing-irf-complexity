@@ -71,7 +71,7 @@ transformed data {
       v_f_a[a] = 1 / (1 + exp(-(ages[a] - ah_vul) / sd_vul)); // logistic selectivity 
     }
     l_a[a] = (linf/lbar)*(1 - exp(-vbk * ages[a])); 
-    M_a[a] = M/l_a[a]^theta;
+    M_a[a] = M/l_a[a]^theta; //NOTE: This is correct, CJFAS buggered the equation in published version
     // relative weight at age assumed to follow vb
     w_a[a] = 0.00001*(linf*(1 - exp(-vbk * ages[a])))^wl_beta;
     if(a < a50){
