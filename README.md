@@ -1,4 +1,4 @@
-## Developing harvest control rules for Alberta Walleye fisheries with highly variable recruitment
+## Developing harvest control rules for Alberta Walleye fisheries with highly variable recruitment dynamics
 Chris Cahill & Carl Walters, March 2022
 
 ### Background
