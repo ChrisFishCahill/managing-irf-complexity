@@ -12,14 +12,16 @@ MSE is a powerful technique with which to design effective fisheries management 
 
 The simulation tests a wide range of simple linear management policies or harvest control rules to find policies that maximize simple objectives like maximum average yield or HARA utility (defined explicitly in tutorial on harvest control rules).  We chose conflicting but simple objectives to demonstrate how these fisheries could be managed rather than show folks how they should be managed.
 
-### Directory organization
-This directory contains Stan and R code to fit age structured population dynamics models to Alberta FWIN data as per Cahill et al. 2021.  It also contains .R simulation code that develops harvest control rules for Special Harvest License (SHL) Walleye fisheries given these model fits. There have been three changes to this .stan model from what was published in Cahill et al. 2021:
+There have been three changes to the .stan model from what was published in Cahill et al. 2021:
 
 * We now assume logistic vulnerability to fishing, which was not used in the paper.
 * We have assumed a higher Fearly mortality rate prior of 0.5 (vs. 0.3 used in the paper). 
 * We have corrected the estimates of MSY and Fmsy so that they now account for the lognormal bias. 
 
-We made these changes to ensure the development of our harvest control rules was robust and more conservative.  None of the major findings from Cahill et al. 2021 changed when we make these additional changes. 
+We made these changes to ensure the development of our harvest control rules was robust and more conservative from a fishing mortality perspective.  None of the major findings from Cahill et al. 2021 changed when we make these additional changes. 
+
+### Directory organization
+This directory contains Stan and R code to fit age structured population dynamics models to Alberta FWIN data as per Cahill et al. 2021.  It also contains .R simulation code that develops harvest control rules for Special Harvest License (SHL) Walleye fisheries given these model fits. 
 
 The directory is straightforward, with a "data" folder, an "r-code" folder, a "plots" folder, and an "src" (i.e., source) folder for .stan files. Tutorials are in the "Rmd" folder, and harvest control rule simulations are stored in the "sims" folder. The plots are mostly a work in progress, so be careful trying to interpret them (i.e., don't do this).  It was simply a location for me to share plots with Carl and others.  The scripts in the "r-code" folder that are potentially useful to folks are the `run.R` (calls and runs the stan file, saves fits), `hcr.R` (runs the harvest control rule simulator, saves simulations), and plotting files (calls either the Bayesian model fits or the simulation results). 
 
