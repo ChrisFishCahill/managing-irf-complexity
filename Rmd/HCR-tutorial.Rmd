@@ -99,6 +99,9 @@ Conceptually, the way we will do this is as follows:
 6. Look up the best harvest control rules for MAY and HARA objectives.  
 7. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
 
+This will get a little complex and long as we work through things, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability (imperfect observability of system state), and catch and release mortality (which is uncontrolled because effort is not controlled in these systems), but the main point is we are trying to design a damn equation that helps folks achieve some objective given a net catch.
+
+
 # Harvest control rule shapes and forms
 
 A bewildering array of harvest control rule shapes and forms exists (see Deroba and Bence XXXX for review). However, early optimization work on harvesting theory shows that 
