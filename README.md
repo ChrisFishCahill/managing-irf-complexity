@@ -2,7 +2,7 @@
 Chris Cahill & Carl Walters, March 2022
 
 ### Background
-In Alberta there are Walleye fisheries managed using a so-called "Special Harvest Licence" or SHL program.  This program has regional managers allocate some number of harvest tags, which anglers can then purchase through a lottery system similar to hunting tags for critters like Whitetail Deer and Mooses.  In these systems, if one wants to retain a Walleye one must first apply for a tag, be selected in the harvest lottery, and then purchase that  harvest tag.  Otherwise, any fish an angler catches must be released (note this means total effort is NOT limited in these fisheries).
+In Alberta there are Walleye fisheries managed using a so-called "Special Harvest Licence" or SHL program.  This program has regional managers allocate some number of harvest tags, which anglers can then purchase through a lottery system similar to hunting tags for critters like Whitetail Deer, Moose, or tasty Bighorn Sheep.  In these systems, if one wants to retain a Walleye one must first apply for a tag, be selected in the harvest lottery, and then purchase that  harvest tag.  Otherwise, any fish an angler catches must be released (note this means total effort is NOT limited in these fisheries).
 
 This management system arose from the career-long work efforts of Michael Sullivan (2003), Stephen Spencer, and many other Alberta biologists.  In our opinion, this program represents an important step forward for managing open access inland fisheries in North America. The SHL program has been running since the early 2000s, and started in a few (< 5) high effort lakes.  The program has since expanded to more ~ 20 systems throughout the province. 
 
