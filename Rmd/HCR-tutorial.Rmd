@@ -97,6 +97,7 @@ Conceptually, the way we will do this is as follows:
 4. Repeat this process many times (e.g., 30-100 random posterior draws) so as to explicitly characterize uncertainty in the biological dynamics of walleye populations during the development of our policies (harvest control rules). 
 5. Look across all policies we tested and find the ones that maximized average yield or HARA utility, respectively.  
 6. Look up the best harvest control rules for MAY and HARA objectives.  
+7. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
 
 # Harvest control rule shapes and forms
 
