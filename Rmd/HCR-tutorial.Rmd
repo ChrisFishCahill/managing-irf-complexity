@@ -57,9 +57,9 @@ For Alberta Walleye, there are presently no agreed upon *explicit* objectives fo
 
 ## Maximum Average Yield (MAY) objective 
 
-Maximum Average Yield is the stochastic analog of Maximum Sustainable Yield (MSY). In a harvested population, this is the highest yield that can be taken on average from a population experiencing average environmental conditions.  While there are many criticisms of MSY or MAY, in general these yield-maximization policies demonstrate how much yield can be achieved from a given fishery if a MAY maximizing objective (and corresponding policy) was adopted. When you simulate yield maximization policies or attempt to solve this problem using dynamic programming, what you find is that the optimal policy often is some type of so-called "escapement" policy.  That is, there is a lower limit reference point below which **no** harvesting occurs, and above this lower limit reference point you tend to harvest at a rate near $F_{msy}$, or the instantaneous fishing mortality rate thought to achieve MSY. 
+Maximum Average Yield is the stochastic analog of Maximum Sustainable Yield (MSY). In a harvested population, this is the highest yield that can be taken on average from a population experiencing average environmental conditions.  While there are many criticisms of MSY or MAY (e.g., Larkin 19XX), in general these yield-maximization policies demonstrate how much yield can be achieved from a given fishery if a MAY maximizing objective (and corresponding policy) was adopted. When you simulate yield maximization policies or attempt to solve this problem using dynamic programming, what you find is that the optimal policy often is some type of fixed "escapement" policy.  That is, there is a lower limit reference point below which **no** harvesting occurs, and above this lower limit reference point you tend to harvest at a rate near $F_{msy}$, or the instantaneous fishing mortality rate thought to achieve MSY. 
 
-While such policies maximize the average yield that can be taken from dynamic fisheries, they have the downside that they result in increased variability to harvesters in terms of fisheries closures.  Remember, if the stock drops below the lower limit reference point the MAY policy shuts off harvesting completely. 
+While such policies maximize the average yield that can be taken from dynamic fisheries, they have the downside that they result in increased variability to harvesters in terms of fisheries closures as stock size drops below a fixed lower limit reference point.  Remember, if the stock drops below the lower limit reference point the MAY policy shuts off harvesting completely. 
 
 ## Hyperbolic Absolute Risk Aversion (HARA) utility objective
 
@@ -81,7 +81,7 @@ When HARA utility is maximized as an objective, it tends to decrease two things.
 
 ## Recap -- MAY vs. HARA
 
-We picked these two objectives to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations at once might desire to maximize catch, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye (see Cahill et al. 2021).  Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower **rate** but to continue to harvest at biomasses below the lower limit reference point that is needed to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example.
+We picked these two objectives to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations at once might desire to maximize catch, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye (see Cahill et al. 2021).  Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower **rate** but to continue to harvest at biomasses below the lower limit reference point that is needed to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example.
 
 # What our Bayesian assessment models provide
 
@@ -91,20 +91,24 @@ The posteriors that we have saved capture uncertainty in Walleye population dyna
 
 Conceptually, the way we will do this is as follows: 
 
-1. Initialize our dynamic simulation model using assessment model results.
-2. Project this age-structured population dynamics model into the future using nearly the same equations as in Cahill et al. 2021.
+1. Initialize our dynamic simulation model using assessment model results for some lake given the survey data.
+2. Project this age-structured population dynamics model into the future using (nearly) the same equations as in Cahill et al. 2021.
 3. For each policy we want to test the performance of, we initialize our simulation model using one draw of the posterior, run the simulation forward in time, and record policy performance in terms of yield achieved or HARA utility.
-4. Repeat this process many times (e.g., 30-100 random posterior draws) so as to explicitly characterize uncertainty in the biological dynamics of walleye populations during the development of our policies (harvest control rules). 
-5. Look across all policies we tested and find the ones that maximized average yield or HARA utility, respectively.  
-6. Look up the best harvest control rules for MAY and HARA objectives.  
+4. Repeat this process many times (e.g., 30-1000 random posterior draws) so as to explicitly characterize uncertainty in the biological dynamics of walleye populations during the development of our policies (harvest control rules). 
+5. Look across all policies we tested, and look up the policies that maximized average yield or HARA utility, respectively.  
 7. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
 
 This will get a little complex and long as we work through things, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability (imperfect observability of system state), and catch and release mortality (which is uncontrolled because effort is not controlled in these systems), but the main point is we are trying to design a damn equation that helps folks achieve some objective given a net catch.
 
-
 # Harvest control rule shapes and forms
 
-A bewildering array of harvest control rule shapes and forms exists (see Deroba and Bence XXXX for review). However, early optimization work on harvesting theory shows that 
+A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence XXXX). However, early optimization work on harvesting theory shows that optimal rules given simple models and single objectives typically decrease harvest rate as population size decreases and increase harvesting rate as population size increases (citations).  It doesn't have to be complicated.  Many rules, such as the generic rule proposed in Fisheries and Oceans Canada (DFO) 20XX, suggest that rectilinear harvest control rules are "precautionary." 
+
+Given these considerations, we will primarily focus on the simulation evaluation of simple linear harvest control rules. If it isn't broke, don't fix it sort of thing.
+
+
+
+
 
 
 
@@ -134,7 +138,11 @@ Edwards and Dankel 20XX.  Fisheries Management Science.
 
 Gelman et al. 2013. Bayesian Data Analsyis.
 
+Larkin. Epitaph on Maximum Sustainable Yield.
+
 Moxnes XXXX. 
+
+Walters and Hilborn 1976. Adaptive control of fishing systems. 
 
 Walters and Hilborn 1978. Ecological optimization and adaptive management. 
 
