@@ -84,7 +84,7 @@ When HARA utility is maximized as an objective, it tends to decrease two things.
 
 We picked these two objectives to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations at once might desire to maximize catch, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye (see Cahill et al. 2021).  Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower rate but to continue to harvest at biomasses below the lower limit reference point needed to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example.
 
-If you are a visual learner, you might have an easier time with the following simple hypothetical depiction of fixed escapement MAY polcies vs. a HARA policy.  
+If you are a visual learner, you might have an easier time with the following hypothetical depiction of fixed escapement MAY vs. a HARA policy.  
 
 Let's load some packages: 
 
@@ -96,7 +96,7 @@ library(tidyverse)
 And then simulate and plot some dead simple harvest control rules (I made these up): 
 
 ```{r, , message = FALSE, warning=FALSE}
-vB <- seq(from=0.1, to =100, length.out = 100) #  x axis - biomass of critter vulnerable to fishing
+vB <- seq(from=0.1, to =100, length.out = 100) # biomass vulnerable to fishing
 b_lrp <- c(0, 30) # lower limit reference point
 c_slopes <- c(0.2, 1) # slope of harvest control rule
 
