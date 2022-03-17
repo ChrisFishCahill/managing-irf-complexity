@@ -135,7 +135,60 @@ data %>%
 
 Think about these last two plots a bit--it is important to wrap your head around what this is showing you. 
 
-# What our Bayesian assessment models provide
+## Thinking through one more harvest control rule
+
+We will take this opportunity to simulate one more policy that you might encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO XXXX), which is based on work from Restrepo XXXX.  This policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
+
+The DFO policy increases exploitation rate from zero to $U_{MSY}$ as biomass increases from a lower limit reference point to an upper limit reference point.  These reference points are typically set at $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$.  Note that $U_{MSY}$ and $B_{MSY}$ typically need to be estimated in an assessment model.  
+
+In our simple example, we will say $U_{MSY}$ = 0.2, and that $B_{MSY}$ = 30 kg/ha. Thus, we would specify the DFO harvest control rule as follows:
+
+```{r, , message = FALSE, warning=FALSE}
+
+U_MSY <- 0.2 
+B_MSY <- 30
+b_lrp <- 0.4*B_MSY
+u_lrp <- 0.8*B_MSY
+
+U_DFO <- U_MSY * (vB - b_lrp) / (u_lrp - b_lrp)
+U_DFO[which(U_DFO < 0 )] <- NA # Set negative values to NA 
+U_DFO[which(U_DFO > U_MSY)] <- U_MSY # Set negative values to NA 
+
+# calculate the TAC as U*vB
+data_DFO <- data.frame(vB, TAC = U_DFO*vB,  U = U_DFO, policy = "DFO")
+data <- rbind(data, data_DFO)
+```
+
+We can then plot it like we did before: 
+
+```{r, , message = FALSE, warning=FALSE}
+data %>%
+  filter(policy == "DFO") %>%
+  ggplot(aes(x=vB, y = TAC, group = policy))+
+  geom_line(aes(linetype = policy), lwd = 1.25) +
+  ylab("Total allowable catch (kg/ha)") + 
+  xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
+  ggtitle("Hypothetical HCRs: Total Allowable Catch vs. Vulnerable Biomass")
+
+```
+
+This plot is admittedly a bit weird looking, but that's just how this policy plays itself out. And we can plot the exploitation rate vs. vulnerable biomass for this policy as well: 
+
+```{r, , message = FALSE, warning=FALSE}
+
+data %>%
+  filter(policy == "DFO") %>%
+  ggplot(aes(x=vB, y = U, group = policy))+
+  geom_line(aes(linetype = policy), lwd = 1.25) +
+  ylab("Exploitation rate (TAC / vulnerable Biomass)") + 
+  xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
+  ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
+
+```
+
+So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
+
+## What our Bayesian assessment models provide
 
 Before we begin working through the harvest control rule simulation script, we need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We have saved the posteriors from these model fits for each lake in their own .rdata files in the `fits` folder on the Github for this project. 
 
@@ -193,6 +246,8 @@ each of some number (e.g., say 30 or 100) of random values from our assessment p
 # Resources: 
 
 Cahill et al. 2021 CJFAS. 
+
+Department of Fisheries and Oceans 2006.  A harvest strategy compliant with the precautionary approach. 
 
 Deroba and Bence XXXX.  Harvest control rules.
 
