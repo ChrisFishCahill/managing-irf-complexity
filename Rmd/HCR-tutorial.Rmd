@@ -3,8 +3,8 @@ title: "Developing Harvest Control Rules for Alberta Walleye Fisheries"
 author: "Christopher L. Cahill & Carl J. Walters"
 date: "14/03/2022"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 highlight: tango
 urlcolor: blue
 ---
@@ -37,7 +37,7 @@ There exists a rich history of using harvest control rules or so-called feedback
 
 These are fantastic sources if you are looking for more information on these topics. In general, it is much more difficult to design effective fisheries management systems and reasonable harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
 
-# A nonmathematical description of the problem 
+# A nonmathematical description of the problem that we would share with Grandma
 
 You can think of this harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a 737 jet air born--our goal in this case is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design these so-called feedback policies, which relate where we are (in the environment) to what we want to achieve *explicitly*.  
 
