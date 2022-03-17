@@ -1,5 +1,5 @@
 ---
-title: "running-BERTA-tutorial-part3"
+title: "running-BERTA-tutorial-part2"
 author: "Christopher L. Cahill"
 date: "28 Feb 2022 "
 output:
