@@ -121,7 +121,7 @@ data %>%
 
 ``` 
 
-Next we can plot exploitation rate as a function of stock size for these simple examples using this code: 
+In this example, there is a lower limit reference point $b_{lrp}$ and a slope at which you increase harvest as stock size increases ($c_{slope}$ in the code). Next we can plot exploitation rate as a function of stock size for these simple examples using this code: 
 
 ```{r, , message = FALSE, warning=FALSE}
 
@@ -133,7 +133,7 @@ data %>%
   ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
 ```
 
-In these examples, there is a lower limit reference point $b_{lrp}$ and a slope at which you increase harvest as stock size increases ($c_{slope}$ in the code). Think about these two plots a bit--it is important to wrap your head around what this is showing you. 
+Think about these last two plots a bit--it is important to wrap your head around what this is showing you. 
 
 # What our Bayesian assessment models provide
 
