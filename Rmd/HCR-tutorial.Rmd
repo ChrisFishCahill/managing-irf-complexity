@@ -67,7 +67,7 @@ Hyperbolic Absolute Risk Aversion for catch (herein-after, HARA) is an objective
 
 $$ utility_t = catch_t^{pp} $$
 
-In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is a risk aversion parameter that for most people is near 0.3-0.5. You can empirically assess $pp$ by asking people to choose between two income options: a 50:50 gamble between 0 and 100,000 dollars, or a sure income of around 30,000 dollars. The expected value of the income outcome of the 50:50 gamble is 50,000 (i.e., 1/2 * 100,000), but most people will choose a guaranteed income of around 30,000 dollars vs. the 50:50 chance at winning the 50,000 dollars (myself included).  
+In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is a risk aversion parameter that for most people is near 0.3-0.5. You can empirically assess $pp$ by asking people to choose between two income options: a 50:50 gamble between 0 and 100,000 dollars, or a sure income of around 30,000 dollars. The expected value of the income outcome of the 50:50 gamble is 50,000 (i.e., 1/2 * 100,000), but most people will choose a guaranteed income of around 30,000 dollars vs. the 50:50 chance at winning the 100,000 dollars (myself included).  
 
 This scenario implies $pp = 0.57$.  You can calculate someone's $pp$ by asking how much guaranteed reward (catch, income) they would need to receive before they were unwilling to take the "unsure" bet--so if you said your $X = 20,000$ dollars (or catch of fish), your $pp$ would be 
 
