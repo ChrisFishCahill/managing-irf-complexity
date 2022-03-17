@@ -190,7 +190,7 @@ So in this example, there's no harvest below some lower limit reference point, a
 
 What does this rectilinear rule imply from a HARA or MAY perspective? 
 
-## What our Bayesian assessment models provide
+## How do we use our Bayesian assessment models to inform harvest control rules? 
 
 Before we begin working through the harvest control rule simulation script, we need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We have saved the posteriors from these model fits for each lake in their own .rdata files in the `fits` folder on the Github for this project. 
 
