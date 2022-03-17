@@ -27,15 +27,16 @@ The purpose of this tutorial is to develop a management strategy evaluation or s
 - Understand the tabular or grid search approach to "optimizing" simple linear harvest control rules
 
 # Background 
-Harvest control rules are agreed-upon, transparent, and repeatable mathematical equations that help managers alter harvest levels in response to changes in stock size.  Changes in population size may be due to either environmental stochasticity or the effects of fishing. In Alberta, harvest control rules may be particularly useful for informing special harvest license allocations given some agreed upon and explicit management objectives and Fall Walleye Index Netting (FWIN) survey data. The development of explicit harvest control rules appears important, because a major finding of Cahill et al. 2021 was that many Alberta Walleye lakes appeared underharvested relative to common fisheries reference points. 
+Harvest control rules are agreed-upon, transparent, and repeatable mathematical equations that help managers alter harvest levels in response to changes in stock size to achieve some explicit goal.  Changes in population size may be due to either environmental stochasticity or the effects of fishing. In Alberta, harvest control rules may be particularly useful for informing special harvest license allocations given some agreed upon and explicit management objectives and Fall Walleye Index Netting (FWIN) survey data. The development of explicit harvesting rules appears important, because a finding of Cahill et al. 2021 was that many Alberta Walleye lakes appeared underharvested relative to common fisheries reference points. 
 
 There exists a rich history of using harvest control rules or feedback policies to design effective fisheries management systems, and there are at least three key references that will help you better understand many of the issues that I am about to discuss in this tutorial.  In no particular order, these references are:
 
-1. Hilborn and Walters 1992, chapter on Designing Effective Fisheries Management Systems
-2. Walters and Martell 2001, chapters 2-4
-3. Walters 1986, chapter on feedback policies
+1. Walters 1986, chapter on feedback policies
+2. Hilborn and Walters 1992, chapter on Designing Effective Fisheries Management Systems
+3. Quinn and Deriso 1999. 
+4. Walters and Martell 2001, chapters 2-4
 
-These are fantastic sources if you are looking for more information on these topics. In general, it is much more difficult to design effective fisheries management systems and reasonable harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
+These are fantastic sources of information on these topics. In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
 
 # A nonmathematical description of the problem that we would share with Grandma
 
@@ -53,7 +54,7 @@ Lastly, a key distinction between the autopilot problem and the resource managem
 
 In the above toy airplane autopilot example, we wouldn't get very far if we didn't agree up front that the goal was to keep the plane flying within some (acceptable) flight parameters.  The same is true for designing harvest control rules for renewable resources: if we do not agree upon how to manage a population a priori, we will not get very far.  If we want to design effective fisheries management systems, we at least need to agree upon how best to manage those fisheries. This is easier said than done, and individuals have dedicated their entire careers toward developing structured decision making programs to meaningfully engage relevant stakeholders and develop such objectives.
 
-For Alberta Walleye, there are presently no agreed upon *explicit* objectives for fisheries management. Believe it or not, this is pretty common for many fisheries around the world (much to my chagrin). Thus, we will introduce two concepts--Maximum Average Yield (MAY) and Hyperbolic Absolute Risk Aversion Utility (HARA)--as starting points for Alberta Walleye fisheries. Ideally, objectives should be set through structured decision making (see Edwards and Dankel 20XX). It is unlikely that Cahill and Walters (or any manager for that matter) should be setting the objectives for Alberta fisheries; instead, we are trying to show folks **how** these fisheries could be managed given some agreed upon objectives.  
+For Alberta Walleye, there are presently no agreed upon *explicit* objectives for fisheries management. Believe it or not, this is pretty common for many fisheries around the world (much to Cahill's chagrin). Thus, we will introduce two concepts--Maximum Average Yield (MAY) and Hyperbolic Absolute Risk Aversion Utility (HARA)--as starting points for Alberta Walleye fisheries. Ideally, objectives should be set through structured decision making (see Edwards and Dankel 20XX). It is unlikely that Cahill and Walters (or any manager for that matter) should be setting the objectives for Alberta fisheries; instead, we are trying to show folks **how** these fisheries could be managed given some agreed upon objectives.  
 
 ## Maximum Average Yield (MAY) objective 
 
@@ -79,13 +80,64 @@ When we ask fishermen what $X$ they would need to not fish, typical answers have
 
 When HARA utility is maximized as an objective, it tends to decrease two things.  Relative to the MAY objective above, the HARA objective tends to shift the lower limit reference point toward zero.  This is because if we "shut off" fishing we lose a great deal of utility.  The second thing that this objective tends to do when you undertake formal optimization (i.e., dynamic programming) is that it generally speaking lowers the rate at which you increase harvest as stock size increases.  For now you have to take my word on this, but we will demonstrate this via simulation later on. 
 
-## Recap -- MAY vs. HARA
+## Simulating some simple (fake) MAY vs. HARA policies
 
-We picked these two objectives to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations at once might desire to maximize catch, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye (see Cahill et al. 2021).  Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower rate but to continue to harvest at biomasses below the lower limit reference point that is needed to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example.
+We picked these two objectives to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations at once might desire to maximize catch, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye (see Cahill et al. 2021).  Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower rate but to continue to harvest at biomasses below the lower limit reference point needed to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example.
+
+If you are a visual learner, you might have an easier time with the following simple hypothetical depiction of fixed escapement MAY polcies vs. a HARA policy.  
+
+Let's load some packages: 
+
+```{r echo=T, results='hide', message = FALSE, warning=FALSE}
+# packages
+library(tidyverse)
+```
+
+And then simulate and plot some dead simple harvest control rules (I made these up): 
+
+```{r, , message = FALSE, warning=FALSE}
+vB <- seq(from=0.1, to =100, length.out = 100) #  x axis - biomass of critter vulnerable to fishing
+b_lrp <- c(0, 30) # lower limit reference point
+c_slopes <- c(0.2, 1) # slope of harvest control rule
+
+TAC_HARA <-  c_slopes[1] * (vB - b_lrp[1]) # total allowable catch HARA 
+U_HARA <- TAC_HARA / vB # exploitation rate HARA
+
+TAC_MAY <-  c_slopes[2] * (vB - b_lrp[2])
+TAC_MAY[which(TAC_MAY < 0 )] <- NA # Set negative values to NA (don't harvest below blrp)
+U_MAY <- TAC_MAY / vB 
+
+# make a big data frame
+data_HARA <- data.frame(vB, TAC = TAC_HARA,  U = U_HARA, policy = "HARA")
+data_MAY <- data.frame(vB, TAC = TAC_MAY,  U = U_MAY, policy = "MAY")
+data <- rbind(data_HARA, data_MAY)
+
+data %>%
+  ggplot(aes(x=vB, y = TAC, group = policy))+
+  geom_line(aes(linetype = policy), lwd = 1.25) +
+  ylab("Total allowable catch (kg/ha)") + 
+  xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
+  ggtitle("Hypothetical HCRs: Total Allowable Catch vs. Vulnerable Biomass")
+
+``` 
+
+Next we can plot exploitation rate as a function of stock size for these simple examples using this code: 
+
+```{r, , message = FALSE, warning=FALSE}
+
+data %>%
+  ggplot(aes(x=vB, y = U, group = policy))+
+  geom_line(aes(linetype = policy), lwd = 1.25) +
+  ylab("Exploitation rate (TAC / vulnerable Biomass)") + 
+  xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
+  ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
+```
+
+In these examples, there is a lower limit reference point $b_{lrp}$ and a slope at which you increase harvest as stock size increases ($c_{slope}$ in the code). Think about these two plots a bit--it is important to wrap your head around what this is showing you. 
 
 # What our Bayesian assessment models provide
 
-Before we begin on the harvest control rule simulation script, we need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We have saved the posteriors from these model fits for each lake in their own .rdata files in the `fits` folder on the Github for this project. 
+Before we begin working through the harvest control rule simulation script, we need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We have saved the posteriors from these model fits for each lake in their own .rdata files in the `fits` folder on the Github for this project. 
 
 The posteriors that we have saved capture uncertainty in Walleye population dynamics given our model structure, priors, and data for a given lake.  Thus, we can use results from these assessments to initialize a harvest control rule simulation, and run these simulations for many random draws from the posterior to characterize uncertainty in our policy rule development.  We will undertake a specific type of management strategy evaluation known as retrospective harvest control rule simulation. All this means is that once we initialize our simulation model using our stock assessment results, we will repeat recruitment anomaly sequences $w_t$ some number of times into the future. We will play around with this a bit, but the primary goal here is to develop harvest policies that are robust to the recruitment dynamics that were estimated in Cahill et al. 2021. 
 
@@ -104,7 +156,13 @@ Additionally, while we are only going to use two conflicting objectives, you sho
 
 # Harvest control rule shapes and forms
 
-A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence XXXX). However, early optimization work on harvesting theory shows that optimal rules given simple models and single objectives typically decrease harvest rate as population size decreases and increase harvesting rate as population size increases (citations).  It doesn't have to be complicated.  Many rules, such as the generic rule proposed in Fisheries and Oceans Canada (DFO) 20XX, suggest that rectilinear harvest control rules are "precautionary," but rarely specify what is precautionary about the specific rule beyond references to Restrepo XXXX. 
+A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
+
+
+
+Early optimization work on harvesting theory shows that optimal rules given simple models and single objectives typically decrease harvest rate as population size decreases and increase harvest rate as population size increases (citations).  It doesn't have to be complicated.  Many rules, such as the generic rule proposed in Fisheries and Oceans Canada (DFO) 20XX, suggest that rectilinear harvest control rules are "precautionary." However, what *specifically* is precautionary about such rules is rarely 
+
+rarely specify what is precautionary about the specific rule beyond references to Restrepo XXXX. 
 
 (and 
 
