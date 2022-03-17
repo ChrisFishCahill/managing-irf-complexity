@@ -14,8 +14,8 @@ library(furrr)
 #--------------------------------------------------------------------
 # write a function to take BERTA posteriors and run MSE
 
-get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1, 
-                    sd_survey = 0.05, d_mort = 0.3, 
+get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
+                    sd_survey = 0.05, d_mort = 0.3,
                     rule = c("linear", "precautionary")) {
   #--------------------------------------------------------------------
   # initialize stuff
@@ -45,17 +45,17 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   fit_idx <- grep(lake_str, names(fits))
   fit <- fits[[fit_idx]]
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
-  
+
   #--------------------------------------------------------------------
-  #Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
+  # Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
   #--------------------------------------------------------------------
-  if(rule == "precautionary"){
-    B_may <- may_data %>% 
+  if (rule == "precautionary") {
+    B_may <- may_data %>%
       filter(lake == gsub("_", " ", which_lake)) %>%
       select(c("BMAY"))
     B_may <- B_may$BMAY
-    
-    U_may <- may_data %>% 
+
+    U_may <- may_data %>%
       filter(lake == gsub("_", " ", which_lake)) %>%
       select(c("UMAY"))
     U_may <- U_may$UMAY
@@ -135,7 +135,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   M_a <- leading_pars$M_a_report
   vbro <- sum(Lo * v_survey * w_a)
   sbro <- sum(f_a * Lo)
-  
+
   # put some extra stuff in post
   post$sbro <- sbro
   post$Ro_map <- Ro_map
@@ -146,17 +146,17 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   # set up cslope, bmin sequences and performance metric output matrices
   #----------------------------------------------------------------------
   bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) # ifelse(Ro_map * vbro < 20, Ro_map * vbro, 20)
-  if(which_lake == "calling lake"){
+  if (which_lake == "calling lake") {
     bmin_max_value <- 100
   } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
   }
   c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
-  bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2) )
+  bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2))
   bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
-  
-  if(rule=="precautionary"){ 
+
+  if (rule == "precautionary") {
     # only considering one rectilinear rule, so set loops to one
     c_slope_seq <- 1
     bmin_seq <- 1
@@ -164,7 +164,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
 
   tot_y <- tot_u <- prop_below <- TAC_zero <-
     matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
-  yield_array <- vB_fish_array <- 
+  yield_array <- vB_fish_array <-
     array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
   wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
 
@@ -176,7 +176,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
     for (j in seq_along(bmin_seq)) {
       b_lrp <- bmin_seq[j]
       set.seed(24) # challenge each bmin, cslope combo with same set of rec seqs
-      wt_re_mat <- matrix(rnorm(n = n_sim_yrs*n_draws, mean=0, sd=sd_wt), nrow=n_sim_yrs, ncol=n_draws) # generate random deviates
+      wt_re_mat <- matrix(rnorm(n = n_sim_yrs * n_draws, mean = 0, sd = sd_wt), nrow = n_sim_yrs, ncol = n_draws) # generate random deviates
       for (k in seq_len(n_draws)) {
         # pick a single draw
         sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
@@ -187,16 +187,16 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
         Ro <- sub_post$Ro[1]
         sbo <- Ro * sbro
         vbo <- Ro * vbro
-        
+
         # repeat the historical recruitment series
         wt_historical <- sub_post$w
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
         wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
-        
+
         # set the random effect vector
-        wt_re <- wt_re_mat[,k]
-        
+        wt_re <- wt_re_mat[, k]
+
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
@@ -211,7 +211,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
 
         # calculate wt differently for yrs 26 +
         for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
-        #for(t in 1:n_sim_yrs){ # t = 1 to 208
+          # for(t in 1:n_sim_yrs){ # t = 1 to 208
           wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
         }
 
@@ -248,24 +248,24 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
             t_last_ass <- t
             # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
             vB_obs <- vB_fish[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
-            
-            if(rule == "linear"){
-             TAC <- c_slope * (vB_obs - b_lrp)
+
+            if (rule == "linear") {
+              TAC <- c_slope * (vB_obs - b_lrp)
             }
-            
-            if(rule == "precautionary"){
-             b_lrp <- 0.4*B_may
-             u_lrp <- 0.8*B_may
-             Ut <- U_may*(vB_obs - b_lrp) / (u_lrp - b_lrp)
-             if(Ut < 0){
-               Ut <- 0 
-             }
-             if(Ut > U_may){
-               Ut <- U_may
-             }
-             TAC <- Ut * vB_obs
+
+            if (rule == "precautionary") {
+              b_lrp <- 0.4 * B_may
+              u_lrp <- 0.8 * B_may
+              Ut <- U_may * (vB_obs - b_lrp) / (u_lrp - b_lrp)
+              if (Ut < 0) {
+                Ut <- 0
+              }
+              if (Ut > U_may) {
+                Ut <- U_may
+              }
+              TAC <- Ut * vB_obs
             }
-            
+
             if (TAC < 0) {
               TAC <- 0
             }
@@ -303,7 +303,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
           TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0)
         }
-        wt_seqs[ ,k] <- wt 
+        wt_seqs[, k] <- wt
       }
     }
   }
@@ -346,9 +346,11 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
     string = names(fits)[fit_idx],
     pattern = "(?<=fits/).*(?=.rds)"
   )
-  file_name <- paste0("sims/", file_name, "_hcr", "_ass_int_", ass_int, 
-                      "_sd_", sd_survey, "_d_mort_", d_mort, 
-                      "_rule_", rule,".rds")
+  file_name <- paste0(
+    "sims/", file_name, "_hcr", "_ass_int_", ass_int,
+    "_sd_", sd_survey, "_d_mort_", d_mort,
+    "_rule_", rule, ".rds"
+  )
   if (file.exists(file_name)) {
     return(NULL)
   } else {
@@ -379,7 +381,7 @@ sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*s
 rho <- 0.6 # correlation for recruitment terms
 sd_wt <- 1.1 # std. dev w(t)'s
 psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
-grid_size <- 75 # how many bmins, round(grid_size/2) gives how many cslope 
+grid_size <- 75 # how many bmins, round(grid_size/2) gives how many cslope
 
 # put it all in a tagged list
 hcr_pars <- list(
@@ -396,7 +398,7 @@ hcr_pars <- list(
   "sbo_prop" = sbo_prop,
   "rho" = rho,
   "sd_wt" = sd_wt,
-  "psi_wt" = psi_wt, 
+  "psi_wt" = psi_wt,
   "grid_size" = grid_size
 )
 
@@ -422,7 +424,7 @@ ass_ints <- c(1, 3, 5, 10) # how often to assess / run FWIN
 sd_surveys <- c(0.05, 0.4) # survey sd
 d_morts <- c(0.03, 0.15, 0.3) # discard mortalities
 
-# use expand.grid() and distinct() to get all possible combinations 
+# use expand.grid() and distinct() to get all possible combinations
 to_sim <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
 names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
 to_sim <- to_sim %>% distinct()
@@ -430,9 +432,9 @@ glimpse(to_sim)
 to_sim$rule <- "linear"
 
 #----------------------------------------------------------------------
-# one lake at a time 
+# one lake at a time
 # [you must understand the Tao of Programming before transcending structure]
-# 
+#
 # contract_lakes <- c(
 #   "lac ste. anne", "baptiste lake",
 #   "pigeon lake", "calling lake",
@@ -441,20 +443,20 @@ to_sim$rule <- "linear"
 # run <- get_hcr(which_lake = "lac ste. anne", ass_int = 1,
 #                sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # purrr
-# to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1, 
+# to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1,
 #                  sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # pwalk(to_sim, get_hcr)
 #----------------------------------------------------------------------
 
 # if you run all these your gov computer may explode
-if(FALSE){ 
-options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
-future::plan(multisession)
-system.time({
-  future_pwalk(to_sim, get_hcr,
-    .options = furrr_options(seed = TRUE)
-  )
-})
+if (FALSE) {
+  options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
+  future::plan(multisession)
+  system.time({
+    future_pwalk(to_sim, get_hcr,
+      .options = furrr_options(seed = TRUE)
+    )
+  })
 }
 
 # remove all fits?
@@ -466,11 +468,13 @@ may_data <- read.csv("data/may_yield_calcs.csv")
 # run <- get_hcr(which_lake = "pigeon lake", ass_int = 1,
 #                 sd_survey = 0.4, d_mort = 0.3, rule = "precautionary")
 
-to_sim <- data.frame(which_lake = which_lakes, ass_int=1, 
-                      sd_survey=0.4, d_mort=0.3, rule = "precautionary")
+to_sim <- data.frame(
+  which_lake = which_lakes, ass_int = 1,
+  sd_survey = 0.4, d_mort = 0.3, rule = "precautionary"
+)
 pwalk(to_sim, get_hcr)
 
-#remove precautionary sims? 
+# remove precautionary sims?
 do.call(file.remove, list(list.files("sims/", pattern = "precautionary", full.names = TRUE)))
 #----------------------------------------------------------------------
 # end
