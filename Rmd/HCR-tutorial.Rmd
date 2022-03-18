@@ -60,7 +60,7 @@ In the above toy airplane autopilot example, we wouldn't get very far if we didn
 
 For Alberta Walleye, there are presently no agreed upon *explicit* objectives for fisheries management. Believe it or not, this is pretty common for many fisheries. Thus, we will introduce two concepts--Maximum Average Yield (MAY) and Hyperbolic Absolute Risk Aversion Utility (HARA)--as starting points for Alberta Walleye fisheries. Ideally, objectives should be set through a structured decision making process (see Edwards and Dankel 20XX). It is unlikely that Cahill and Walters (or any manager or researcher for that matter) should be setting the objectives for Alberta fisheries; instead, we hope to demonstrate how Alberta Walleye fisheries could be managed given some agreed upon objectives.  
 
-Our approach here is to specify two provisional conflicting objectives, and then later we will simulate across a range of policy options to find policies that do well in our simulations.  We discuss both of these objectives in the following sections.
+Our approach here is to specify two provisional conflicting objectives, and then later we will simulate across a range of policy options to find policies that do well in our simulations given these objectives.  We discuss both of these objectives in the following sections.
 
 ## Maximum Average Yield (MAY) objective 
 
