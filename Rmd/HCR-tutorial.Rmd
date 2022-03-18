@@ -143,9 +143,7 @@ Think about these last two plots a bit--it is important to wrap your head around
 
 ## Thinking through one more harvest control rule
 
-While the polices above arise from explicit objectives and dynamic programming solutions (again, take my word for it), we will take this opportunity to work through one more policy that you might encounter in fisheries.  This 
-
-This is DFO's so-called precautionary harvest control rule (DFO XXXX), which is based on work from Restrepo XXXX.  This policy has been adopted for fisheries throughout Canada (and regardless of the management objectives of those fisheries).  This policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
+While the polices above arise from explicit objectives and dynamic programming solutions (again, take my word for it), we will take this opportunity to work through one more policy that you might encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO XXXX), which is based on work from Restrepo XXXX.  This policy has been adopted for fisheries throughout Canada (and regardless of the management objectives of those fisheries).  The DFO policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
 
 The DFO policy increases exploitation rate from zero to $U_{MSY}$ as biomass increases from a lower limit reference point to an upper limit reference point.  These reference points are typically set at $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$.  Note that $U_{MSY}$ and $B_{MSY}$ typically need to be estimated in an assessment model.  
 
