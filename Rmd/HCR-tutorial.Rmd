@@ -44,7 +44,7 @@ You can think of this harvest control rule problem like trying to design an auto
 
 In this case, the "environment" simply refers to the physical equations governing the flight of a plane. In our fisheries situation, it refers to all of the equations and biological or ecological processes describing the dynamics of a harvested population.  Whereas there are sensors on the plane which tell us "where" the plane is and what the state of the environment is outside of that plane, we use surveys to determine the state of a population in fish and wildlife management settings. 
 
-In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that the plane try to go to the right if the wind pushes it to the left, and maneuver upward if the plane was decreasing in altitude for whatever reason.  In a fishery, the goal might be to let the stock size recover if it has been overfished, or to harvest more if the stock size were high.
+In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that a good feedback policy for the plane try to orient to the right if the wind pushes it to the left, and maneuver upward if it were decreasing in altitude for whatever reason.  In a fishery, the goal might be to let the stock size recover if it has been overfished, or to harvest more if the stock size were high.
 
 ## Harvesting theory, dynamic programming, and optimal solutions
 
