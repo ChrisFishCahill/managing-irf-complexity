@@ -33,10 +33,10 @@ There exists a rich history of using harvest control rules or feedback policies 
 
 1. Walters 1986, chapter on feedback policies
 2. Hilborn and Walters 1992, chapter on Designing Effective Fisheries Management Systems
-3. Quinn and Deriso 1999. 
+3. Quinn and Deriso 1999
 4. Walters and Martell 2001, chapters 2-4
 
-These are fantastic sources of information on these topics. In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
+These are solid sources of information on this topic. In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
 
 ## But first, a nonmathematical description of the problem that we would share with Grandma
 
