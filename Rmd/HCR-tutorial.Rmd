@@ -10,15 +10,15 @@ urlcolor: blue
 ---
 # IN PROGRESS--Cahill must finish by March 31
 
-# TODO
+## TODO
 - parellel ordering of MAY / HARA
 - Carl's point about including precautionary rules
 - proofread -- check citations
 
-# Purpose 
+## Purpose 
 The purpose of this tutorial is to develop a management strategy evaluation or simulation framework that can be used to evaluate harvest control rules for any of the Alberta Walleye fisheries assessed in Cahill et al. 2021 using either yield or catch-based objectives. 
 
-# Goals
+## Goals
 - Provide readers with some background on the development of policies for fisheries management
 - Understand what a harvest control rule is and why such rules is useful for managing natural resources
 - Understand how the code is pulling results from the stock assessments and using these as inputs into our harvest control rule simulation program
@@ -26,7 +26,7 @@ The purpose of this tutorial is to develop a management strategy evaluation or s
 - Develop intuition for the catch and release mortality components of the simulation model
 - Understand the tabular or grid search approach to "optimizing" simple linear harvest control rules
 
-# Background 
+## Background 
 Harvest control rules are agreed-upon, transparent, and repeatable mathematical equations that help managers alter harvest levels in response to changes in stock size to achieve some explicit goal.  Changes in population size may be due to either environmental stochasticity or the effects of fishing. In Alberta, harvest control rules may be particularly useful for informing special harvest license allocations given some agreed upon and explicit management objectives and Fall Walleye Index Netting (FWIN) survey data. The development of explicit harvesting rules appears important, because a finding of Cahill et al. 2021 was that many Alberta Walleye lakes appeared underharvested relative to common fisheries reference points. 
 
 There exists a rich history of using harvest control rules or feedback policies to design effective fisheries management systems, and there are at least three key references that will help you better understand many of the issues that I am about to discuss in this tutorial. These references are:
@@ -38,7 +38,7 @@ There exists a rich history of using harvest control rules or feedback policies 
 
 These are fantastic sources of information on these topics. In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
 
-# But first, a nonmathematical description of the problem that we would share with Grandma
+## But first, a nonmathematical description of the problem that we would share with Grandma
 
 You can think of this harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a plane air born--our goal in this case is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design a feedback policy, which relates where we are (in the environment) to what we want to achieve.  
 
@@ -54,7 +54,7 @@ A limitation of dynamic programming and related methods that obtain optimal solu
 
 We briefly hit on this above, but there is one more difficulty facing us and that is that there are multiple (often conflicting) objectives in resource management. We discuss two such conflicting objectives in the next section, but note that our management strategy simulation approach can cope with this issue quite nicely. 
 
-# On the need for explicit objectives
+## On the need for explicit objectives
 
 In the above toy airplane autopilot example, we wouldn't get very far if we didn't agree up front that the goal was to keep the plane flying within some (acceptable) flight parameters.  The same is true for designing harvest control rules for renewable resources: if we do not agree upon how to manage a population a priori, we will not get very far.  If we want to design effective fisheries management systems, we at least need to agree upon how best to manage those fisheries. This is easier said than done, and individuals have dedicated their entire careers toward developing structured decision making programs to meaningfully engage relevant stakeholders and develop such objectives.
 
@@ -210,12 +210,13 @@ Conceptually, the way we will do this is as follows:
 4. Repeat this process many times (e.g., 30-1000 random posterior draws) so as to explicitly characterize uncertainty in the biological dynamics of walleye populations during the development of our policies (harvest control rules). 
 5. Look across all policies we tested, and look up the policies that maximized average yield or HARA utility, respectively.  
 7. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
+8. Upon recovering, go back and see how well the DFO rule works for Alberta Walleye.
 
 This will get a little tedious as we work through things, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability to address imperfect observability of system state, and catch and release mortality which is uncontrolled because effort is not controlled in these systems), but the main point is we are trying to design an equation that helps folks achieve some objective(s) given a net catch.
 
 Additionally, while we are only going to use two conflicting objectives, you should realize that it is straightforward to do this for any specific objective(s) you want. Phrased differently, if you have explicit multi-criteria objectives and some weighting scheme you could easily adapt this script to test the performance of such an objective.
 
-# Harvest control rule shapes and forms
+## junk writing garbage can 
 
 A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
 
@@ -251,7 +252,7 @@ each of some number (e.g., say 30 or 100) of random values from our assessment p
 
 
 
-# Resources: 
+## Resources: 
 
 Cahill et al. 2021 CJFAS. 
 
