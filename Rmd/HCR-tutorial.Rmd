@@ -178,7 +178,7 @@ data %>%
 
 ```
 
-This plot is admittedly a bit weird looking, but that's just how this policy plays itself out. And we can plot the exploitation rate vs. vulnerable biomass for this policy as well: 
+This plot is admittedly a bit weird looking, but that's just how this policy plays itself out. We can also plot the exploitation rate vs. vulnerable biomass for this policy as well: 
 
 ```{r, , message = FALSE, warning=FALSE}
 
@@ -192,9 +192,9 @@ data %>%
 
 ```
 
-So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
+And you can see where the name "rectilinear harvest control rule" comes from. So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
 
-Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective? 
+Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective?  What does it imply for other objectives?  
 
 ## How do we use our Bayesian assessment models to inform harvest control rules? 
 
