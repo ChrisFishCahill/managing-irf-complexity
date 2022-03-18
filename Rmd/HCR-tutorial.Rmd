@@ -38,13 +38,13 @@ There exists a rich history of using harvest control rules or feedback policies 
 
 These are fantastic sources of information on these topics. In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
 
-# But first: a nonmathematical description of the problem that we would share with Grandma
+# But first, a nonmathematical description of the problem that we would share with Grandma
 
-You can think of this harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a plane air born--our goal in this case is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design feedback policies, which relate where we are (in the environment) to what we want to achieve *explicitly*.  
+You can think of this harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a plane air born--our goal in this case is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design a feedback policy, which relates where we are (in the environment) to what we want to achieve.  
 
 In this case, the "environment" simply refers to the physical equations governing the flight of a plane. In our fisheries situation, it refers to all of the equations and biological or ecological processes describing the dynamics of a harvested population.  Whereas there are sensors on the plane which tell us "where" the plane is and what the state of the environment is outside of that plane, we use surveys to determine the state of a population in fish and wildlife management settings. 
 
-In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that the plane try to go to the right if the wind pushes it to the left, and maneuver upward if the plane was decreasing in altitude for whatever reason.  In a fishery, the goal might be to let the stock size recover if it has been overfished.
+In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that the plane try to go to the right if the wind pushes it to the left, and maneuver upward if the plane was decreasing in altitude for whatever reason.  In a fishery, the goal might be to let the stock size recover if it has been overfished, or to harvest more if the stock size were high.
 
 ## Harvesting theory, dynamic programming, and optimal solutions
 
