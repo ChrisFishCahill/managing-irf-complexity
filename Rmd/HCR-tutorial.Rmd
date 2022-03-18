@@ -22,7 +22,7 @@ The purpose of this tutorial is to develop a management strategy evaluation or s
 - Provide readers with some background on the development of policies for fisheries management
 - Understand what a harvest control rule is and why such rules is useful for managing natural resources
 - Understand how the code is pulling results from the stock assessments and using these as inputs into our harvest control rule simulation program
-- Work through the model structure of the harvest control rule simulator, including calculations of conflicting objectives of maximum average yield objectives and hyperbolic risk averse utility (which values catch) 
+- Work through the model structure of the harvest control rule simulator, including calculations of maximum average yield and HARA utility 
 - Develop intuition for the catch and release mortality components of the simulation model
 - Understand the tabular or grid search approach to "optimizing" simple linear harvest control rules
 
@@ -46,9 +46,11 @@ In this case, the "environment" simply refers to the physical equations governin
 
 In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that the plane try to go to the right if the wind pushes it to the left, and maneuver upward if the plane was decreasing in altitude for whatever reason.
 
-Lucky for us, a great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal policies generally decrease harvest rate when population size declines, and increase it as population size increases. These findings have often come from dynamic programming solutions.  A limitation of dynamic programming is that it can only be done for simple models, and the age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex for dynamic programming.  Thus, we will instead use simulation techniques to find good harvest control rules using a method called optimization in policy space (see Moxnes XXXX; Edwards and Dankel 20XX). 
+A great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal policies generally decrease harvest rate when population size declines, and increase it as population size increases. These findings have often come from dynamic programming solutions, and the solutions for these particular problems are often simple functions of harvestable abundance or biomass.  This finding appears general and was surprising--it was generally believed that complex policies would be required to manage renewable resources, but this was not the case, and much harvesting theory literature supports this view (e.g., Walters 1975; Walters and Hilborn 1978; Mangel XXXX; Clark XXXX; Moxnes XXXX).  
 
-Lastly, a key distinction between the autopilot problem and the resource management problem, however, is that there are multiple (often conflicting) objectives in resource management.  This can complicate our analyses quite a bit.  We discuss two such conflicting objectives in the next section.
+A limitation of dynamic programming and related methods that obtain optimal solutions to the resource management problem is that these approaches can generally only be applied to simple models.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use those methods. Thus, we will instead use optimization in policy space simulation methods to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX). 
+
+In addition to model complexity issues, there is one more important issue facing us and that is that there are multiple (often conflicting) objectives in resource management. We discuss two such conflicting objectives in the next section, but note that our simulation approach can cope with this issue quite nicely. 
 
 # On the need for explicit objectives
 
@@ -133,11 +135,11 @@ data %>%
   ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
 ```
 
-Think about these last two plots a bit--it is important to wrap your head around what this is showing you. 
+Think about these last two plots a bit--it is important to wrap your head around what this is showing you. Most of the harvest control rule simulation script that we will go through below is shifting the intercepts and slopes of these lines from Figure 1 to find simple linear policies that maximize specific objectives like MAY or HARA utility. 
 
 ## Thinking through one more harvest control rule
 
-We will take this opportunity to simulate one more policy that you might encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO XXXX), which is based on work from Restrepo XXXX.  This policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
+We will take this opportunity to work through one more policy that you might encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO XXXX), which is based on work from Restrepo XXXX.  This policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
 
 The DFO policy increases exploitation rate from zero to $U_{MSY}$ as biomass increases from a lower limit reference point to an upper limit reference point.  These reference points are typically set at $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$.  Note that $U_{MSY}$ and $B_{MSY}$ typically need to be estimated in an assessment model.  
 
@@ -188,7 +190,7 @@ data %>%
 
 So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
 
-What does this rectilinear rule imply from a HARA or MAY perspective? 
+Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective? 
 
 ## How do we use our Bayesian assessment models to inform harvest control rules? 
 
