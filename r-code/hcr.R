@@ -16,7 +16,7 @@ library(furrr)
 
 get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
                     sd_survey = 0.05, d_mort = 0.3,
-                    rule = c("linear", "precautionary")) {
+                    rule = c("linear", "rectilinear")) {
   #--------------------------------------------------------------------
   # initialize stuff
   #--------------------------------------------------------------------
@@ -47,9 +47,9 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
 
   #--------------------------------------------------------------------
-  # Get Bmay, Umay for precautionary HCR (based on BH CR 6 for now)
+  # Get Bmay, Umay for rectilinear HCR (based on BH CR 6 for now)
   #--------------------------------------------------------------------
-  if (rule == "precautionary") {
+  if (rule == "rectilinear") {
     B_may <- may_data %>%
       filter(lake == gsub("_", " ", which_lake)) %>%
       select(c("BMAY"))
@@ -156,7 +156,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
 
-  if (rule == "precautionary") {
+  if (rule == "rectilinear") {
     # only considering one rectilinear rule, so set loops to one
     c_slope_seq <- 1
     bmin_seq <- 1
@@ -253,7 +253,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
               TAC <- c_slope * (vB_obs - b_lrp)
             }
 
-            if (rule == "precautionary") {
+            if (rule == "rectilinear") {
               b_lrp <- 0.4 * B_may
               u_lrp <- 0.8 * B_may
               Ut <- U_may * (vB_obs - b_lrp) / (u_lrp - b_lrp)
@@ -462,19 +462,19 @@ if (FALSE) {
 # remove all fits?
 # do.call(file.remove, list(list.files("sims/", full.names = TRUE)))
 #----------------------------------------------------------------------
-# Try to run the precautionary rules
+# Try to run the rectilinear rules
 may_data <- read.csv("data/may_yield_calcs.csv")
 
 # run <- get_hcr(which_lake = "pigeon lake", ass_int = 1,
-#                 sd_survey = 0.4, d_mort = 0.3, rule = "precautionary")
+#                 sd_survey = 0.4, d_mort = 0.3, rule = "rectilinear")
 
 to_sim <- data.frame(
   which_lake = which_lakes, ass_int = 1,
-  sd_survey = 0.4, d_mort = 0.3, rule = "precautionary"
+  sd_survey = 0.4, d_mort = 0.3, rule = "rectilinear"
 )
 pwalk(to_sim, get_hcr)
 
-# remove precautionary sims?
-do.call(file.remove, list(list.files("sims/", pattern = "precautionary", full.names = TRUE)))
+# remove rectilinear sims?
+do.call(file.remove, list(list.files("sims/", pattern = "rectilinear", full.names = TRUE)))
 #----------------------------------------------------------------------
 # end
