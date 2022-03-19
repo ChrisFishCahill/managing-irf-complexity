@@ -3,8 +3,8 @@ title: "Developing Harvest Control Rules for Alberta Walleye Fisheries"
 author: "Christopher L. Cahill & Carl J. Walters"
 date: "14/03/2022"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 highlight: tango
 urlcolor: blue
 ---
@@ -50,7 +50,7 @@ In the oversimplified case of the autopilot system, the goal is not to crash.  I
 
 A great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal policies generally decrease harvest rate when population size declines, and increase it as population size increases. These findings have often come from dynamic programming solutions, and the solutions for these particular problems are often simple functions of harvestable abundance or biomass.  This finding appears general and was surprising--it was generally believed that complex policies would be required to manage complex ecological systems.  However, a great deal of work on harvesting theory during the 1970-80s showed that simple policies performed well or were even optimal in many situations (e.g., Walters 1975; Walters and Hilborn 1978; Mangel XXXX; Clark XXXX; Moxnes XXXX).  
 
-A limitation of dynamic programming and related methods that obtain optimal solutions to the resource management problem is that these approaches could only be applied to relatively simple models and management objectives.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use with such methods. Thus, we will instead use a simulation technique known as optimization in policy space to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX) for our models.
+A limitation of dynamic programming and related methods is that these approaches can only be applied to relatively simple models and management objectives.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use with such methods. Thus, we will instead use a simulation technique known as optimization in policy space to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX) for our models.
 
 We briefly hit on this above, but there is one more difficulty facing us and that is that there are multiple (often conflicting) objectives in resource management. We discuss two such conflicting objectives in the next section, but note that our management strategy simulation approach can cope with this issue quite nicely. 
 
@@ -167,7 +167,7 @@ data <- rbind(data, data_DFO)
 
 We can then plot it like we did before: 
 
-```{r, , message = FALSE, warning=FALSE}
+```{r, message = FALSE, warning=FALSE}
 data %>%
   filter(policy == "DFO") %>%
   ggplot(aes(x=vB, y = TAC, group = policy))+
@@ -180,7 +180,7 @@ data %>%
 
 This plot is admittedly a bit weird looking, but that's just how this policy plays itself out. We can also plot the exploitation rate vs. vulnerable biomass for this policy as well: 
 
-```{r, , message = FALSE, warning=FALSE}
+```{r, message = FALSE, warning=FALSE}
 
 data %>%
   filter(policy == "DFO") %>%
@@ -194,7 +194,7 @@ data %>%
 
 And you can see where the name "rectilinear harvest control rule" comes from. So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
 
-Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective?  What does it imply for other objectives?  
+Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective?  What does it imply for other objectives? 
 
 ## How do we use our Bayesian assessment models to inform harvest control rules? 
 
@@ -214,7 +214,129 @@ Conceptually, the way we will do this is as follows:
 
 This will get a little tedious as we work through things, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability to address imperfect observability of system state, and catch and release mortality which is uncontrolled because effort is not controlled in these systems), but the main point is we are trying to design an equation that helps folks achieve some objective(s) given a net catch.
 
-Additionally, while we are only going to use two conflicting objectives, you should realize that it is straightforward to do this for any specific objective(s) you want. Phrased differently, if you have explicit multi-criteria objectives and some weighting scheme you could easily adapt this script to test the performance of such an objective.
+Additionally, while we are only going to use two conflicting objectives, it is straightforward to do this for any specific objective(s) you want. Phrased differently, if you have explicit multi-criteria objectives and some weighting scheme you could easily adapt this script to test the performance of such an objective.
+
+## The `hrc.R` simulation script
+
+The `hcr.R` script works like the `run.R` script in our earlier tutorials.  The `get_hcr()` function takes in some inputs, reads in a specific Bayesian model fit from a given lake, extracts the relevant stuff that we need to parameterize an age structured model, and then runs our simulations forward in time for some number of draws and records performance of that simulation.  It then saves the simulation output as a .rds file with a unique file name (based on whatever simulation choices you chose) in a `sim/` folder.  The full function is available here:  
+
+<https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L17-L359>
+
+This function was primarily developed to test the simple linear harvest control rules (see MAY vs. HARA examples above), but it can also be used to test the DFO-style rectilinear harvest control rule.  For now, we'll ignore the rectilinear rule entirely and just focus on the simple linear rules.  Once we work through the linear harvest control rules and get a handle on how this works, we'll loop back at the end of this tutorial deal with the rectilinear policy. Eventually we will be able to compare the performance of the linear vs. rectilinear harvest control rules for Alberta Walleye fisheries.
+
+Before we start jumping through this function line by line, I want you to look at the following lines of code below the function here.  
+
+<https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L361-L432>
+
+Please note you don't have to know what all of this is doing yet.  The main reason to show you is that there is eventually going to be stuff in our R environment (like a bunch of simulation control parameters and our Bayesian model fits in list form) that our `get_hcr()` function is going to interact with.  If I didn't show you this up front, you might get confused as we work through the function. 
+
+With that in mind, the first chunk of code in `get_hcr()` is the following: 
+
+```{r, eval=FALSE}
+get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
+                    sd_survey = 0.05, d_mort = 0.3,
+                    rule = c("linear", "precautionary")) {
+# many more lines of code...
+
+```
+
+These are inputs you can change depending on your desires.  The arguments that you can play around with are:
+
+- `which_lake`, a string that specifies the lake name that you want to run. This needs to be lowercase and have underscores in place of spaces.
+- `ass_int`, describes the interval at which we will assess the fishery.  
+- `sd_survey`, describes the amount of noise in the survey that we base our harvest control rules off of.
+- `d_mort`, the discard mortality rate for released fish. 
+- `rule`, specifies between linear or rectilinear harvest control rules.
+
+The next few lines of the function specify a bunch of additional simulation parameters: 
+
+```{r, eval=FALSE}
+  #--------------------------------------------------------------------
+  # initialize stuff
+  #--------------------------------------------------------------------
+  n_draws <- hcr_pars$n_draws
+  n_repeats <- hcr_pars$n_repeats
+  retro_initial_yr <- hcr_pars$retro_initial_yr
+  retro_terminal_yr <- hcr_pars$retro_terminal_yr
+  n_sim_yrs <- hcr_pars$n_sim_yrs
+  ages <- hcr_pars$ages
+  n_ages <- length(ages)
+  initial_yr <- hcr_pars$initial_yr
+  initial_yr_minus_one <- hcr_pars$initial_yr_minus_one
+  ret_a <- hcr_pars$ret_a
+  Ut_overall <- hcr_pars$Ut_overall
+  sbo_prop <- hcr_pars$sbo_prop
+  rho <- hcr_pars$rho
+  sd_wt <- hcr_pars$sd_wt
+  psi_wt <- hcr_pars$psi_wt
+  n_historical_yrs <- length(retro_initial_yr:retro_terminal_yr)
+  grid_size <- hcr_pars$grid_size
+```
+
+These lines of code are looking up values from a tagged list called `hcr_pars`. I set the values in this function later on in the script in these lines: 
+
+<https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L386-L403>
+
+You can change these if you want, but you'll notice that I haven't put these explicitly in the function call for `get_hcr()`. I did this because you should probably know what you are doing if you want to change these parameters.  This might seem annoying, but the reason I did this is because if I needed to change any of these values I needed all the following code in this function to update automatically.  This was the best way I could think to do that, though I'm sure there are other (and perhaps more elegant) solutions. 
+
+The `hcr_pars` list determines the following things: 
+
+-`n_draws` is the number of draws from the posterior that you want to simulate across.
+
+-`n_repeats` is the number of times you want to repeat your recruitment anomaly sequences into the future.
+
+-`retro_initial_yr` a stupid index value that helps chris keep the initial year of the model run straight.
+
+-`retro_terminal_yr` a stuider index value that helps chris keep the terminal year of the model run straight.
+
+-`n_sim_yrs` how many years between initial and terminal year multiplied by n_repeats.  Total length of simulation.
+
+-`ages` ages of fish in years. this is a vector. 
+
+-`n_ages` you guessed it: the number of ages in the `ages` vector.
+
+-`initial_yr` the initial year of the BERTA model (1980).
+
+-`initial_yr_minus_one` you guessed it, this corresponds to 1979.
+
+-`ret_a` this is the proportion of critters that are retained at age if they are caught by anglers.
+
+-`Ut_overall` this is a cap on the maximum exploitation rate that angling can impose on a fishery.
+
+-`sbo_prop` this is a term that manipulates one of the performance measures in terms of whether a population fall below some proportion. 
+
+I don't want you to worry too much about these for the moment.  You may not like these initial values.  So be it.  The point of coding it this way is so that we can loop through and run many different simulations with many different input parameters.
+
+The next code block is just taking the `which_lake` string, and using it to grab the appropriate Bayesian model fit (which eventually will be stored in our R environment from the fits folds):
+
+```{r, eval=FALSE}
+#--------------------------------------------------------------------
+# subset lake-specific posterior from all fits
+#--------------------------------------------------------------------
+lake_str <- gsub(" ", "_", which_lake)
+fit_idx <- grep(lake_str, names(fits))
+fit <- fits[[fit_idx]]
+rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
+```
+
+The first line makes sure there are no spaces in the variable `which_lake`.  The next line determines which of the fits (in the R environment) corresponds to the `which_lake` we wanted to run the simulation for. We then read in the fit corresponding to our lake, and then declare a control variable  called `rec_ctl` indicating whether the fitted Bayesian model used a Beverton-Holt (i.e., "bh") or Ricker stock-recruit model (i.e., "ricker"). Sweet. 
+
+The next ten or so lines are used for the rectilinear harvest control rule, and so we will ignore this for now.  Note this code is only triggered when rule = "rectilinear". 
+
+https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L49-L62
+
+
+
+
+And for now I will just jump into what it is actually doing. There are basically two types of inputs in this function.  The first are the things that you can play around with and are listed as 
+
+
+
+This function takes in four main 
+
+
+that we first write a function that does a bunch of calculations and then saves an appropriately named output file as a `.rds`. This function is called `get_hcr.R`, and it takes in the following 
+
 
 ## junk writing garbage can 
 
