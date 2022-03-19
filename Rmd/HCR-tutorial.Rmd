@@ -3,8 +3,8 @@ title: "Developing Harvest Control Rules for Alberta Walleye Fisheries"
 author: "Christopher L. Cahill & Carl J. Walters"
 date: "14/03/2022"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 highlight: tango
 urlcolor: blue
 ---
@@ -134,7 +134,7 @@ In this example, there is a lower limit reference point $b_{lrp}$ and a slope at
 data %>%
   ggplot(aes(x=vB, y = U, group = policy))+
   geom_line(aes(linetype = policy), lwd = 1.25) +
-  ylab("Exploitation rate (TAC / vulnerable Biomass)") + 
+  ylab("Exploitation rate (TAC / Vulnerable Biomass)") + 
   xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
   ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
 ```
@@ -186,7 +186,7 @@ data %>%
   filter(policy == "DFO") %>%
   ggplot(aes(x=vB, y = U, group = policy))+
   geom_line(aes(linetype = policy), lwd = 1.25) +
-  ylab("Exploitation rate (TAC / vulnerable Biomass)") + 
+  ylab("Exploitation rate (TAC / Vulnerable Biomass)") + 
   xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
   ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
 
@@ -235,7 +235,7 @@ With that in mind, the first chunk of code in `get_hcr()` is the following:
 ```{r, eval=FALSE}
 get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
                     sd_survey = 0.05, d_mort = 0.3,
-                    rule = c("linear", "precautionary")) {
+                    rule = c("linear", "rectilinear")) {
 # many more lines of code...
 
 ```
@@ -321,21 +321,85 @@ rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
 
 The first line makes sure there are no spaces in the variable `which_lake`.  The next line determines which of the fits (in the R environment) corresponds to the `which_lake` we wanted to run the simulation for. We then read in the fit corresponding to our lake, and then declare a control variable  called `rec_ctl` indicating whether the fitted Bayesian model used a Beverton-Holt (i.e., "bh") or Ricker stock-recruit model (i.e., "ricker"). Sweet. 
 
-The next ten or so lines are used for the rectilinear harvest control rule, and so we will ignore this for now.  Note this code is only triggered when rule = "rectilinear". 
+The next ten or so lines are used for the rectilinear harvest control rule, and so we will ignore this for now.  Note this code is only triggered when rule = "rectilinear": 
 
 https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L49-L62
 
+And so we will ignore them for now for sanity purposes.  Again, we will come back to this later on. 
+
+Lines 64-144 or so are pretty annoying.  Quite literally all these lines of code are doing is extracting relevant values from our Bayesian model fits that we are going to use in our simulations.  Some of these terms were read into our Bayesian model as data, while others were explicitly estimated as parameters (and thus values will vary per each draw of the posterior).  
+
+I am using the tidybayes package to manage Bayesian model output.  I'm sure there are other ways to do this, but I found this way to be the most efficient and effective for my purposes, and so now you have to learn it. Let's assume for now that `n_draws = 1`.  The next chunk of code is: 
+
+```{r, eval=FALSE}
+# extract estimated and derived parameters from BERTA
+devs <- fit %>%
+  spread_draws(Ro, ln_ar, br) %>%
+  sample_draws(n_draws)
+
+draw_idx <- unique(devs$.draw) # which posterior rows did sample_draws() take?
+```
+
+So this piece of code takes a specific model fit, pipes it into the function `spread_draws()` to access this specific model fit's posterior, which is then passed to `sample_draws()` which randomly samples some number of draws from the posterior (i.e., rows of the posterior where columns are parameter names and rows are parameter values).  Note also that we are specifying only to grab three parameters--$R_0$, $ln(ar)$, and $br$.  These values are stored in the object `devs`. 
+
+We then run one more line of code that figures out which specific draw(s) of the posterior we randomly selected, and stores this value as `draw_idx`.  This is important when we sample more than one draw because we want our samples to come from the same (randomly selected) rows of the posterior, as this preserves covariation among the parameter estimates used in our simulation (cool). 
+
+Next we basically do the same thing for all the other stuff we want to draw in from our Bayesian model fit, and we make sure we sample the same rows of the posterior as we did above via the `filter()` call: 
+
+```{r, eval=FALSE}
+
+w_devs <- fit %>%
+  spread_draws(w[year]) %>%
+  filter(.draw %in% draw_idx) %>% # force same .draw to be taken as above
+  mutate(year = year + initial_yr_minus_one) # make years 1980-2028
+
+# extract nta from stan
+nta_stan <- fit %>%
+  spread_draws(Nat_array[age, year]) %>%
+  pivot_wider(names_from = age, values_from = Nat_array) %>%
+  filter(.draw %in% draw_idx) %>%
+  mutate(year = year + initial_yr_minus_one)
+
+# which columns have ages:
+age_cols <- which(!is.na(str_extract(
+  string = colnames(nta_stan),
+  pattern = "[0-9]|10[0-9]"
+)))
+
+# rename age columns to correct ages 2-20
+colnames(nta_stan)[age_cols] <- ages
+
+```
+
+So here we are extracting the recruitment anomalies $w_t$'s and the estimated numbers at age by year matrix.  We then rename the Stan fit indeces to make them intelligible.  Remember, Stan begins its indeces at 1, so we have to do this extra step if we want Walleye ages to range from 2-20 and years to range from 1980-2028. 
+
+We then extract even more stuff from the posterior to use in our management strategy evaluation simulator: 
+
+```{r, eval=FALSE}
+
+# extract MAP estimate of Ro from posterior (for indexing bmin)
+Ro_summary <- rstan::summary(fit, pars = "Ro")$summary
+Ro_map <- Ro_summary[, "mean"]
+
+# extract the age structure corresponding to 1990
+nta_init <- nta_stan %>% filter(year == retro_initial_yr)
+
+# extract w estimates from 1990-2015
+w_devs <- w_devs %>%
+  filter(year %in% retro_initial_yr:retro_terminal_yr)
+```
+
+Here you'll note that the code is a little different, and that we are extracting a summary value for $R_0$ rather than an entire posterior or some random subset of that posterior. In particular, we are extracting the most probable single estimate of $R_0$ for use a little later on.
+
+You'll note we are also subsetting our Bayesian posterior model fits. Instead of using the full 1980-2018 numbers at age matrix and $w_t$ values, we'll subset these estimates to correspond to years 1990-2015.  We do this for two reasons.
+
+First, most of the Fall Walleye Index Netting surveys had information on Walleye age structure and recruitment back to at least 1990.  While there were some systems where survey data carried information on recruitment and age structure back to the early 1980s, our choice of 1990 seemed to be a safe early year bound based on our data explorations.  
+
+Second, recruitment is usually difficult to estimate until cohorts of fish have been present in a fishery for a few years, which means recruitment estimates from recent years (i.e., 2015-2018) are generally unreliable (see Hilborn and Walters 1992; Walters and Martell 2001).  
+
+As our main goal was to design harvest control rules robust to the recruitment variation present in these systems, we felt it was best to use this 1990-2015 range to initialize our age-structured simulation below.
 
 
-
-And for now I will just jump into what it is actually doing. There are basically two types of inputs in this function.  The first are the things that you can play around with and are listed as 
-
-
-
-This function takes in four main 
-
-
-that we first write a function that does a bunch of calculations and then saves an appropriately named output file as a `.rds`. This function is called `get_hcr.R`, and it takes in the following 
 
 
 ## junk writing garbage can 
