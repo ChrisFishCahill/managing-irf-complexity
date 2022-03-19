@@ -32,7 +32,7 @@ Harvest control rules are agreed-upon, transparent, and repeatable mathematical 
 Fisheries science has a rich history of using harvest control rules or feedback policies to design effective resource management systems, and there are some key references that will help you better understand many of the issues that we will discuss in this tutorial. These references are:
 
 1. Walters 1986, chapter on feedback policies
-2. Hilborn and Walters 1992, chapter on Designing Effective Fisheries Management Systems
+2. Hilborn and Walters 1992, chapter on designing effective fisheries management systems
 3. Quinn and Deriso 1999, chapter 11 on optimal harvesting
 4. Walters and Martell 2001, chapters 2-4
 
@@ -306,7 +306,7 @@ And so we will ignore them for now for sanity purposes.  Again, we will come bac
 
 Lines 64-144 or so are pretty annoying.  Quite literally all these lines of code are doing is extracting relevant values from our Bayesian model fits that we are going to use in our simulations.  Some of these terms were read into our Bayesian model as data, while others were explicitly estimated as parameters (and thus values will vary per each draw of the posterior).  
 
-I am using the tidybayes package to manage Bayesian model output.  There are many other ways to do this, but I like this way, and so now you have to learn it. Let's assume for now that `n_draws = 1`.  The next chunk of code is: 
+I am using the tidybayes package to manage Bayesian model output.  There are many other ways to do this, but I like this way, and so now you have to learn it if you want to figure out what I did. Let's assume for now that `n_draws = 1`.  The next chunk of code is: 
 
 ```{r, eval=FALSE}
 # extract estimated and derived parameters from BERTA
@@ -446,7 +446,93 @@ So basically we are just extracting a bunch of the stuff from our fit that we di
 
 - `sbro` is spawners per recruit in the unfished condition. 
 
-and we then put the stuff we need into the `post` tibble for use later on.
+and we then put the stuff we need into the `post` tibble for use later on. Remember: this is just us reading in relevant information, parameters, data, whatever from the BERTA model fits and setting it up to use with our simulations below.
+
+Now that once we have read in all of the stuff that we need to run the simulations, we are going to set up the simple linear policies for which we want to test performance in terms of how well they achieve the MAY and HARA objectives.
+
+The way this works is that for each policy we want to test, and then for each draw of the posterior we want to simulate across, we'll run the model some number of years into the future.  We'll then record the expected performance of our policies and pick the best policy overall for a specific objective.  The linear policies we showed above have two parameters: $b_{lrp}$ and $cslope$, which correspond to the x-axis intercept (the fixed escapement point below which fishing is shut off) and the slope of the line (or the rate at which harvesting increases as stock size increases), respectively.
+
+We'll plot a few of these in R to remind you what is going on: 
+
+```{r, , message = FALSE, warning=FALSE}
+b_lrp <- seq(from = 0, to = 45, length.out = 25) # lower limit reference point
+c_slopes <- seq(from=0.01, to = 1.0, length.out = length(b_lrp)) # slope of hcr
+
+# solve c_slopes*(vb-b_lrp) for vb = 0 
+yints <- -b_lrp*c_slopes
+
+my_lines <- data.frame(yints, b_lrp, c_slopes)
+my_lines$policy <- as.factor(1:nrow(my_lines))
+my_lines$vB <- seq(from = 0, to = 100, length.out = nrow(my_lines))
+my_lines$TAC <- seq(from=0, to = 60, length.out = nrow(my_lines))
+
+my_lines %>%
+  ggplot(aes(x=vB, y = TAC))+
+  geom_abline(mapping = aes(intercept = yints, slope = c_slopes,
+              group = policy))  + 
+  scale_x_continuous(limits = c(0, 50)) + 
+  scale_y_continuous(limits = c(0, 20)) +
+  ylab("Total allowable catch (kg/ha)") + 
+  xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
+  ggtitle("Thinking about a few possible linear policies")  
+```
+
+Each of these lines has a specific lower limit reference point $b_{lrp}$ and a slope to that particular line $c_{slope}$.  What we need to do then, is test each of these policies against our simulation and see which one wins in terms of achieving our objective(s). 
+
+Note that this is not all possible linear policies.  I just took a few and plotted them to give you a sense of what I am talking about--there are too many to plot on this single graph. What we really need to do is take a range of plausible $b_{lrp}$ and $c_{slope}$ values, and then test each possible combination of these values.
+
+You can, however, visualize or think about the solution space of all possible linear harvesting policies in terms of a matrix: 
+
+```{r, , message = FALSE, warning=FALSE}
+# get all combinations of blrp, cslope
+my_grid <- expand.grid(b_lrp = b_lrp, c_slope = c_slopes)
+
+my_grid %>%
+  ggplot(aes(x = b_lrp, y = c_slope)) + 
+  geom_point() + 
+  geom_point(data = my_lines, aes(x = b_lrp, y = c_slopes), 
+             colour = "red") + 
+  xlab("possible lower limit reference points") + 
+  ylab("posible cslope values") + 
+  ggtitle("The `space` of all possible simple linear policies")
+
+# red points identify the subset of policies from the previous line plot
+# black points are policies that weren't plotted on the previous line plot
+```
+
+The key thing to recognize is that each possible combination of $b_{lrp}$ and $c_{slope}$ defines a single harvest policy.  We want to test the performance of each of these policies, so we need to figure out a range of policies to iterate across for each lake.
+
+The next chunk of simulation code does declares a possible range of $b_{lrp}$ and $c_{slope}$ values: 
+
+```{r, eval=FALSE}
+bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) 
+```
+
+Here, we are just setting the maximum $b_{lrp}$ value at $B_0$, which is the biomass vulnerable to fishing in the unfished condition and is which calculated as the sum product of survivorship at age, fishing vulnerability at age, and relative weight at age: 
+
+\begin{align}
+ B_0 &=  R_0 \cdot \sum_{age = 2}^{age = 20} L_{o_a} \cdot v_{f_a} \cdot w_a
+\end{align}
+
+It should make intuitive sense that we would say that the lower limit reference point shouldn't be higher than $B_0$, or at least I hope this is intuitive.  The next chunk of code in this hog of a function is: 
+
+
+```{r, eval=FALSE}
+
+if (which_lake == "calling lake") {
+    bmin_max_value <- 100
+    } else {
+    bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
+}
+c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
+bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2))
+bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
+bmin_seq <- c(bmin_seq_low, bmin_seq_high)
+```
+
+Can you figure out what this is doing? 
+
+
 
 
 
@@ -502,6 +588,8 @@ Gelman et al. 2013. Bayesian Data Analsyis.
 Larkin. Epitaph on Maximum Sustainable Yield.
 
 Moxnes XXXX. 
+
+Restrepo XXXX. Precautionary stuff.
 
 Walters and Hilborn 1976. Adaptive control of fishing systems. 
 
