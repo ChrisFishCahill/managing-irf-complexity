@@ -631,9 +631,11 @@ The next thirty lines of code are where a bunch of important stuff happens.  In 
 
 There are many ways we could proceed with this.  We could, for example, simply repeat the $w_t$ sequence some number of times into the future.  In fact, Carl and I have done exactly this for pink shrimp fisheries in British Columbia, because we have longer time series of trustworthy recruitment anomaly estimates for these fisheries (e.g., 30+ years).
 
-It was our opinion after examining the data and model outputs for Alberta walleye that it would be better to model recruitment 
+It was our opinion after examining the data and model outputs for Alberta walleye that it would be better to model recruitment as something of a weighted average between the original estimated $w_t$ values and a 
 
-![picture \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
+
+
+![picture \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
 
 
 
