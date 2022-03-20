@@ -1,7 +1,7 @@
 ---
 title: "Developing Harvest Control Rules for Alberta Walleye Fisheries"
-author: "Christopher L. Cahill & Carl J. Walters"
-date: "14/03/2022"
+author: "Christopher L. Cahill and Carl J. Walters"
+date: "20 March 2022 "
 output:
   pdf_document: default
   html_document: default
@@ -50,7 +50,7 @@ In the oversimplified case of the autopilot system, the goal is not to crash.  I
 
 A great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal policies generally decrease harvest rate when population size declines, and increase it as population size increases. These findings have often come from dynamic programming solutions, and the solutions for these particular problems are often simple functions of harvestable abundance or biomass.  This finding appears general and was surprising--it was generally believed that complex policies would be required to manage complex ecological systems.  However, work on harvesting theory during the 1970-80s showed that simple policies performed well or were even optimal in many situations (e.g., Walters 1975; Walters and Hilborn 1978; Mangel XXXX; Clark XXXX; Moxnes XXXX).  
 
-A limitation of dynamic programming and the related methods discussed above is that these approaches can only be applied to relatively simple models and management objectives.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use with such methods. Consequently, we will instead use a simulation technique known as optimization in policy space to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX) for the BERTA models.
+A limitation of dynamic programming and the related methods discussed above is that these approaches can only be applied to relatively simple models and management objectives.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use with such methods. Consequently, we will instead use a simulation technique known as approximation in policy space to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX; new fancy book) for the BERTA models.
 
 We briefly hit on this above, but there is one more difficulty facing us and that is that there are multiple (often conflicting) objectives in resource management. We note that the management strategy simulation approach we use in this tutorial can cope with this issue quite nicely if folks have explicit objectives. 
 
@@ -78,7 +78,7 @@ In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is 
 
 This scenario implies $pp = 0.57$.  You can calculate someone's $pp$ by asking how much guaranteed reward (catch, income) they would need to receive before they were unwilling to take the "unsure" bet--so if you said your $X = 20,000$ dollars (or catch of fish), your $pp$ would be 
 
-$$pp = ln(0.5) / (ln(20) - ln(100)) = 0.43$$
+$$pp = \frac{ln(0.5)}{(ln(20) - ln(100))} = 0.43$$
 
 And note that we have substituted "20" for 20,000 and "100" for 100,000 because the math works out to be the same.  When we ask fishermen what $X$ they would need to not fish, typical answers have been in the 20,000-30,000 range, i.e. having some income or catch is much more important than maximizing average income if that means having highly variable income or catch. When framed this way, HARA utility is a powerful tool for capturing aversion to variability in catch. 
 
@@ -474,7 +474,7 @@ my_lines %>%
   scale_y_continuous(limits = c(0, 20)) +
   ylab("Total allowable catch (kg/ha)") + 
   xlab("Biomass of finned critters vulnerable to fishing (kg/ha)") + 
-  ggtitle("Thinking about a few possible linear policies")  
+  ggtitle("Visualizing a few possible linear policies")  
 ```
 
 Each of these lines has a specific lower limit reference point $b_{lrp}$ and a slope to that particular line $c_{slope}$.  What we need to do then, is test each of these policies against our simulation and see which one wins in terms of achieving our objective(s). 
@@ -483,24 +483,24 @@ Note that this is not all possible linear policies.  I just took a few and plott
 
 You can, however, visualize or think about the solution space of all possible linear harvesting policies in terms of a matrix: 
 
-```{r, , message = FALSE, warning=FALSE}
+```{r, message = FALSE, warning=FALSE}
 # get all combinations of blrp, cslope
 my_grid <- expand.grid(b_lrp = b_lrp, c_slope = c_slopes)
 
 my_grid %>%
   ggplot(aes(x = b_lrp, y = c_slope)) + 
-  geom_point() + 
+  geom_point(size=0.5) + 
   geom_point(data = my_lines, aes(x = b_lrp, y = c_slopes), 
              colour = "red") + 
   xlab("possible lower limit reference points") + 
   ylab("posible cslope values") + 
-  ggtitle("The `space` of all possible simple linear policies")
+  ggtitle("The continuous space of all possible simple linear policies")
 
 # red points identify the subset of policies from the previous line plot
 # black points are policies that weren't plotted on the previous line plot
 ```
 
-The key thing to recognize is that each possible combination of $b_{lrp}$ and $c_{slope}$ defines a single harvest policy.  We want to test the performance of each of these policies, so we need to figure out a range of policies to iterate across for each lake.
+The key thing to recognize is that each possible combination of $b_{lrp}$ and $c_{slope}$ defines a single harvest policy (i.e., each point on the plot).  We want to test the performance of each of these policies, so we need to figure out a range of policies to iterate across for each lake.
 
 The next chunk of simulation code does declares a possible range of $b_{lrp}$ and $c_{slope}$ values: 
 
@@ -524,20 +524,120 @@ if (which_lake == "calling lake") {
     } else {
     bmin_max_value <- ifelse(bmin_max_value > 75, 75, bmin_max_value)
 }
-c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
+c_slope_seq <- seq(from = 0.01, to = 1.0, length.out = round(grid_size / 2))
 bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2))
-bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
+bmin_seq_high <- seq(from = 20.5, to = bmin_max_value, 
+                     length.out = grid_size - length(bmin_seq_low))
 bmin_seq <- c(bmin_seq_low, bmin_seq_high)
 ```
 
-Can you figure out what this is doing? 
+First, we are setting up a simple conditional statement to handle `bmin_max_value` for situations where it gets too high. This is ugly, and required different condition handling for calling lake vs. other systems for reasons we can talk about in our tutorial in person. 
+
+Next, we are setting up a sequence of $c_{slope}$ values.  Then we do something weird relative to what I have shown you.  If you look closely, we are setting up two $b_{lrp} sequences, and then smushing them together.  If you read code, you'll see that we are stacking half of the lower limit reference points for our policies in the range of 0-20, and half in the range 20.5-bmin_max_value.  
+
+We can actually visualize what this is actually doing by picking some values for the `grid_size` and `bmin_max_value` parameters:
+
+```{r, message = FALSE, warning=FALSE}
+grid_size = 75
+bmin_max_value <- 50 #let's just pick this to show what's happening
+c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
+bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2))
+bmin_seq_high <- seq(from = 20.5, to = bmin_max_value, 
+                     length.out = grid_size - length(bmin_seq_low))
+bmin_seq <- c(bmin_seq_low, bmin_seq_high)
+# get all combinations of blrp, cslope
+my_grid <- expand.grid(b_lrp = bmin_seq, c_slope = c_slope_seq)
+
+my_grid %>%
+  ggplot(aes(x = b_lrp, y = c_slope)) + 
+  geom_point(size=0.25) + 
+  xlab("lower limit reference points") + 
+  ylab("cslope") + 
+  ggtitle("Policies to test")
+
+```
+
+And if you look closely you can see that this code is stacking more points (policies) into the lower portion of this plot.  We did this for computational purposes.  We wanted more resolution at low stock sizes, and wanted to maintain some sort of computational efficiency.  Thus, we stacked more policies to test in the lower portion of that plot. 
+
+Remember, the specific linear policies for a lake depend on a given lake's estimated $R_0$ (see above) and won't necessarily correspond to these points here. 
+
+So now we basically just need to loop through each of these policies, run our simulation (for some number of draws from the posterior, and some number of years into the future.  We jump into this bit of the simulation script now.
+
+```{r, eval=FALSE}
+tot_y <- tot_u <- prop_below <- TAC_zero <-
+  matrix(0, nrow = length(c_slope_seq), ncol = length(bmin_seq))
+yield_array <- vB_fish_array <-
+  array(0, dim = c(length(c_slope_seq), length(bmin_seq), n_sim_yrs))
+wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
+```
+
+This is just us creating a bunch of empty matrices and a couple of 3d arrays that we will fill below in the loops of misery (below).  If you are not used to arrays, you can think of a 3 dimensional array like a book where each page is a matrix with rows and columns.  
+
+We need 3d arrays for some of our model output.  For example, saving output for MAY or HARA utility for each year in our simulation and for each $c_{slope}$, $b_{lrp}$ combination requires three dimensions. 
+
+## The loops of misery
+
+Here's where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting it up to run our simulation.  So now we just need to run our simulation over some time horizon for each policy (determined in this case by the  $c_{slope}$, $b_{lrp}$ combinations), for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
+
+```{r, eval=FALSE}
+#----------------------------------------------------------------------
+# run retrospective simulation for each cslope, bmin, draw, and sim yr
+#----------------------------------------------------------------------
+for (i in seq_along(c_slope_seq)) {
+  c_slope <- c_slope_seq[i]
+  for (j in seq_along(bmin_seq)) {
+    b_lrp <- bmin_seq[j]
+    set.seed(24) # challenge each bmin, cslope combo with same set of rec seqs
+    wt_re_mat <- matrix(rnorm(n = n_sim_yrs * n_draws, mean = 0, sd = sd_wt), 
+                        nrow = n_sim_yrs, ncol = n_draws) # generate random deviates
+    for (k in seq_len(n_draws)) {
+      # pick a single draw
+      sub_post <- subset(post, post$.draw == unique(post$.draw)[k])
+      # lots more code below...
+```
+
+In words, this code is doing the following:
+
+- For each $c_{slope}$ i 
+
+- For each $b_{lrp}$ j 
+
+- Set the random number generator seed (ensures all simulations are comparable)
+
+- Generate a matrix of random deviates called `wt_re_mat`, with dimensions of the number of simulation years and the number of draws from the posterior
+
+- For each draw of the posterior k 
+
+- Set up a bunch of stuff based on this specific draw to use in your simulation (not shown -- code below)
+
+So as we have been saying, we are going to run our simulation for each of these things.
+
+The next bit of code takes a specific draw of the posterior, and uses it to set some more parameters and variables before we begin to loop through each year of our simulation, t: 
+
+```{r, eval=FALSE}
+# set leading parameters from sampled draw
+rec_a <- exp(sub_post$ln_ar[1])
+rec_b <- sub_post$br[1]
+Ro <- sub_post$Ro[1]
+sbo <- Ro * sbro
+vbo <- Ro * vbro
+```
+
+Here we are plucking out the recruitment $\alpha$ and $\beta$ parameters and the average number of recruits in the unfished condition $R_0$ from one draw of the posterior.  We then calculate two derived variables `sbo` and `vbo`, which correspond to the total spawner biomass in the unfished condition and the biomass vulnerable to fishing in the unfished condition, respectively. We'll need these for our age structured calculations below.
+
+## Setting up the recruitment anomaly sequences
+
+The next thirty lines of code are where a bunch of important stuff happens.  In particular, we set the recruitment anomaly sequences in this chunk of code.  Remember, we have $w_t$ values for 1990-2015 because we subsetted the estimated $w_t$'s for these years.  This means we have 26 years of estimated recruitment anomalies. 
+
+There are many ways we could proceed with this.  We could, for example, simply repeat the $w_t$ sequence some number of times into the future.  In fact, Carl and I have done exactly this for pink shrimp fisheries in British Columbia, because we have longer time series of trustworthy recruitment anomaly estimates for these fisheries (e.g., 30+ years).
+
+It was our opinion after examining the data and model outputs for Alberta walleye that it would be better to model recruitment 
+
+![picture \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
 
 
 
-
-
-
-## junk writing garbage can 
+## junk writing 
 
 A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
 
