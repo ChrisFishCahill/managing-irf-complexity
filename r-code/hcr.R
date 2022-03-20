@@ -153,7 +153,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
   }
   c_slope_seq <- seq(from = 0.0, to = 1.0, length.out = round(grid_size / 2))
   bmin_seq_low <- seq(from = 0, to = 20, length.out = round(grid_size / 2))
-  bmin_seq_high <- seq(from = 21, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
+  bmin_seq_high <- seq(from = 20.5, to = bmin_max_value, length.out = grid_size - length(bmin_seq_low))
   bmin_seq <- c(bmin_seq_low, bmin_seq_high)
 
   if (rule == "rectilinear") {
