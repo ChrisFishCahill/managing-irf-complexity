@@ -1,5 +1,5 @@
 ---
-title: "A Harvest Control Rule Simulation Framework for Alberta Walleye Fisheries"
+title: "A Simulation Framework to Evaluate Harvest Control Rules for Alberta Walleye Fisheries"
 author: "Christopher L. Cahill and Carl J. Walters"
 date: "20 March 2022 "
 output:
