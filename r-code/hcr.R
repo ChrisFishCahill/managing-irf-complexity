@@ -193,6 +193,9 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
         wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
+        
+        # set wt = BERTA estimated values for yrs 1-26
+        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
 
         # set the random effect vector
         wt_re <- wt_re_mat[, k]
@@ -206,12 +209,8 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
           wt_sim[t + 1] <- rho * wt_sim[t] + wt_re[t + 1]
         }
 
-        # set wt = BERTA estimated values for yrs 1-26
-        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
-
         # calculate wt differently for yrs 26 +
         for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
-          # for(t in 1:n_sim_yrs){ # t = 1 to 208
           wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
         }
 
