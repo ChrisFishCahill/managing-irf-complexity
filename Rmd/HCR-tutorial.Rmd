@@ -237,6 +237,8 @@ Before we start jumping through this function line by line, I want you to look a
 
 Please note you don't have to know what all of this is doing yet.  The main reason to show you this is that there is eventually going to be stuff in our R environment (a bunch of simulation control parameters and our Bayesian model fits in list form) that our `get_hcr()` function is going to interact with.  If I didn't show you this up front, you might get confused as we work through the function. So keep that in mind.
 
+Lastly, you're going to have to realize that we developed this script over several months, and there were quite literally hundreds of emails flying back and forth between us.  This means that some things might not make a ton of sense right up front in terms of the code, because I tried to code things efficiently.  I'm trying to condense those emails down into something of a cookbook recipe for you to follow, at least for Alberta Walleye.  Sometimes that is quite challenging, so please bear with me... 
+
 The first chunk of code in `get_hcr()` is the following: 
 
 ```{r, eval=FALSE}
@@ -606,19 +608,17 @@ for (i in seq_along(c_slope_seq)) {
 
 In words, this code is doing the following:
 
-- For each $c_{slope}$ i 
+- For each $c_{slope}$ i, pick one $c_{slope}$ 
 
-- For each $b_{lrp}$ j 
+- For each $b_{lrp}$ j, pick one $b_{lrp}$
 
 - Set the random number generator seed (ensures all simulations are comparable)
 
-- Generate a matrix of random deviates called `wt_re_mat`, with dimensions of the number of simulation years and the number of draws from the posterior
+- Generate a matrix of random deviates called `wt_re_mat`, with dimensions of the number of simulation years and the number of draws from the posterior (we will use this below)
 
-- For each draw of the posterior k 
+- For each draw of the posterior k, subset the posterior for that specific draw
 
 - Set up a bunch of stuff based on this specific draw to use in your simulation (not shown -- code below)
-
-So as we have been saying, we are going to run our simulation for each of these things.
 
 The next bit of code takes a specific draw of the posterior, and uses it to set some more parameters and variables before we begin to loop through each year of our simulation, t: 
 
@@ -680,22 +680,89 @@ wt_bar <- mean(wt_historical)
 wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
 wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
 
+# set wt = BERTA estimated values for yrs 1-26
+wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
+
 ```
 
 We are mean-centering the historical recruitment series by calculating and then subtracting off `wt_bar` from each historical $w_t$ sequence during 1990-2015.  We do this so that we do not do anything silly like assume recruitment was trending upward or downward in the initialization period.  This avoids a hidden or implicit assumption that productivity was shifting through time (i.e., we need to make sure that when we select our 1990-2015 $w_t$ values that they were not larger or smaller on average than our whole model fitting period (from 1980-2018). 
 
-Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we just repeat the sequence `n_repeats` number of times.  This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model. Note that we are limited to the historical 26 year reference period for our management strategy simulations.  In all our simulations we set this at 8 repeats, and so simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye around 200+ years. 
+Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we repeat the sequence `n_repeats` times.  Note that we are limited to the historical 26 year reference period for our management strategy simulations.  In all our simulations we set this at 8 repeats, and so simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye around 200+ years. This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model.
 
-The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
+Also, a side note: the reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
 
-If you think about it, we cannot "see" any longer term patterns or event occurrences than have been visible during the historical reference period.  In this regard, we are to some extent beholden to our historical experiences with a given stock or fishery.  
+Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. Next we set up the autoregressive simulated $w_{t_{sim}}$ deviates:
 
-Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. 
+```{r, eval=FALSE}
+ # set the random effect vector
+ wt_re <- wt_re_mat[, k]
 
+ # generate auto-correlated w(t)'s
+ wt_sim <- wt <- rep(NA, length(wt_historical))
+ wt_sim[1] <- wt_re[1] # initialize the process for t = 1
 
-![Examples of estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future.  Note the simulated values are modeled as an average of the estimated sequence during 1990-2015 and an autocorrelated process that we specified to give recruitment series that were qualitatively similar to those we estimated in the Bayesian models.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
+ # create autoregressive wt_sim[t]
+ for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # t = 1 to 207
+   wt_sim[t + 1] <- rho * wt_sim[t] + wt_re[t + 1]
+ }
+```
 
+Recall here that we filled the whole `wt_re_mat` in line 179 above, and we did it this way for two reasons. One, we wanted to use the same deviates (we need to test the harvest control rules against the same unpredictable recruitment sequences).  The other reason we did this is because it is faster to do it this way. 
 
+We first initialize  $w_{t=1_{sim}}$ using the first value of `wt_re`, and then we use a for loop to set up the rest of our autoregressive $w_{t_{sim}}$ deviates.  Fun stuff.  
+
+We then calculate the new $w_t$ values that we want to use for this specific draw of the posterior--i.e., these are the recruitment anomaly values we will use for one run of our simulation.
+
+```{r, eval=FALSE}
+
+# calculate wt differently for yrs 26 +
+for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
+  wt[t] <- psi_wt * wt_historical[t] + (1 - psi_wt) * wt_sim[t]
+}
+
+```
+
+And so this code represents the technical implementation of equation 4 above.  You can work through the math on your own sometime and play around with the parameters, but the key point is this helps us generate reasonable recruitment time-series into the future.  These distributions appear to have similar statistical properties as do the original estimated values.  For example, if we randomly select 30 draws of the recruitment estimates from Baptiste lake, and then simulate future recruitment using these rules and steps, we get the following:
+
+![Estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future using the recruitment deviation rules.  Note the simulated values are modeled as a weighted average of the estimated sequence during 1990-2015 that is repeated through time and an autocorrelated stochastic process.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
+
+Next up, we just do a bunch more bookkeeping: 
+
+```{r, eval=FALSE}
+  # extract the initial age structure
+  Ninit <- sub_post[
+    which(sub_post$year == retro_initial_yr),
+    which(colnames(sub_post) %in% ages)
+  ] %>%
+    slice() %>%
+    unlist(., use.names = FALSE)
+
+  Rinit_yr_2 <- sub_post[
+    which(sub_post$year == retro_initial_yr + 1),
+    which(colnames(sub_post) == 2)
+  ] %>%
+    slice() %>%
+    unlist(., use.names = FALSE)
+
+  # nta matrix
+  nta <- matrix(NA, nrow = length(wt) + 2, ncol = length(ages)) # recruit @ age 2
+
+  # SSB, Rpred, vulnerable biomass vectors
+  SSB <- Rpred <- vB_fish <- vB_survey <- rep(0, length(wt))
+  nta[1, ] <- Ninit # initialize from posterior for retro_initial_yr
+  nta[2, 1] <- Rinit_yr_2
+  t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
+```
+
+In words, this is extracting the intiial numbers at age from the posterior in the year corresponding to 1990, and then saving it as a vector named `Ninit`. Next, we do the same thing for age-2 recruits in 1991, and call this `Rinit_yr_2`. We do this because we actually have to initialize our recruitment models for two years because we are assuming critters recruit at age two. 
+
+Next up, we make a numbers at age matrix called `nta`, with dimensions 208 (years/rows) by 19 (ages 2-20, columns. We then declare some vectors `SSB`, `Rpred`, `vB_fish`, and `vB_survey`, and fill in or initialize the first couple values of `nta`.  
+
+Lastly, we declare a term called `t_last_ass`, which is basically keeping track of when the last assessment was.  We'll have some cool conditional statements below that use this counter to figure out how often to assess a walleye fishery.  
+
+Okay, everything up to now is simply setting up the estimates from our Bayesian model, organizing and figuring out how to deal with the recruitment anomalies, and a bunch of bookkeeping crud just so that we can actually run our simulation models. That's pretty wild if you take a few minutes to stop and think about it.
+
+## Loops of misery, continued
 
 
 
