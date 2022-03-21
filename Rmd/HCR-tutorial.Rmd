@@ -760,13 +760,100 @@ Next up, we make a numbers at age matrix called `nta`, with dimensions 208 (year
 
 Lastly, we declare a term called `t_last_ass`, which is basically keeping track of when the last assessment was.  We'll have some cool conditional statements below that use this counter to figure out how often to assess a walleye fishery.  
 
-Okay, everything up to now is simply setting up the estimates from our Bayesian model, organizing and figuring out how to deal with the recruitment anomalies, and a bunch of bookkeeping crud just so that we can actually run our simulation models. That's pretty wild if you take a few minutes to stop and think about it.
-
 ## Loops of misery, continued
 
+Now we will begin simulating our age-structured population dynamics model into the future.  Finally.  Everything up to now was setting up the estimates from our Bayesian model, organizing and figuring out how to deal with the recruitment anomalies, and a bunch of bookkeeping crud just so that we can actually run our simulation models. That's pretty wild if you stop and think about it.
+
+```{r, eval=FALSE}
+ # run age-structured model for sim years
+for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # years 1 to (n_sim_year-1)
+  SSB[t] <- sum(nta[t, ] * f_a * w_a)
+  vB_fish[t] <- sum(nta[t, ] * v_fish * w_a * ret_a) # without ret_a, overestimate yield
+  vB_survey[t] <- sum(nta[t, ] * v_survey * w_a)
+  # more code below...
+```
+
+These lines of code are looping through t = 1 to year 207 of the simulation, and then setting the values of spawning stock biomass `SSB`, vulnerable biomass (fishing) `vB_fish`, and vulnerable biomass (survey) `vB_survey`. The math for these terms can be found in the previous tutorial if you would like to see it. We will talk about the `ret_a` term below, when we discuss the catch and release mortality component.  For now just ignore it. 
+
+The next if statement determines whether an assessment was run, which depends on the simulation parameter `ass_int`.  Let's assume now this value is set at `ass_int` = 1, so a survey is occuring every year: 
+
+```{r, eval=FALSE}
+if (t - t_last_ass == ass_int) { # assess every ass_int yrs
+    t_last_ass <- t
+    # note -0.5*(0.1)^2 corrects exponential effect on mean observation:
+    vB_obs <- vB_fish[t] * exp(sd_survey * (rnorm(1)) - 0.5 * (sd_survey)^2)
+    # more code below...
+```            
+
+When a survey is triggered, we first reset the value t_last_ass, to make sure that we are triggering assessments at the desired `ass_int` interval. We then randomly sample the population to get an estimate of the biomass vulnerable to fishing--we assume this alue is lognormally distributed with error term $\sigma_{survey}$. This is the value of the x-axis for vulnerable biomass that we will use set up our specific control rule. 
+
+This can be done as follows:
+
+```{r, eval=FALSE}
+if (rule == "linear") {
+  TAC <- c_slope * (vB_obs - b_lrp)
+}
+```
+
+And this is exactly how we calculated this total allowable catch or `TAC` up in the first plot of the tutorial, with the exception that we are now assuming uncertainty in the x-axis measurement. 
+
+There is a chunk of code below this that only applies when the harvest control rule is rectilinear in form.  Ignore this for now.  
+
+So we'll jump down to line 
+
+```{r, eval=FALSE}
+if (TAC < 0) {
+  TAC <- 0
+}
+Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
+```
+
+The first chunk of this is handling the `TAC` variable to ensure it doesn't go below zero.  You can't harvest fewer than zero fish, so this should make some sense. 
+
+The next line calculates the exploitation rate in year t $U_t$ using an ifelse() statement. It says that exploitation rate is equal to the `TAC` divided by the biomass vulnerable to fishing in year t if this calculation is less than a new term `Ut_overall`.  If this rate gets higher than `Ut_overall`, we set $U_t$ to `Ut_overall`.  
+
+We set `Ut_overall` near the value we used for our $F_{early}$ prior in the Bayesian model.  Our rationale for this was that it was unlikely that angling alone would result in exploitation rates higher than values observed during the invisible collapse (see Post et al. 2002, Sullivan 2003), when angling was virtually unrestricted.  This is particularly true because many of these fisheries were also harvested via recreational and commercial netting during this period, which is not the case now.
+
+Next, we set up an additional variable called `rett`.  We will use this variable below when we deal with catch and release mortality.  We calculate the `rett` term as
+
+```{r, eval=FALSE}
+
+rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
+
+```
+
+The `rett` term is just the annual retention proportion.  You cannot retain more than 100% of the fish, or something. Hell, I don't know. 
 
 
 
+```{r, eval=FALSE}
+
+            
+            if (rule == "rectilinear") {
+              b_lrp <- 0.4 * B_may
+              u_lrp <- 0.8 * B_may
+              Ut <- U_may * (vB_obs - b_lrp) / (u_lrp - b_lrp)
+              if (Ut < 0) {
+                Ut <- 0
+              }
+              if (Ut > U_may) {
+                Ut <- U_may
+              }
+              TAC <- Ut * vB_obs
+            }
+
+            if (TAC < 0) {
+              TAC <- 0
+            }
+            Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
+          }
+          rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
+          if (any(rett * ret_a > 1)) {
+            message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
+            break
+          }
+          
+```
 
 ## junk writing 
 
@@ -826,7 +913,11 @@ Larkin. Epitaph on Maximum Sustainable Yield.
 
 Moxnes XXXX. 
 
+Post et al. 2002. Invisible Collapse.
+
 Restrepo XXXX. Precautionary stuff.
+
+Sullivan 2003. 
 
 Walters and Hilborn 1976. Adaptive control of fishing systems. 
 
