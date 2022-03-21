@@ -1,5 +1,5 @@
 ---
-title: "Developing Harvest Control Rules for Alberta Walleye Fisheries"
+title: "A Harvest Control Rule Simulation Framework for Alberta Walleye Fisheries"
 author: "Christopher L. Cahill and Carl J. Walters"
 date: "20 March 2022 "
 output:
@@ -8,12 +8,11 @@ output:
 highlight: tango
 urlcolor: blue
 ---
-# IN PROGRESS--Cahill must finish by March 31
-
 ## TODO
 - parellel ordering of MAY / HARA
 - Carl's point about including precautionary rules
 - proofread -- check citations
+- finish by end of fiscal
 
 ## Purpose 
 The purpose of this tutorial is to develop a management strategy evaluation or simulation framework that can be used to evaluate harvest control rules for any of the Alberta Walleye fisheries assessed in Cahill et al. 2021 using either yield or catch-based objectives. 
@@ -72,13 +71,18 @@ While such policies maximize the average yield that can be taken from dynamic, u
 
 Hyperbolic Absolute Risk Aversion for catch (herein-after, HARA) is an objective that values consistency in catch through time from the perspective of a harvester.  It is critical to include risk-averse utility for catch as a performance measure representing the interests of stakeholders and harvesters so as to explicitly consider stakeholder interests. The simplest way to do this is to calculate utility each year using a hyperbolic absolute risk averse utility function, which boils down to the following equation:
 
-$$ utility_t = catch_t^{pp} $$
+\begin{align}
+utility_t = catch_t^{pp}
+\end{align}
+
 
 In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is a risk aversion parameter that for most people is near 0.3-0.5. You can empirically assess $pp$ by asking people to choose between two income options: a 50:50 gamble between 0 and 100,000 dollars, or a sure income of around 30,000 dollars. The expected value of the income outcome of the 50:50 gamble is 50,000 (i.e., 1/2 * 100,000), but most people will choose a guaranteed income of around 30,000 dollars vs. the 50:50 chance at winning the 100,000 dollars (myself included).  
 
 This scenario implies $pp = 0.57$.  You can calculate someone's $pp$ by asking how much guaranteed reward (catch, income) they would need to receive before they were unwilling to take the "unsure" bet--so if you said your $X = 20,000$ dollars (or catch of fish), your $pp$ would be 
 
-$$pp = \frac{ln(0.5)}{(ln(20) - ln(100))} = 0.43$$
+\begin{align}
+pp = \frac{ln(0.5)}{(ln(20) - ln(100))} = 0.43
+\end{align}
 
 And note that we have substituted "20" for 20,000 and "100" for 100,000 because the math works out to be the same.  When we ask fishermen what $X$ they would need to not fish, typical answers have been in the 20,000-30,000 range, i.e. having some income or catch is much more important than maximizing average income if that means having highly variable income or catch. When framed this way, HARA utility is a powerful tool for capturing aversion to variability in catch. 
 
@@ -491,13 +495,13 @@ my_grid %>%
   ggplot(aes(x = b_lrp, y = c_slope)) + 
   geom_point(size=0.5) + 
   geom_point(data = my_lines, aes(x = b_lrp, y = c_slopes), 
-             colour = "red") + 
+             colour = "steelblue") + 
   xlab("possible lower limit reference points") + 
   ylab("posible cslope values") + 
-  ggtitle("The continuous space of all possible simple linear policies")
+  ggtitle("The policy space for possible simple linear HCRs")
 
-# red points identify the subset of policies from the previous line plot
-# black points are policies that weren't plotted on the previous line plot
+# blue points identify the subset of policies from the previous line plot
+# black points are additional policies that weren't plotted on the previous plot
 ```
 
 The key thing to recognize is that each possible combination of $b_{lrp}$ and $c_{slope}$ defines a single harvest policy (i.e., each point on the plot).  We want to test the performance of each of these policies, so we need to figure out a range of policies to iterate across for each lake.
@@ -533,9 +537,11 @@ bmin_seq <- c(bmin_seq_low, bmin_seq_high)
 
 First, we are setting up a simple conditional statement to handle `bmin_max_value` for situations where it gets too high. This is ugly, and required different condition handling for calling lake vs. other systems for reasons we can talk about in our tutorial in person. 
 
-Next, we are setting up a sequence of $c_{slope}$ values.  Then we do something weird relative to what I have shown you.  If you look closely, we are setting up two $b_{lrp} sequences, and then smushing them together.  If you read code, you'll see that we are stacking half of the lower limit reference points for our policies in the range of 0-20, and half in the range 20.5-bmin_max_value.  
+Next, we are setting up a sequence of $c_{slope}$ values.  Then we do something weird relative to what I have shown you.  If you look closely, we are setting up two $b_{lrp}$ sequences, and then smushing them together.
 
-We can actually visualize what this is actually doing by picking some values for the `grid_size` and `bmin_max_value` parameters:
+If you read code, you'll see that we are stacking half of the lower limit reference points for our policies in the range of 0-20, and half in the range 20.5-bmin_max_value.  
+
+Let's actually visualize what this is actually doing by picking some values for the `grid_size` and `bmin_max_value` parameters and just plotting it:
 
 ```{r, message = FALSE, warning=FALSE}
 grid_size = 75
@@ -552,14 +558,14 @@ my_grid %>%
   ggplot(aes(x = b_lrp, y = c_slope)) + 
   geom_point(size=0.25) + 
   xlab("lower limit reference points") + 
-  ylab("cslope") + 
-  ggtitle("Policies to test")
+  ylab("cslope values") + 
+  ggtitle("Linear HCR policies to test")
 
 ```
 
-And if you look closely you can see that this code is stacking more points (policies) into the lower portion of this plot.  We did this for computational purposes.  We wanted more resolution at low stock sizes, and wanted to maintain some sort of computational efficiency.  Thus, we stacked more policies to test in the lower portion of that plot. 
+If you look closely you can see that this code is stacking more points (policies) into the lower portion of this plot.  We did this for computational purposes.  We wanted more resolution at low stock sizes for the harvest control rule simulation, and wanted to maintain some sort of computational efficiency.  Thus, we chose more policies to test in the lower portion of the above plot. 
 
-Remember, the specific linear policies for a lake depend on a given lake's estimated $R_0$ (see above) and won't necessarily correspond to these points here. 
+Remember, the specific linear policies for a lake depend on a given lake's estimated $R_0$ (see above) and won't necessarily correspond to these points here. This plot is just giving you a general idea of what that damn code is doing.
 
 So now we basically just need to loop through each of these policies, run our simulation (for some number of draws from the posterior, and some number of years into the future.  We jump into this bit of the simulation script now.
 
@@ -577,7 +583,7 @@ We need 3d arrays for some of our model output.  For example, saving output for 
 
 ## The loops of misery
 
-Here's where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting it up to run our simulation.  So now we just need to run our simulation over some time horizon for each policy (determined in this case by the  $c_{slope}$, $b_{lrp}$ combinations), for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
+Here's where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting it up to run our simulation.  So now we just need to run our simulation over some finite time horizon for each policy (determined in this case by the  $c_{slope}$, $b_{lrp}$ combinations) and for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
 
 ```{r, eval=FALSE}
 #----------------------------------------------------------------------
@@ -627,21 +633,102 @@ Here we are plucking out the recruitment $\alpha$ and $\beta$ parameters and the
 
 ## Setting up the recruitment anomaly sequences
 
-The next thirty lines of code are where a bunch of important stuff happens.  In particular, we set the recruitment anomaly sequences in this chunk of code.  Remember, we have $w_t$ values for 1990-2015 because we subsetted the estimated $w_t$'s for these years.  This means we have 26 years of estimated recruitment anomalies. 
+The next thirty lines of code are where a bunch of critical stuff happens.  In particular, this is where we set the unpredictable recruitment anomaly sequences that we test our policies against.  Recall that we have $w_t$ values for 1990-2015.  This means we have 26 years of estimated recruitment anomalies. 
 
-There are many ways we could proceed with this.  We could, for example, simply repeat the $w_t$ sequence some number of times into the future.  In fact, Carl and I have done exactly this for pink shrimp fisheries in British Columbia, because we have longer time series of trustworthy recruitment anomaly estimates for these fisheries (e.g., 30+ years).
+Given these estimates, there are many ways one could proceed.  We could, for example, simply repeat the estimated $w_t$ sequence some number of times into the future.  In fact, we did this for pink shrimp problem we were working on over the fall.  For the pink shrimp problem, we had longer time series of trustworthy recruitment estimates (e.g., 40 + years) and the shrimp don't live as long as a walleye.  For this pink shrimp management strategy simulation tool, we just put the recruitment anomaly sequences end-to-end-to-end many times, and then tested performance of the various policies we were interested in.
 
-It was our opinion after examining the data and model outputs for Alberta walleye that it would be better to model recruitment as something of a weighted average between the original estimated $w_t$ values and a 
+At first we tried to do this with Alberta walleye.  We repeated the recruitment series that we estimated, but it turned out this didn't work well because there were not enough recruitment estimates to make the harvest control rule simulation reliable. Thus, we had to figure out a workaround for this issue.
+
+While we could not simply repeat the historical sequences for the walleye problem, it is critical to note there is still useful information in the historical $w_t$ sequences that can be exploited to inform our policy simulation. For example the historical 26 year estimated $w_t$ sequence provides at least some information on the relative frequency of strong and weak year classes, year class magnitude, and on the autocorrelation structure in recrutiment for a given lake. 
+
+Because we only have 26 years of recruitment estimates for a fish that lives to around 15-20 years, about the only thing we can be sure of is that the next 26 years will almost certainly not be an exact repeat of the last 26.  Given these ideas, we came up with the following rules to generate plausible future recruitment patterns for Alberta walleye:
+
+1. We will start by generating a repeating historical sequence of $w_t$ as $w_{t_{historical}}$ exactly how we did for shrimp problem above.  So we just repeat the estimated $w_t$ values `n_repeats` or 8 times x 26 years of reliable recruitment estimates = 208 total simulation years.
+
+2. Next, we'll create an entirely new autocorrelated and noisy series of where the simulation parameters for this sequence are assumed similar among lakes, call this $w_{t_{sim}}$. We'll show the math below.
+
+3. For the first 26 years of simulation, simply set $w_t$ to the first 26 estimated values in $w_{t_{historical}}$. 
+
+4. For year 27-208, calculate the remaining $w_t$ values for the simulation as
+\begin{align}
+ w_t &=  \psi_{w_t} \cdot (1 - w_{t_{historical}}) \cdot w_{t_{sim}} \text{, where } \psi_{w_t} \text{= 0.5}
+\end{align}
+
+These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. Again, this gave us recruitment anomaly sequences that looked qualitatively similar to the values we estimated. 
+
+Note we set the $w_{t_{sim}}$ values as follows: 
+\begin{align}
+ w_{t_{sim}} \sim \text{Normal(0, } \sigma_{wt} \text{)} & \text{ if t = 1} \\
+ w_{t_{sim}} = \rho \cdot w_{t-1_{sim}} + w{t_{re}} & \text{, where } w{t_{re}} \sim \text{Normal(0, } \sigma_{wt} \text{)} \text{ if t > 1}
+\end{align}
 
 
 
-![picture \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
+
+
+
+
+
+To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. In all our simulations we set this at 8 repeats, and so we our simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye is probably close to 200+ years. 
+
+The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
+
+We first extract the $w_t$ values from the posterior, and then do some calculations: 
+
+```{r, eval=FALSE}
+
+# repeat the historical recruitment series
+wt_historical <- sub_post$w
+wt_bar <- mean(wt_historical)
+wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
+wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
+
+```
+
+Here we are mean-centering the historical recruitment series by calculating and then subtracting off `wt_bar` or the average from each historical $w_t$ sequence during 1990-2015.  We do this so that we don't do anything silly like assume the recruitment was trending upward or downward in the initialization period.  This avoids a hidden or implicit assumption that productivity was shifting through time (i.e., we need to make sure that when we select our 1990-2015 $w_t$ values that they were not larger or smaller on average than our whole model fitting period (from 1980-2018). 
+
+Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we just repeat the sequence `n_repeats` number of times.  This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model. Note that we are limited to the historical 26 year reference period for our management strategy simulations.  Phrased differently, we cannot "see" any longer term patterns or event occurrences than have been visible during the reference period.  In this regard, we are to some extent beholden to our historical experiences with these a given stock or fishery.  Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. 
+
+
+
+
+One thing that we can be absolutely sure about is that the next 25 years will NOT just be a repeat of the last 25, and whatever random pattern we challenge the HCRs with will give best HCR for which we can still look retrospectively at how manager would have behaved over the historical period given the historical anomaly sequence, if we just make the first 25 simulated wt(t)’s be the historical ones.  I am getting reasonable looking future patterns (same wt standard deviation, occurrence of fairly regular peaks) when I set the w(t) pattern using the following rules:
+
+
+
+
+
+
+
+
+we then created a second 
+
+these, we then created a 
+
+
+
+with autocorrelation parameter $\rho$ equal to the average autocorrelation among recruitment estimates among lakes, which was 0.6 (we estimated it).  
+
+![Examples of estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future.  Note the simulated values are modeled as an average of the estimated sequence during 1990-2015 and an autocorrelated process that we specified to give recruitment series that were qualitatively similar to those we estimated in the Bayesian models.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
+
+We are doing our best to preserve the historical frequency of high and low year classes...
+
+Similarly, the $\sigma_{w_t}$ 
+
+
+
+e just need to preserve the observed historical frequency and severity of strong and weak year classes, i.e. avoid any stupid assumption about things being more or less variable into the future.  So for each lake, repeat the sequence estimated for that lake for the 1990-2015 period. We can “see” back to 1990 for all those lakes (including Newell and Pigeon, just had low recruitments not highly uncertain ones), and cannot see after 2015 or 6 since only weak observations of younger fish.  That gives us a 25 year reference period for each lake, will just have to warn them that we can’t see any longer term patterns or event occurrances than have been visible during the reference period.
+
+
+
 
 
 
 ## junk writing 
 
 A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
+After examining the data and model outputs for Alberta walleye in detail it seemed more appropriate to model recruitment anomalies into the future as a weighted average between the original estimated $w_t$ values and another autocorrelated time series. 
+
 
 
 
