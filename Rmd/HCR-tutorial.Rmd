@@ -633,7 +633,7 @@ vbo <- Ro * vbro
 
 Here we are plucking out the recruitment $\alpha$ and $\beta$ parameters and the average number of recruits in the unfished condition $R_0$ from one draw of the posterior.  We then calculate two derived variables `sbo` and `vbo`, which correspond to the total spawner biomass in the unfished condition and the biomass vulnerable to fishing in the unfished condition, respectively. We'll need these for our age structured calculations below.
 
-## Setting up the recruitment anomaly sequences
+## Setting up the recruitment anomaly sequences (in words)
 
 The next thirty lines of code are where a bunch of critical stuff happens.  In particular, this is where we set the unpredictable recruitment anomaly sequences that we test our policies against.  Recall that we have $w_t$ values for 1990-2015.  This means we have 26 years of estimated recruitment anomalies. 
 
@@ -643,7 +643,7 @@ At first we tried to do this with Alberta walleye.  We repeated the recruitment 
 
 While we could not simply repeat the historical sequences for the walleye problem, it is critical to note there is still useful information in the historical $w_t$ sequences that can be exploited to inform our policy simulation. For example the historical 26 year estimated $w_t$ sequence provides at least some information on the relative frequency of strong and weak year classes, year class magnitude, and on the autocorrelation structure in recrutiment for a given lake. 
 
-Because we only have 26 years of recruitment estimates for a fish that lives to around 15-20 years, about the only thing we can be sure of is that the next 26 years will almost certainly not be an exact repeat of the last 26.  Given these ideas, we came up with the following rules to generate plausible future recruitment patterns for Alberta walleye:
+Because we only have 26 years of recruitment estimates for a fish that lives 15-20 years, about the only thing we can be sure of is that the next 26 years will almost certainly not be an exact repeat of the last 26.  Given these ideas, we came up with the following rules to generate plausible future recruitment patterns for Alberta walleye:
 
 1. We will start by generating a repeating historical sequence of $w_t$ as $w_{t_{historical}}$ exactly how we did for shrimp problem above.  So we just repeat the estimated $w_t$ values `n_repeats` or 8 times x 26 years of reliable recruitment estimates = 208 total simulation years.
 
@@ -656,7 +656,7 @@ Because we only have 26 years of recruitment estimates for a fish that lives to 
  w_t &=  \psi_{w_t} \cdot (1 - w_{t_{historical}}) \cdot w_{t_{sim}} \text{, where } \psi_{w_t} \text{= 0.5}
 \end{align}
 
-You need to be careful here--these $w_t$ values in point 4 are now different than the originally estimated values from our Bayesian models.  
+You need to be careful here--these $w_t$ values in point 4 are now different than the originally estimated values from our Bayesian models (the ones we referenced in point 1).  
 
 These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. 
 
@@ -666,13 +666,11 @@ We set the $w_{t_{sim}}$ values as follows:
  w_{t_{sim}} = \rho \cdot w_{t-1_{sim}} + w{t_{re}} & \text{, where } w{t_{re}} \sim \text{Normal(0, } \sigma_{wt} \text{)} \text{ if t > 1}
 \end{align}
 
-Recall that t = 1 corresponds to year 1990 in our estimation model.  Again, this gave us recruitment anomaly sequences that looked qualitatively similar to the values we estimated (we will plot some of them below to show you in a bit). 
+Recall that t = 1 corresponds to year 1990 in our estimation model.  Again, this recipe with $w_{t_{historical}}$ and $w_{t_{sim}}$ gave us recruitment anomaly sequences that were qualitatively similar to the values we estimated (we will plot some of them below to show you in a bit). 
 
-## Setting up the recruitment anomaly sequences (for real this time)
+## Setting up the recruitment anomaly sequences (for real this time--in code)
 
-This time, in code....
-
-We first extract the estimated $w_t$ values from the posterior and set up $w_{t_{historical}}$: 
+First we extract the estimated $w_t$ values from the posterior and set up $w_{t_{historical}}$: 
 
 ```{r, eval=FALSE}
 
