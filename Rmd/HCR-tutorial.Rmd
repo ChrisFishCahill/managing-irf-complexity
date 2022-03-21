@@ -637,7 +637,7 @@ Here we are plucking out the recruitment $\alpha$ and $\beta$ parameters and the
 
 The next thirty lines of code are where a bunch of critical stuff happens.  In particular, this is where we set the unpredictable recruitment anomaly sequences that we test our policies against.  Recall that we have $w_t$ values for 1990-2015.  This means we have 26 years of estimated recruitment anomalies. 
 
-Given these estimates, there are many ways one could proceed.  We could, for example, simply repeat the estimated $w_t$ sequence some number of times into the future.  In fact, we did this for pink shrimp problem we were working on over the fall.  For the pink shrimp problem, we had longer time series of trustworthy recruitment estimates (e.g., 40 + years) and the shrimp don't live as long as a walleye.  For this pink shrimp management strategy simulation tool, we just put the recruitment anomaly sequences end-to-end-to-end many times, and then tested performance of the various policies we were interested in.
+Given these estimates, there are many ways one could proceed.  We could, for example, simply repeat the estimated $w_t$ sequence some number of times into the future.  In fact, we did this for a pink shrimp problem we were working on over the fall.  For the pink shrimp problem, we had longer time series of trustworthy recruitment estimates (e.g., 40 + years) and the shrimp don't live as long as a walleye.  For this pink shrimp management strategy simulation tool, we just put the recruitment anomaly sequences end-to-end-to-end many times, and then tested performance of the various policies we were interested in.
 
 At first we tried to do this with Alberta walleye.  We repeated the recruitment series that we estimated, but it turned out this didn't work well because there were not enough recruitment estimates to make the harvest control rule simulation reliable. Thus, we had to figure out a workaround for this issue.
 
@@ -664,18 +664,13 @@ We set the $w_{t_{sim}}$ values as follows:
  w_{t_{sim}} = \rho \cdot w_{t-1_{sim}} + w{t_{re}} & \text{, where } w{t_{re}} \sim \text{Normal(0, } \sigma_{wt} \text{)} \text{ if t > 1}
 \end{align}
 
+Note t = 1 corresponds to year 1990 in our estimation model.
 
+## Setting up the recruitment anomaly sequences (for real this time)
 
+This time, in code....
 
-
-
-
-
-To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. In all our simulations we set this at 8 repeats, and so we our simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye is probably close to 200+ years. 
-
-The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
-
-We first extract the $w_t$ values from the posterior, and then do some calculations: 
+We first extract the $w_t$ values from the posterior and set up $w_{t_{historical}}$: 
 
 ```{r, eval=FALSE}
 
@@ -687,39 +682,12 @@ wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
 
 ```
 
-Here we are mean-centering the historical recruitment series by calculating and then subtracting off `wt_bar` or the average from each historical $w_t$ sequence during 1990-2015.  We do this so that we don't do anything silly like assume the recruitment was trending upward or downward in the initialization period.  This avoids a hidden or implicit assumption that productivity was shifting through time (i.e., we need to make sure that when we select our 1990-2015 $w_t$ values that they were not larger or smaller on average than our whole model fitting period (from 1980-2018). 
+We are mean-centering the historical recruitment series by calculating and then subtracting off `wt_bar` from each historical $w_t$ sequence during 1990-2015.  We do this so that we do not do anything silly like assume recruitment was trending upward or downward in the initialization period.  This avoids a hidden or implicit assumption that productivity was shifting through time (i.e., we need to make sure that when we select our 1990-2015 $w_t$ values that they were not larger or smaller on average than our whole model fitting period (from 1980-2018). 
 
 Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we just repeat the sequence `n_repeats` number of times.  This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model. Note that we are limited to the historical 26 year reference period for our management strategy simulations.  Phrased differently, we cannot "see" any longer term patterns or event occurrences than have been visible during the reference period.  In this regard, we are to some extent beholden to our historical experiences with these a given stock or fishery.  Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. 
 
-
-
-
-One thing that we can be absolutely sure about is that the next 25 years will NOT just be a repeat of the last 25, and whatever random pattern we challenge the HCRs with will give best HCR for which we can still look retrospectively at how manager would have behaved over the historical period given the historical anomaly sequence, if we just make the first 25 simulated wt(t)’s be the historical ones.  I am getting reasonable looking future patterns (same wt standard deviation, occurrence of fairly regular peaks) when I set the w(t) pattern using the following rules:
-
-
-
-
-
-
-
-
-we then created a second 
-
-these, we then created a 
-
-
-
-with autocorrelation parameter $\rho$ equal to the average autocorrelation among recruitment estimates among lakes, which was 0.6 (we estimated it).  
-
 ![Examples of estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future.  Note the simulated values are modeled as an average of the estimated sequence during 1990-2015 and an autocorrelated process that we specified to give recruitment series that were qualitatively similar to those we estimated in the Bayesian models.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
 
-We are doing our best to preserve the historical frequency of high and low year classes...
-
-Similarly, the $\sigma_{w_t}$ 
-
-
-
-e just need to preserve the observed historical frequency and severity of strong and weak year classes, i.e. avoid any stupid assumption about things being more or less variable into the future.  So for each lake, repeat the sequence estimated for that lake for the 1990-2015 period. We can “see” back to 1990 for all those lakes (including Newell and Pigeon, just had low recruitments not highly uncertain ones), and cannot see after 2015 or 6 since only weak observations of younger fish.  That gives us a 25 year reference period for each lake, will just have to warn them that we can’t see any longer term patterns or event occurrances than have been visible during the reference period.
 
 
 
@@ -730,6 +698,10 @@ e just need to preserve the observed historical frequency and severity of strong
 
 A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
 After examining the data and model outputs for Alberta walleye in detail it seemed more appropriate to model recruitment anomalies into the future as a weighted average between the original estimated $w_t$ values and another autocorrelated time series. 
+
+
+e just need to preserve the observed historical frequency and severity of strong and weak year classes, i.e. avoid any stupid assumption about things being more or less variable into the future.  So for each lake, repeat the sequence estimated for that lake for the 1990-2015 period. We can “see” back to 1990 for all those lakes (including Newell and Pigeon, just had low recruitments not highly uncertain ones), and cannot see after 2015 or 6 since only weak observations of younger fish.  That gives us a 25 year reference period for each lake, will just have to warn them that we can’t see any longer term patterns or event occurrances than have been visible during the reference period.
+
 
 
 
@@ -744,6 +716,10 @@ Given these considerations, we will primarily focus on the simulation evaluation
 
 
 
+
+To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. In all our simulations we set this at 8 repeats, and so we our simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye is probably close to 200+ years. 
+
+The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
 
 
 
