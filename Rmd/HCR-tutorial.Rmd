@@ -512,7 +512,7 @@ The next chunk of simulation code does declares a possible range of $b_{lrp}$ an
 bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) 
 ```
 
-Here, we are just setting the maximum $b_{lrp}$ value at $B_0$, which is the biomass vulnerable to fishing in the unfished condition and is which calculated as the sum product of survivorship at age, fishing vulnerability at age, and relative weight at age: 
+Here, we are just setting the maximum $b_{lrp}$ value at $B_0$, which is the biomass vulnerable to fishing in the unfished condition and is which calculated as the unfished recruitment $R_0$ times the sum-product of the survivorship at age, fishing vulnerability at age, and relative weight at age vectors: 
 
 \begin{align}
  B_0 &=  R_0 \cdot \sum_{age = 2}^{age = 20} L_{o_a} \cdot v_{f_a} \cdot w_a
@@ -585,6 +585,8 @@ We need 3d arrays for some of our model output.  For example, saving output for 
 
 Here's where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting it up to run our simulation.  So now we just need to run our simulation over some finite time horizon for each policy (determined in this case by the  $c_{slope}$, $b_{lrp}$ combinations) and for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
 
+The next chunk of code is: 
+
 ```{r, eval=FALSE}
 #----------------------------------------------------------------------
 # run retrospective simulation for each cslope, bmin, draw, and sim yr
@@ -656,7 +658,7 @@ Because we only have 26 years of recruitment estimates for a fish that lives to 
 
 These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. Again, this gave us recruitment anomaly sequences that looked qualitatively similar to the values we estimated. 
 
-Note we set the $w_{t_{sim}}$ values as follows: 
+We set the $w_{t_{sim}}$ values as follows: 
 \begin{align}
  w_{t_{sim}} \sim \text{Normal(0, } \sigma_{wt} \text{)} & \text{ if t = 1} \\
  w_{t_{sim}} = \rho \cdot w_{t-1_{sim}} + w{t_{re}} & \text{, where } w{t_{re}} \sim \text{Normal(0, } \sigma_{wt} \text{)} \text{ if t > 1}
