@@ -656,7 +656,9 @@ Because we only have 26 years of recruitment estimates for a fish that lives to 
  w_t &=  \psi_{w_t} \cdot (1 - w_{t_{historical}}) \cdot w_{t_{sim}} \text{, where } \psi_{w_t} \text{= 0.5}
 \end{align}
 
-These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. Again, this gave us recruitment anomaly sequences that looked qualitatively similar to the values we estimated. 
+You need to be careful here--these $w_t$ values in point 4 are now different than the originally estimated values from our Bayesian models.  
+
+These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. 
 
 We set the $w_{t_{sim}}$ values as follows: 
 \begin{align}
@@ -664,13 +666,13 @@ We set the $w_{t_{sim}}$ values as follows:
  w_{t_{sim}} = \rho \cdot w_{t-1_{sim}} + w{t_{re}} & \text{, where } w{t_{re}} \sim \text{Normal(0, } \sigma_{wt} \text{)} \text{ if t > 1}
 \end{align}
 
-Note t = 1 corresponds to year 1990 in our estimation model.
+Recall that t = 1 corresponds to year 1990 in our estimation model.  Again, this gave us recruitment anomaly sequences that looked qualitatively similar to the values we estimated (we will plot some of them below to show you in a bit). 
 
 ## Setting up the recruitment anomaly sequences (for real this time)
 
 This time, in code....
 
-We first extract the $w_t$ values from the posterior and set up $w_{t_{historical}}$: 
+We first extract the estimated $w_t$ values from the posterior and set up $w_{t_{historical}}$: 
 
 ```{r, eval=FALSE}
 
@@ -684,7 +686,14 @@ wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
 
 We are mean-centering the historical recruitment series by calculating and then subtracting off `wt_bar` from each historical $w_t$ sequence during 1990-2015.  We do this so that we do not do anything silly like assume recruitment was trending upward or downward in the initialization period.  This avoids a hidden or implicit assumption that productivity was shifting through time (i.e., we need to make sure that when we select our 1990-2015 $w_t$ values that they were not larger or smaller on average than our whole model fitting period (from 1980-2018). 
 
-Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we just repeat the sequence `n_repeats` number of times.  This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model. Note that we are limited to the historical 26 year reference period for our management strategy simulations.  Phrased differently, we cannot "see" any longer term patterns or event occurrences than have been visible during the reference period.  In this regard, we are to some extent beholden to our historical experiences with these a given stock or fishery.  Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. 
+Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we just repeat the sequence `n_repeats` number of times.  This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model. Note that we are limited to the historical 26 year reference period for our management strategy simulations.  In all our simulations we set this at 8 repeats, and so simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye around 200+ years. 
+
+The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
+
+If you think about it, we cannot "see" any longer term patterns or event occurrences than have been visible during the historical reference period.  In this regard, we are to some extent beholden to our historical experiences with a given stock or fishery.  
+
+Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. 
+
 
 ![Examples of estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future.  Note the simulated values are modeled as an average of the estimated sequence during 1990-2015 and an autocorrelated process that we specified to give recruitment series that were qualitatively similar to those we estimated in the Bayesian models.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
 
@@ -717,11 +726,7 @@ Given these considerations, we will primarily focus on the simulation evaluation
 
 
 
-To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. In all our simulations we set this at 8 repeats, and so we our simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye is probably close to 200+ years. 
-
-The reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
-
-
+To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. 
 
 
 and repeat this process many times (e.g., 30-100 random draws).  Each time we record the performance of a policy
