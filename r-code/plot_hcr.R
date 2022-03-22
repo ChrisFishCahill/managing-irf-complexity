@@ -2025,7 +2025,7 @@ p <- res_table %>%
   geom_line() + 
   scale_x_continuous(breaks=c(1,3,5,10)) + 
   ggtitle("Performance (HARA) vs. assessment interval, sd = 0.4, dmort = 0.3") + 
-  ylab("Yield") + 
+  ylab("Utility") + 
   xlab("Assessment interval (yrs)") + 
   ggsidekick::theme_sleek() 
 
