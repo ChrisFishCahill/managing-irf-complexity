@@ -290,7 +290,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
               (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
           }
 
-          # set rec value for next t
+          # set rec value for t + 2
           nta[t + 2, 1] <- Rpred[t]
 
           # record performance metrics
