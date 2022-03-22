@@ -285,7 +285,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
           }
 
           # update the age structure
-          for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
+          for (a in seq_len(n_ages)[-n_ages]) { # a = 2-19
             nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) *
               (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
           }

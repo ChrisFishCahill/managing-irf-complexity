@@ -810,50 +810,102 @@ Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
 
 The first chunk of this is handling the `TAC` variable to ensure it doesn't go below zero.  You can't harvest fewer than zero fish, so this should make some sense. 
 
-The next line calculates the exploitation rate in year t $U_t$ using an ifelse() statement. It says that exploitation rate is equal to the `TAC` divided by the biomass vulnerable to fishing in year t if this calculation is less than a new term `Ut_overall`.  If this rate gets higher than `Ut_overall`, we set $U_t$ to `Ut_overall`.  
+The next line calculates the exploitation rate in year t $U_t$ using an ifelse() statement. It says that exploitation rate is equal to the `TAC` divided by the biomass vulnerable to fishing in year t if this calculation is less than a new term `Ut_overall`.  If this rate gets higher than `Ut_overall`, we set $U_t$ to `Ut_overall`.  We are doing this because we will use `Ut_overall` to model discard mortality in a bit.
 
-We set `Ut_overall` near the value we used for our $F_{early}$ prior in the Bayesian model.  Our rationale for this was that it was unlikely that angling alone would result in exploitation rates higher than values observed during the invisible collapse (see Post et al. 2002, Sullivan 2003), when angling was virtually unrestricted.  This is particularly true because many of these fisheries were also harvested via recreational and commercial netting during this period, which is not the case now.
+We set `Ut_overall` near the value we used for our $F_{early}$ prior in the Bayesian model.  Our rationale for this was that it was unlikely that angling alone would result in exploitation rates higher than values observed during the invisible collapse (see Post et al. 2002, Sullivan 2003), when angling was virtually unrestricted.  Also, the creel survey data that we looked at for Alberta Walleye showed no clear trend in overall fishing effort, and when we set the `Ut_overall` value near 0.5 the simulation model matches the qualitative observation from biologists on the ground that fish disappear from the fishery shortly after being exposed to fishing.
 
-Next, we set up an additional variable called `rett`.  We will use this variable below when we deal with catch and release mortality.  We calculate the `rett` term as
+Given this information, we are going to assume `Ut_overall` has been stable over time at a value near our $F_{early}$ prior.  Note that with this term, it would be relatively straightfoward to model growth in fishing demand through time (we don't do this, but you could). 
+
+Next up, we calculate a second term for our discard mortality calculations, which we call `rett`. This term is calculated as 
 
 ```{r, eval=FALSE}
 
-rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
+rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) 
+# cap rett annual retention proportion at 1.0
 
 ```
 
-The `rett` term is just the annual retention proportion.  You cannot retain more than 100% of the fish, or something. Hell, I don't know. 
-
-
+The `rett` term is the annual retention proportion of fish caught that are kept by anglers.  You cannot retain more than 100% of the fish you catch, and so we used this line of code to ensure that this was the case.  Again, this is just another term we needed to model catch and release mortality. We will deal with these catch and release mortality terms when we actually update the age structure and expose our simulated numbers at age matrix to fishing.
 
 ```{r, eval=FALSE}
-
-            
-            if (rule == "rectilinear") {
-              b_lrp <- 0.4 * B_may
-              u_lrp <- 0.8 * B_may
-              Ut <- U_may * (vB_obs - b_lrp) / (u_lrp - b_lrp)
-              if (Ut < 0) {
-                Ut <- 0
-              }
-              if (Ut > U_may) {
-                Ut <- U_may
-              }
-              TAC <- Ut * vB_obs
-            }
-
-            if (TAC < 0) {
-              TAC <- 0
-            }
-            Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
-          }
-          rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0) # cap rett annual retention proportion at 1.0
-          if (any(rett * ret_a > 1)) {
-            message("rett*ret_a yielded values > 1.0! \ncalculations cannot be trusted!")
-            break
-          }
+# stock-recruitment
+if (rec_ctl == "ricker") {
+  Rpred[t] <- rec_a * SSB[t] * exp(-rec_b * SSB[t] + wt[t])
+}
+if (rec_ctl == "bh") {
+  Rpred[t] <- rec_a * SSB[t] * exp(wt[t]) / (1 + rec_b * SSB[t])
+}
           
 ```
+
+This is similar to the BERTA tutorial and stan code that we walked through.  We are just setting the predicted recruits for year t according to either Ricker or Beverton-Holt stock-recruitment dynamics.
+
+Now we actually expose the simulated critters to both natural and fishing mortality:
+
+```{r, eval=FALSE}
+
+# update the age structure
+for (a in seq_len(n_ages)[-n_ages]) { # ages 2-19
+  nta[t + 1, a + 1] <- nta[t, a] * exp(-M_a[a]) *
+  (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
+}
+
+```
+
+The first line inside the loop is straightforward, and we calculate the number of fish at each age in the next time step as a function of the critters there previously reduced by some natural mortality rate `M_a`.   
+
+The second line within the loop is less intuitive and quite nasty.  It is where we decrement the numbers at age by the finite rate at which fish survive both fishing and discard mortality processes. This is where all those pesky catch and release modeling terms finally get used.  So let's walk through it bit by bit.  
+
+Let's start by defining two parameters that we have not yet defined.  The first new term is $ret_a$, which is the proportion of fish retained at each age by anglers.  We assumed $ret_a$ was specified by the following relationship: 
+
+```{r, message = FALSE, warning=FALSE}
+
+ages <- 2:20
+ah_ret <- 5
+sd_ret <- 1
+ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) 
+
+data <- data.frame(ages, ret_a)
+
+data %>%
+  ggplot(aes(x=ages, y=ret_a))+
+  geom_point() + 
+  geom_line() + 
+  ylab("Proportion of catch retained by anglers")+
+  xlab("Age of walleye") + 
+  ggtitle("Visualizing the retention at age function")
+
+```
+
+Note there are many other ways you could set this $ret_a$ term.  This seemed intuitive to us and so we will run with it for now. You might come back and play with this in the future.
+
+The other new term we need to define is just the finite discard mortality rate $U_d$. We'll eventually simulate across several $U_d$ values and so the exact number doesn't matter that much for now. Given these two new terms we can think about the tail end of the miserable line of code above, which is 
+
+```{r, eval=FALSE}
+
+# understanding the misery line: 
+ (1 - Ut_overall * v_fish[a] * (ret_a[a] * rett + (1 - ret_a[a] * rett) * d_mort))
+
+```
+
+So this code and math is saying that the fraction of fish that survive fishing related mortality at each age is 1 minus the number of fish that die due to fishing via `Ut_overall` times $v_{f_a}$ multiplied by some additional term contained in parentheses.  This big honking term in parentheses first specifies the number of fish that die because they were kept by anglers as $ret_a$ times $rett$ (the retention proportion we set above).  
+
+We then use some algebraic trickery to specify the number of fish that died due to discard mortality as 1 minus the proportion that were kept (if we didn't keep them we must have released them), and we multiply this proportion by $U_d$.  There is a lot of detail packed into that single line, and so it might behoove you to play around with the math on your own if you have the time.  
+
+Once we have updated the numbers at age for natural and fishing mortality, we set the number of recruits in year t + 2 (because we have recruits that recruit to the fishery at age 2): 
+
+```{r, eval=FALSE}
+
+# set rec value for next t
+nta[t + 2, 1] <- Rpred[t]
+
+```
+
+
+
+
+these fish survive to the next age and time step 
+
 
 ## junk writing 
 
