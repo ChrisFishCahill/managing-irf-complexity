@@ -989,7 +989,7 @@ hcr_pars <- list(
 )
 ```
 
-We then read in the fits that we want to pass to the harvest control rule simulator.  In this case, we choose the Beverton-Holt fits where the informative prior for compensation ratio was set at 6, read them in, and set up a vector of lake names (separated by underscores like we needed at the beginning of our get_hcr() function):
+We then read in the fits that we want to pass to the harvest control rule simulator.  In this case, we choose the Beverton-Holt fits where the informative prior for compensation ratio $/phi$ = 6 and read those specific fits in.  Then we set up a vector of lake names (separated by underscores like we needed at the beginning of our get_hcr() function):
 
 ```{r, eval=FALSE}
 #----------------------------------------------------------------------
@@ -1012,7 +1012,7 @@ which_lakes <- str_extract(
 
 We then want to run these across a suite of different assessment intervals, survey error terms, and discard mortalities.  
 
-We set up a dataframe called `to_sim` that has columns corresponding to the inputs for our get_hcr() function, and we do a bit of manipulation on `to_sim` to ensure we have all possible combinations of `which_lake`, `ass_int`, `sd_survey`, `d_mort`, and in this case we set the `rule` = "linear" (we are testing the linear harvest control rules):   
+To do this, we set up a dataframe called `to_sim` that has columns corresponding to the inputs for our get_hcr() function.  We do some manipulations on `to_sim` to ensure we have all possible combinations of `which_lake`, `ass_int`, `sd_survey`, `d_mort`, and in this case we set the `rule` = "linear" (we are testing the linear harvest control rules):   
 
 ```{r, eval=FALSE}
 # things to simulate hcrs across
@@ -1046,9 +1046,43 @@ if (FALSE) {
 
 ```
 
-This would run 144 different simulation experiments given the Beverton-Holt compensation ratio prior = 6 BERTA fit.
+Please note I wrapped this future_pwalk() call inside an if-loop set to FALSE.  I did this so it doesn't just start running and accidentally crash your computer.  If you do indeed run the innards of this loop it would run 144 different simulation experiments given the Beverton-Holt compensation ratio prior = 6 BERTA fit.  
 
-## junk writing 
+You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or or for different compensation ratio priors.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
+
+That's exciting, albeit melodramatic.  So we'll proceed on with some results given these simple linear harvest control rule simulations.
+
+## Results given provisional objectives and Beverton-Holt $\phi$ = 6 Bayesian model fits
+
+In an effort to end this sufferfest, I'm going to try and wrap up some of the main findings from these model runs.  I told you a long time ago that the general patterns between the MAY and HARA objectives from lots of theoretical work showed that when MAY was maximized, you typically had a non-zero fixed escapement $b_{lrp}$ point and a $c_{slope}$ value near one. 
+
+Because we actually simulated across an entire policy space, we can visualize our solutions using isopleths.
+
+![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best result given the MAY objective and the simple linear policies. This isopleth was created assuming discard mortality = 0.3, assessment interval = 1 year, and sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
+
+
+![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best result given the MAY objective and the simple linear policies. This isopleth was created assuming discard mortality = 0.3, assessment interval = 1 year, and sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
+
+And we can compare this with our HARA utility simulation results:
+
+![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
+
+![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+
+We can play other games, too, like whether performance at achieving an objective degrades with increasing survey interval: 
+
+![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg)
+
+And we can do the same thing for HARA utility vs. assessment interval: 
+
+![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_hara_v_assint_sd_0.4_dmort_0.3.jpeg)
+
+
+
+
 
 A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
 After examining the data and model outputs for Alberta walleye in detail it seemed more appropriate to model recruitment anomalies into the future as a weighted average between the original estimated $w_t$ values and another autocorrelated time series. 
