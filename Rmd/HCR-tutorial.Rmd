@@ -1046,6 +1046,7 @@ if (FALSE) {
 
 ```
 
+This would run 144 different simulation experiments given the Beverton-Holt compensation ratio prior = 6 BERTA fit.
 
 ## junk writing 
 
