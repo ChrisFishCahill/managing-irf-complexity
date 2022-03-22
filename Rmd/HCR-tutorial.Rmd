@@ -827,7 +827,7 @@ rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0)
 
 The `rett` term is the annual retention proportion of fish caught that are kept by anglers.  You cannot retain more than 100% of the fish you catch, and so we used this line of code to ensure that this was the case.  Again, this is just another term we needed to model catch and release mortality. We will deal with these catch and release mortality terms when we actually update the age structure and expose our simulated numbers at age matrix to fishing.
 
-## Updating the recruitment predictions and numbers at age matrix
+## Updating recruitment and the numbers at age matrix
 
 ```{r, eval=FALSE}
 # stock-recruitment
@@ -873,7 +873,7 @@ data %>%
   ggplot(aes(x=ages, y=ret_a))+
   geom_point() + 
   geom_line() + 
-  ylab("Proportion of catch retained by anglers")+
+  ylab("Proportion of catch retained by anglers: ret_a")+
   xlab("Age of walleye") + 
   ggtitle("Visualizing the retention at age function")
 
@@ -892,18 +892,18 @@ The other new term we need to define is just the finite discard mortality rate $
 
 This is saying that the fraction of fish that survive fishing related mortality at each age is 1 minus the number of fish that die due to fishing via `Ut_overall` times $v_{f_a}$ multiplied by some additional term contained in parentheses.  This big honking term in parentheses first specifies the number of fish that die because they were kept by anglers as $ret_a$ times $rett$ (the retention proportion we set above).  
 
-We then use some algebraic trickery to specify the number of fish that died due to discard mortality as 1 minus the proportion that were kept (if we didn't keep them we must have released them), and we multiply this proportion by $U_d$.  There is a lot of detail packed into that single line, and so it might behoove you to play around with the math on your own if you have the time.  
+We then use some algebraic trickery to specify the number of fish that died due to discard mortality as 1 minus the proportion that were kept (if we didn't keep them we must have released them), and we multiply this released proportion by $U_d$.  There is a lot of detail packed into that single line, and so it might behoove you to play around with the math on your own if you have the time.  
 
 Once we have updated the numbers at age and dealt with natural and fishing mortality, we move along in the code and set the number of recruits in year t + 2: 
 
 ```{r, eval=FALSE}
 
-# set rec value for next t
+# set rec value for t + 2
 nta[t + 2, 1] <- Rpred[t]
 
 ```
 
-We then just close the loops for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. 
+We then "just" need to run all those calculations for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. So we close off all the loops of misery and move on with our lives.
 
 ## Life after the loops of misery
 
@@ -931,9 +931,9 @@ and we put a ton of stuff in a big list and save it here:
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L335-L357>
 
-## Running the harvest control rule simulation using {furrr}
+## Running the harvest control rule simulations using {furrr}
 
-We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to get our stan model fits in an earlier tutorial.  This means that if we are clever we can run all of our harvest control rule simulations in parallel. 
+We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to get our stan model fits in an earlier tutorial.  This means that we can run all of our harvest control rule simulations across many different simulation parameter inputs in parallel. 
 
 All we have to do to make this work is read in the appropriate fits that we want to simulate, and then 
 
