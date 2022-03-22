@@ -298,7 +298,7 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
           yield_array[i, j, t] <- yield_array[i, j, t] + yield
           vB_fish_array[i, j, t] <- vB_fish_array[i, j, t] + vB_fish[t]
           tot_y[i, j] <- tot_y[i, j] + yield
-          tot_u[i, j] <- tot_u[i, j] + yield^0.3
+          tot_u[i, j] <- tot_u[i, j] + yield^0.3 #pp = exponent term 
           prop_below[i, j] <- prop_below[i, j] + ifelse(SSB[t] < sbo_prop * sbo, 1, 0)
           TAC_zero[i, j] <- TAC_zero[i, j] + ifelse(rett == 1, 1, 0)
         }
