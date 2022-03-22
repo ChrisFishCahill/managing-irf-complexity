@@ -13,6 +13,7 @@ urlcolor: blue
 - Carl's point about including precautionary rules
 - proofread -- check citations
 - finish by end of fiscal
+- stupid package {} and function() formatting
 
 ## Purpose 
 The purpose of this tutorial is to develop a management strategy evaluation or simulation framework that can be used to evaluate harvest control rules for any of the Alberta Walleye fisheries assessed in Cahill et al. 2021 using either yield or catch-based objectives. 
@@ -933,14 +934,117 @@ and we put a ton of stuff in a big list and save it here:
 
 ## Running the harvest control rule simulations using {furrr}
 
-We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to get our stan model fits in an earlier tutorial.  This means that we can run all of our harvest control rule simulations across many different simulation parameter inputs in parallel. 
+We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to fit the stan models in an earlier tutorial.  This means that we can run all of our harvest control rule simulations across many different simulation parameter inputs in parallel. 
 
-All we have to do to make this work is read in the appropriate fits that we want to simulate, and then 
+To do this, we just declare some run parameters for our simulation: 
 
+```{r, eval=FALSE}
+#----------------------------------------------------------------------
+# declare some values for the simulations
+#----------------------------------------------------------------------
 
+n_draws <- 30
+n_repeats <- 8 # recruitment repeats
+retro_initial_yr <- 1990 # initial year for retrospective analysis
+retro_terminal_yr <- 2015
+n_sim_yrs <- length(retro_initial_yr:retro_terminal_yr) * n_repeats
+ages <- 2:20
+t <- 2000 # first survey year
+max_a <- max(ages) # max age
+recruit_a <- min(ages) # age at recruitment
+initial_yr <- t - max_a + recruit_a - 2 # 1980 = BERTA initial yr
+initial_yr_minus_one <- initial_yr - 1
+ah_ret <- 5
+sd_ret <- 1
+ret_a <- 1 / (1 + exp(-(ages - ah_ret) / sd_ret)) # retention by age vector
+Ut_overall <- 0.5 # annual capture rate of fully vulnerable fish
+sbo_prop <- 0.1 # performance measure value to see if SSB falls below sbo_prop*sbo
+rho <- 0.6 # correlation for recruitment terms
+sd_wt <- 1.1 # std. dev w(t)'s
+psi_wt <- 0.5 # weighting multiplier for wt_historical vs. wt_sim, aka "wthistory" in spreadsheets
+grid_size <- 75 # how many bmins, round(grid_size/2) gives how many cslope
 
+```
 
+And then we put it all in a tagged list that we will reference when we actually call the get_hcr() function: 
 
+```{r, eval=FALSE}
+# put it all in a tagged list
+hcr_pars <- list(
+  "n_draws" = n_draws,
+  "n_repeats" = n_repeats,
+  "retro_initial_yr" = retro_initial_yr,
+  "retro_terminal_yr" = retro_terminal_yr,
+  "n_sim_yrs" = n_sim_yrs,
+  "ages" = ages,
+  "initial_yr" = initial_yr,
+  "initial_yr_minus_one" = initial_yr_minus_one,
+  "ret_a" = ret_a,
+  "Ut_overall" = Ut_overall,
+  "sbo_prop" = sbo_prop,
+  "rho" = rho,
+  "sd_wt" = sd_wt,
+  "psi_wt" = psi_wt,
+  "grid_size" = grid_size
+)
+```
+
+We then read in the fits that we want to pass to the harvest control rule simulator.  In this case, we choose the Beverton-Holt fits where the informative prior for compensation ratio was set at 6, read them in, and set up a vector of lake names (separated by underscores like we needed at the beginning of our get_hcr() function):
+
+```{r, eval=FALSE}
+#----------------------------------------------------------------------
+# read in the stan fits and run retrospective mse
+#----------------------------------------------------------------------
+
+# extract some saved .stan fit names
+paths <- dir("fits/", pattern = "\\.rds$")
+paths <- paths[grep("bh_cr_6", paths)]
+paths <- paste0(getwd(), "/fits/", paths)
+
+fits <- map(paths, readRDS) %>%
+  set_names(paths)
+
+which_lakes <- str_extract(
+  string = paths,
+  "(?<=fits/).*(?=_bh|_ricker)"
+)
+```
+
+We then want to run these across a suite of different assessment intervals, survey error terms, and discard mortalities.  
+
+We set up a dataframe called `to_sim` that has columns corresponding to the inputs for our get_hcr() function, and we do a bit of manipulation on `to_sim` to ensure we have all possible combinations of `which_lake`, `ass_int`, `sd_survey`, `d_mort`, and in this case we set the `rule` = "linear" (we are testing the linear harvest control rules):   
+
+```{r, eval=FALSE}
+# things to simulate hcrs across
+ass_ints <- c(1, 3, 5, 10) # how often to assess / run FWIN
+sd_surveys <- c(0.05, 0.4) # survey sd
+d_morts <- c(0.03, 0.15, 0.3) # discard mortalities
+
+# use expand.grid() and distinct() to get all possible combinations
+to_sim <- expand.grid(which_lakes, ass_ints, sd_surveys, d_morts)
+names(to_sim) <- c("which_lake", "ass_int", "sd_survey", "d_mort")
+to_sim <- to_sim %>% distinct()
+glimpse(to_sim)
+to_sim$rule <- "linear"
+
+```
+
+And finally, after a 30-some odd page tutorial sufferfest we get to run this hog.  This code runs all your simulations and saves them with a convenient file name in the sims/ folder: 
+
+```{r, eval=FALSE}
+
+# if you run all these your gov computer may explode
+if (FALSE) {
+  options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
+  future::plan(multisession)
+  system.time({
+    future_pwalk(to_sim, get_hcr,
+      .options = furrr_options(seed = TRUE)
+    )
+  })
+}
+
+```
 
 
 ## junk writing 
@@ -951,10 +1055,6 @@ After examining the data and model outputs for Alberta walleye in detail it seem
 
 e just need to preserve the observed historical frequency and severity of strong and weak year classes, i.e. avoid any stupid assumption about things being more or less variable into the future.  So for each lake, repeat the sequence estimated for that lake for the 1990-2015 period. We can “see” back to 1990 for all those lakes (including Newell and Pigeon, just had low recruitments not highly uncertain ones), and cannot see after 2015 or 6 since only weak observations of younger fish.  That gives us a 25 year reference period for each lake, will just have to warn them that we can’t see any longer term patterns or event occurrances than have been visible during the reference period.
 
-
-
-
-
 Early optimization work on harvesting theory shows that optimal rules given simple models and single objectives typically decrease harvest rate as population size decreases and increase harvest rate as population size increases (citations).  It doesn't have to be complicated.  Many rules, such as the generic rule proposed in Fisheries and Oceans Canada (DFO) 20XX, suggest that rectilinear harvest control rules are "precautionary." However, what *specifically* is precautionary about such rules is rarely 
 
 rarely specify what is precautionary about the specific rule beyond references to Restrepo XXXX. 
@@ -964,25 +1064,12 @@ rarely specify what is precautionary about the specific rule beyond references t
 Given these considerations, we will primarily focus on the simulation evaluation of simple linear harvest control rules. If it isn't broke, don't fix it sort of thing.
 
 
-
-
 To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. 
 
 
 and repeat this process many times (e.g., 30-100 random draws).  Each time we record the performance of a policy
 
 each of some number (e.g., say 30 or 100) of random values from our assessment posteriors, run our model into the future. 
-
-
-
-
-
-
-
-
-
-
-
 
 
 ## Resources: 
