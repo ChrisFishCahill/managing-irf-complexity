@@ -903,11 +903,11 @@ nta[t + 2, 1] <- Rpred[t]
 
 ```
 
-We then "just" need to run all those calculations for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. So we close off all the loops of misery and move on with our lives.
+We then "just" need to run all those calculations for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. So we record performance metricx and close off all the loops of misery and move on with our lives.
 
 ## Life after the loops of misery
 
-Everything that happens in the `get_hcr()` function below this last line of code is actually just processing the output from our simulation.  There's a bunch of code that just creates a big list, and then saves that list in a sims/ folder with a unique file name. Which is good, because I think if I have to explain any more code I might lose it today.
+Everything that happens in the `get_hcr()` function below the last line of code above is actually just processing the output from our simulation or closing our loops.  Then there's a bunch of code that just creates a big list and saves it in a sims/ folder with a unique file name. Which is good, because I think if I have to explain any more code I might lose it today.
 
 All of this code is processing our simulation run output:
 
