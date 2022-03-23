@@ -8,75 +8,69 @@ output:
 highlight: tango
 urlcolor: blue
 ---
-## TODO
-- proofread -- check citations
-
 ## Purpose 
-The purpose of this tutorial is to develop a management strategy evaluation or simulation framework that can be used to evaluate harvest control rules for any of the Alberta Walleye fisheries assessed in Cahill et al. 2021 using either yield or catch-based objectives. 
+The purpose of this tutorial is to develop a management strategy evaluation or simulation framework that can be used to evaluate simple linear harvest control rules for any of the Alberta Walleye fisheries assessed in Cahill et al. (2021).  We will use provisional objectives for all our analyses (discussed below), but any explicit objectives could be tested using the framework presented here.
 
 ## Goals
-- Provide readers with some background on the development of policies for fisheries management
-- Understand what a harvest control rule is and why such rules is useful for managing natural resources
-- Understand how the code is pulling results from the stock assessments and using these as inputs into our harvest control rule simulation program
-- Work through the model structure of the harvest control rule simulator, including calculations of maximum average yield and HARA utility 
-- Develop intuition for the catch and release mortality components of the simulation model
-- Understand the tabular or grid search approach to "optimizing" simple linear harvest control rules
-- Visualize some of the results
+- Provide readers with some background on the development of policies for fisheries management.
+- Understand what a harvest control rule is and why such rules is useful for managing natural resources.
+- Understand how the `hcr_r()` code is pulling results from the stock assessments and using these as inputs into the harvest control rule simulation program.
+- Work through the model structure of the harvest control rule simulator, including calculations of maximum average yield and HARA utility.
+- Develop intuition for the catch and release mortality components of the age-structured simulation model.
+- Understand the tabular or grid search approach to finding linear harvest control rules that perform relatively well.
+- Visualize some of the results.
 
 ## Background 
-Harvest control rules are agreed-upon, transparent, and repeatable mathematical equations that help managers alter harvest levels in response to changes in stock size to achieve some explicit goal.  Changes in population size may be due to either environmental stochasticity or the effects of fishing. In Alberta, harvest control rules may be particularly useful for informing special harvest license allocations given some agreed upon and explicit management objectives and Fall Walleye Index Netting (FWIN) survey data. The development of explicit harvesting rules is important because a finding of Cahill et al. 2021 was that many Alberta Walleye lakes appeared underharvested relative to common fisheries reference points. 
+Harvest control rules are agreed-upon, transparent, and repeatable mathematical equations that help managers alter harvest in response to changes in stock size to achieve some explicit goal.  Such changes in population size can be due to either environmental stochasticity or the effects of fishing.  In Alberta, harvest control rules may be useful for informing Special Harvest License (SHL) harvest tag allocations given explicit management objectives and Fall Walleye Index Netting (FWIN) survey data. The SHL program requires that managers allocate some number of tags (a quota or Total Allowable Catch; TAC) based on their understanding of the risks to the fishery.  Once tags have been allocated by regional managers, anglers are then able to enter lottery draw system to try and win a harvest tag, and fish can only be kept if anglers have an SHL tag in the SHL lakes. The development of harvesting rules for the SHL program via a management strategy simulation framework appears important because a recent study showed many Alberta Walleye populations were under-harvested relative to common fisheries reference points (see Cahill et al. 2021). 
 
-Fisheries science has a rich history of using harvest control rules or feedback policies to design effective resource management systems, and there are some key references that will help you better understand many of the issues that we will discuss in this tutorial. These references are:
+In general, it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because we are actually designing a control rule (a "controller" or "policy") to get something we desire from a nonlinear dynamical system (e.g., a fishery). There exists a rich history and literature of developing harvest control rules or feedback policies to regulate human exploitation in managed systems, and as a result there are several references that will help us better understand some of the issues we will encounter in this tutorial.  A few of the references that I have found helpful are: 
 
 1. Walters 1986, chapter on feedback policies
 2. Hilborn and Walters 1992, chapter on designing effective fisheries management systems
 3. Quinn and Deriso 1999, chapter 11 on optimal harvesting
 4. Walters and Martell 2001, chapters 2-4
 
-In general, you will find that it is much more difficult to design effective fisheries management systems and harvest control rules than it is to simply assess a particular fishery.  This is because what we are actually doing is attempting to design a control rule (a "controller") for a nonlinear dynamical system.  
+I recommend reading through these resources if you have the time to do so.
 
 ## A nonmathematical description of the problem that we would share with Grandma
-
-You can think of the harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a plane air born--our goal in this case is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design a feedback policy, which relates where we are (in the environment) to what we want to achieve.  
+You can think of the harvest control rule problem like trying to design an autopilot system (or a control rule or policy) that keeps a plane air born.  In this example, our goal is to create a mathematical rule that relates measurements from the environment taken by sensors (altitude, jet speed, wind speed, wind direction, etc.) to actions the plane can take to alter its course of movement (increase speed, decrease speed, turn left/right/up/down). The point here that really matters is that we are trying to design a feedback policy, which relates where we are in the environment to what we want to achieve.  
 
 In this case, the "environment" simply refers to the physical equations governing the flight of a plane. In our fisheries situation, it refers to all of the equations and ecological processes describing the dynamics of a harvested population.  Whereas there are sensors on the plane which tell us where the plane is and what the state of the environment is outside of that plane, we use surveys and sometimes stock assessments to determine the state of a population in fish and wildlife management settings. 
 
-In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that a good feedback policy for the plane would seek to orient the plane to the right if the wind pushed it to the left, and try to maneuver upward if the plane were decreasing in altitude for whatever reason.  In a fishery, the goal might be to let the stock size recover if it has been overfished, or to harvest more if the stock size were thought to be high.
+In the oversimplified case of the autopilot system, the goal is not to crash.  Intuitively, this might mean that a good feedback policy for the plane would seek to turn the plane to the right if the wind pushed it to the left, and try to orient upward if the plane were decreasing in altitude for whatever reason.  In a harvested population, the goal might be to let the stock size recover if it has been overharvested, or perhaps to harvest more if the stock size was believed to be high.
 
 ## Harvesting theory, dynamic programming, and optimal solutions
 
-A great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal policies generally decrease harvest rate when population size declines, and increase it as population size increases. These findings have often come from dynamic programming solutions, and the solutions for these particular problems are often simple functions of harvestable abundance or biomass.  This finding appears general and was surprising--it was generally believed that complex policies would be required to manage complex ecological systems.  However, work on harvesting theory during the 1970-80s showed that simple policies performed well or were even optimal in many situations (e.g., Walters 1975; Walters and Hilborn 1978; Mangel XXXX; Clark XXXX; Moxnes XXXX).  
+A great deal of theoretical work on optimal harvesting strategies for dynamic populations shows that optimal harvesting policies generally decrease harvest rate when population size declines, and increase it as population size increases (e.g., Walters 1975; Walters and Hilborn 1978). These findings have often come from dynamic programming solutions, and the solutions to these particular problems often indicate that we should modulate harvest as a simple function of harvestable abundance or biomass (see Mangel 1984; Clark 1974; Clark and De Pree 1979; Moxnes 2002).  This finding appears general and is surprising--it is often believed that complex policies are needed to manage complex ecological systems.  However, much of the work on harvesting theory during the 1970-80s showed that simple policies performed well or were even optimal in many situations (e.g., Walters 1986; Hilborn and Walters 1992).   
 
-A limitation of dynamic programming and the related methods discussed above is that these approaches can only be applied to relatively simple models and management objectives.  The age-structured Bayesian Estimation of Recruitment Trends in Alberta ('BERTA) model is too complex to use with such methods. Consequently, we will instead use a simulation technique known as approximation in policy space to find good harvest control rules (see methods in Moxnes XXXX; Edwards and Dankel 20XX; new fancy book) for the BERTA models.
-
-We briefly hit on this above, but there is one more difficulty facing us and that is that there are multiple (often conflicting) objectives in resource management. We note that the management strategy simulation approach we use in this tutorial can cope with this issue quite nicely if folks have explicit objectives. 
+A limitation of dynamic programming and many of the methods used to make inferences about optimal harvesting policies (citations above) is that that these approaches can only be applied to relatively simple models and management objectives. In our case, the age-structured Bayesian Estimation of Recruitment Trends in Alberta (BERTA) model is too complex to use with such methods. Thus, we will instead use a class of simulation techniques known as approximation in policy space to find good harvest control rules (see methods in Moxnes 2002; Edwards and Dankel 2016; Bertsekas 2019).We briefly hit on this above, but there is one more difficulty facing us and that is that there are multiple (often conflicting) objectives in resource management. We note that the management strategy simulation approach we use in this tutorial can cope with this issue quite nicely if there are explicit objectives. 
 
 ## On the need for explicit objectives
 
-In the above toy airplane autopilot example, we wouldn't get very far if we didn't agree up front that the goal was to keep the plane flying within some (acceptable) flight parameters.  The same is true for designing harvest control rules for renewable resources: if we do not agree upon how to manage a population a priori, we will not get very far.  If we want to design effective fisheries management systems, we at least need to agree upon how best to manage those fisheries. This is easier said than done, and individuals have dedicated their entire careers toward developing structured decision making programs to meaningfully engage relevant stakeholders and develop such objectives.
+In the above toy airplane autopilot example, we wouldn't get very far if we didn't agree up front that the goal was to keep the plane flying within some (acceptable) flight parameters.  The same is true for designing harvest control rules for renewable resources: if we do not agree upon how to manage a population a priori, we will not get very far.  If we want to design effective fisheries management systems, we at least need to agree upon how best to manage those fisheries. This is easier said than done, and individuals have dedicated their entire careers toward developing structured decision making programs to meaningfully engage relevant stakeholders and develop such objectives (e.g., see Conroy and Peterson 2013).
 
-For Alberta Walleye, there are presently no agreed upon *explicit* objectives for fisheries management. Believe it or not, this is pretty common for many fisheries. Thus, we will introduce two concepts--Maximum Average Yield (MAY) and Hyperbolic Absolute Risk Aversion Utility (HARA)--as starting points for Alberta Walleye fisheries. As stated above, objectives should be set through something like a structured decision making program (see Edwards and Dankel 20XX). It is unlikely that Cahill and Walters (or any manager or researcher for that matter) should be setting the objectives for Alberta fisheries.   
+For Alberta Walleye, there are presently no agreed upon *explicit* objectives for fisheries management. Believe it or not, this is pretty common for many fisheries. Thus, we will introduce two concepts--Maximum Average Yield (MAY) and Hyperbolic Absolute Risk Aversion Utility (HARA)--as starting points for Alberta Walleye fisheries. As stated above, objectives should be set through something like a structured decision making program (see Edwards and Dankel 2016). It is unlikely that Cahill and Walters (or any single manager or researcher for that matter) should be setting the objectives for Alberta fisheries.   
 
 Our approach here is to specify two provisional, albeit conflicting objectives to demonstrate how Alberta Walleye fisheries could be managed given explicit objectives.  Later on we will simulate across a range of policy options to find policies that do well in our simulations given these provisional objectives.  We discuss both of these objectives in the following section.
 
 ## Maximum Average Yield (MAY) objective 
 
-Maximum Average Yield is the stochastic analog of Maximum Sustainable Yield (MSY). In a harvested population, this is the highest yield that can be taken on average from a population experiencing average environmental conditions.  While there are many criticisms of MSY or MAY (e.g., Larkin 19XX), such yield-maximization policies demonstrate how much yield can be achieved from a given fishery if a MAY policy was adopted. When you simulate yield maximization policies or attempt to solve this problem using dynamic programming, what you find is that the optimal policy often is some type of "fixed escapement" policy.  That is, there is a lower limit reference point below which no harvesting occurs, and above this lower limit reference point you tend to harvest at a rate near $F_{msy}$, or the instantaneous fishing mortality rate thought to achieve MSY. 
+Maximum Average Yield is the stochastic analog of Maximum Sustainable Yield (MSY). In a harvested population, this is the highest yield that can be taken on average from a population experiencing average environmental conditions.  While there are many criticisms of MSY or MAY (e.g., Larkin 1977), such yield-maximization policies demonstrate how much yield can be achieved from a given fishery if a MAY policy was adopted. When you simulate yield maximization policies or attempt to solve this problem using dynamic programming, what you find is that the optimal policy often is some type of "fixed escapement" policy.  That is, there is a lower limit reference point below which no harvesting occurs, and above this lower limit reference point you tend to harvest at a rate near $F_{msy}$, or the instantaneous fishing mortality rate thought to achieve MSY. 
 
 While such policies maximize the average yield that can be taken from dynamic, uncertain, or even unpredictable fish populations, they have the downside that they result in increased variability to harvesters in terms of fisheries closures as stock size drops below a fixed lower limit reference point.  Remember, if the stock drops below the lower limit reference point the MAY policy shuts off harvesting completely. 
 
 ## Hyperbolic Absolute Risk Aversion (HARA) utility objective
 
-Hyperbolic Absolute Risk Aversion for catch (herein-after, HARA) is an objective that values consistency in catch through time from the perspective of a harvester.  It is critical to include risk-averse utility for catch as a performance measure representing the interests of stakeholders and harvesters so as to explicitly consider stakeholder interests. The simplest way to do this is to calculate utility each year using a hyperbolic absolute risk averse utility function, which boils down to the following equation:
+Hyperbolic Absolute Risk Aversion for catch (herein-after, HARA) is an objective that values consistency in catch through time from the perspective of a harvester.  It is critical to include risk-averse utility for catch as a performance measure so as to explicitly consider stakeholder or harvester interests. The simplest way to do this is to calculate utility each year using a hyperbolic absolute risk averse utility function, which boils down to the following equation:
 
 \begin{align}
 utility_t = catch_t^{pp}
 \end{align}
 
 
-In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is a risk aversion parameter that for most people is near 0.3-0.5. You can empirically assess $pp$ by asking people to choose between two income options: a 50:50 gamble between 0 and 100,000 dollars, or a sure income of around 30,000 dollars. The expected value of the income outcome of the 50:50 gamble is 50,000 (i.e., 1/2 * 100,000), but most people will choose a guaranteed income of around 30,000 dollars vs. the 50:50 chance at winning the 100,000 dollars (myself included).  
+In this case, $catch_t$ is simply yield in year $t$, and the power term $pp$ is a risk aversion parameter that for most people is near 0.3-0.5. You can empirically assess $pp$ by asking people to choose between two income options: a 50:50 gamble between 0 and 100,000 dollars, or a sure income of around 30,000 dollars. The expected value of the income outcome of the 50:50 gamble is 50,000 (i.e., 1/2 $/cdot$ 100,000), but most people will choose a guaranteed income of around 30,000 dollars vs. the 50:50 chance at winning the 100,000 dollars.  
 
-This scenario implies $pp = 0.57$.  You can calculate someone's $pp$ by asking how much guaranteed reward (catch, income) they would need to receive before they were unwilling to take the "unsure" bet--so if you said your $X = 20,000$ dollars (or catch of fish), your $pp$ would be 
+This scenario above implies $pp = 0.57$.  You can calculate someone's $pp$ by asking how much guaranteed reward (catch, income) they would need to receive before they were unwilling to take the "unsure" bet--so if you said your $X = 20,000$ dollars (or catch of fish), your $pp$ would be 
 
 \begin{align}
 pp = \frac{ln(0.5)}{(ln(20) - ln(100))} = 0.43
@@ -84,13 +78,13 @@ pp = \frac{ln(0.5)}{(ln(20) - ln(100))} = 0.43
 
 And note that we have substituted "20" for 20,000 and "100" for 100,000 because the math works out to be the same.  When we ask fishermen what $X$ they would need to not fish, typical answers have been in the 20,000-30,000 range, i.e. having some income or catch is much more important than maximizing average income if that means having highly variable income or catch. When framed this way, HARA utility is a powerful tool for capturing aversion to variability in catch. 
 
-When HARA utility is maximized as an objective, it tends to do two things relative to the MAY objective discussed above.  First, the HARA objective tends to shift the lower limit reference point toward zero.  This is because if we "shut off" fishing we lose a great deal of utility, which I hope makes sense.  The second thing that this objective tends to do when you undertake formal optimization (i.e., dynamic programming) is that it generally speaking lowers the rate at which you increase harvest as stock size increases.  We will demonstrate this via some simple R code shortly and via simulation later on. 
+When HARA utility is maximized as an objective, it tends to do two things relative to the MAY objective.  First, the HARA objective tends to shift the lower limit reference point toward zero.  This is because if we "shut off" fishing we lose a great deal of utility, which should make sense.  The second thing that this objective tends to do when you undertake formal optimization (i.e., dynamic programming) is that it generally speaking lowers the rate at which you increase harvest as stock size increases.  We will demonstrate this via some simple R code shortly and via simulation later on. 
 
 ## Simulating some simple (fake) MAY vs. HARA policies
 
-We picked these two objectives (MAY, HARA) to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation exploiting many populations at once might choose to maximize expected catch from a collection of populations, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye, as closures might be triggered simply due to natural variability.  
+We picked these two objectives (MAY, HARA) to represent management tradeoffs (see Walters and Martell 2001).  MAY represents maximum yield that say a corporation that exploits many populations or resources at once might choose to maximize expected catch from a collection of populations, while HARA represents a better policy for a risk averse fisher or angler. To harvest under a harvest control rule that was developed to achieve MSY or MAY is to concede that a fishery will need to be closed for potentially many years if stock sizes drop below the lower limit reference point. This is particularly problematic for fisheries with highly variable recruitment dynamics like Alberta Walleye, as closures might be triggered simply due to recruitment variability (see Cahill et al. 2021).  
 
-Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower rate but to continue to harvest when biomass drops below the lower limit reference point required to achieve MAY. These are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example below.
+Conversely, to harvest under a HARA objective and corresponding policy is to harvest at a lower rate but to continue to harvest when biomass drops below the lower limit reference point required to achieve MAY. Again, I want to drive home the point that these are key lessons from theoretical studies of harvested populations (e.g., see Walters and Hilborn 1976; 1978; Walters 1986), and we will demonstrate these principles in excruciating detail as we proceed with our Alberta Walleye example below.
 
 ## Let's plot it in R 
 
@@ -103,7 +97,7 @@ Let's load some packages:
 library(tidyverse)
 ```
 
-And then simulate and plot some dead simple harvest control rules (I made these up): 
+And then simulate and plot some simple harvest control rules (I made these up): 
 
 ```{r, , message = FALSE, warning=FALSE}
 vB <- seq(from=0.1, to =100, length.out = 100) # biomass vulnerable to fishing
@@ -143,11 +137,11 @@ data %>%
   ggtitle("Hypothetical HCRs: Exploitation Rate vs. Vulnerable Biomass")
 ```
 
-Think about these last two plots a bit--it is important to wrap your head around what this is showing you. Most of the harvest control rule simulation script that we will go through below is shifting the intercepts and slopes of these lines from Figure 1 to find simple linear policies that maximize specific objectives like MAY or HARA utility. 
+Think about these last two plots a bit--it is important to wrap your head around what this is showing you. Most of the harvest control rules that we will go through with our simulation simply shift the intercepts and slopes of these lines in Figure 1, and then test the performance of those lines or harvest control rule policies. 
 
 ## Thinking through one more harvest control rule
 
-While the polices above arise from explicit objectives and dynamic programming solutions (again, take my word for it or go read all that stuff I referenced at the beginning of the tutorial), we will take this opportunity to work through one more policy that you might encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO XXXX), which appears to be loosely based on work from Restrepo XXXX.  This policy has been adopted for fisheries throughout Canada (and regardless of the management objectives of those fisheries).  The DFO policy specifies a rectilinear harvest control rule, and while it is often unclear what is specifically supposed to be precautionary about this rule we will simulate it anyway to show you what it is doing. 
+While the polices above arise from explicit objectives and dynamic programming solutions (go read all that stuff I referenced at the beginning of the tutorial), we will take this opportunity to work through one more policy that you will encounter in fisheries.  This is DFO's so-called precautionary harvest control rule (DFO 2006), which appears to be loosely based on work from Restrepo and Powers (1999).  This policy has been adopted for fisheries throughout Canada (and regardless of the management objectives of those fisheries).  The DFO policy specifies a rectilinear harvest control rule, and while it is often unclear what specifically is precautionary about this rule we will simulate it anyway to show you what it is doing. 
 
 The DFO policy increases exploitation rate from zero to $U_{MSY}$ as biomass increases from a lower limit reference point to an upper limit reference point.  These reference points are typically set at $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$.  Note that $U_{MSY}$ and $B_{MSY}$ typically need to be estimated in an assessment model.  
 
@@ -196,30 +190,27 @@ data %>%
 
 ```
 
-And you can see where the name "rectilinear" harvest control rule comes from. So in this example, there's no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
+And you can see where the name "rectilinear" harvest control rule comes from. So in this example, there is no harvest below some lower limit reference point, and then we "cap" the maximum harvest rate at $U_{MSY}$. 
 
-Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective?  What does it imply for other objectives? 
+Remember, this is the harvest control rule used for most fisheries managed via a harvest control rule by DFO. What does this rectilinear rule imply from a HARA or MAY perspective?  What does it imply for other objectives? Is there a biological basis for the $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$ cutoff values? 
 
-Is there a biological basis for the $0.4 \cdot B_{MSY}$ and $0.8 \cdot B_{MSY}$ cutoff values? 
+We will not talk about the rectilinear harvest control rule any more in this tutorial, but it can be run using the simulation script.  This is a thing that we should talk about in person and I can show you how to do it quickly.  As we are going to ignore this rectilinear harvest control rule for the remainder of the tutorial, we'll just ignore the bits of code that only pertain to this rule.  These are any bits of code that are wrapped in if-statements with `rule == rectilinear`.  FYI.
 
 ## How do we use our Bayesian assessment models to inform harvest control rules? 
 
-Before we begin working through the harvest control rule simulation script, we need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We have saved the posteriors from these model fits for each lake in their own .rdata files in the `fits` folder on the Github for this project. 
+Before we begin working through the harvest control rule simulation script, we also need to understand what we currently have in terms of the analyses we have completed up to this point.  In previous tutorials we have estimated a straightforward age-structured stock assessment model for Alberta Walleye.  We saved the posteriors from these model fits for each lake with their own .rdata files in the `fits` folder on the Github for this project. 
 
-The posteriors that we have saved capture uncertainty in Walleye population dynamics given our model structure, priors, and data for a given lake.  Thus, we can use results from these assessments to initialize a harvest control rule simulation, and run these simulations for many random draws from the posterior to characterize uncertainty in our policy development.  We will undertake a specific type of management strategy evaluation known as retrospective harvest control rule simulation. All this means is that once we initialize our simulation model using our stock assessment results, we will repeat recruitment anomaly sequences $w_t$ some number of times into the future. We will play around with this a bit, but the primary goal here is to develop harvest policies that are robust to the recruitment dynamics that were estimated in Cahill et al. 2021. 
+The posteriors that we have saved capture uncertainty in Walleye population dynamics given our model structure, priors, and data for a given lake.  Thus, we can use results from these assessments to initialize a harvest control rule simulation, and run these simulations for many random draws from the posterior to characterize uncertainty in our policy development.  The primary goal here is to develop harvest policies that are robust to the recruitment dynamics that were estimated in Cahill et al. (2021). 
 
 Conceptually, the way we will do this is as follows: 
-
 1. Initialize our population dynamics simulation model using assessment model results for some lake.
-2. Project this model into the future using (nearly) the same equations as in Cahill et al. 2021.
-3. For each policy we want to test the performance of, we initialize our simulation model using some number of random draws of the posterior, run the simulation forward in time while implementing that specific policy for each random draw, and record average performance in terms of our objectives over years of our simulation and number of draws.
-4. Look across all policies we tested, and look up the policy that maximized average yield or HARA utility, respectively.
-5. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
-6. Upon recovering, go back and deal with the rectilinear policy, and see how well the DFO rule works for Alberta Walleye relative to the simple rules above.
+2. For each policy we want to test the performance of, we initialize our simulation model using some number of random draws of the posterior, run the simulation forward in time while implementing that specific policy for each random draw, and record average performance in terms of our objectives over years of the simulation and number of draws.
+3. Once we are done, look back across all policies we tested, and look up the policy that maximized average yield or HARA utility, respectively.
+4. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
 
-This will get a little tedious as we work through code, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability, and catch and release mortality), but the main point is we are trying to come up with an equation that helps folks achieve some objective(s) given a net catch.
+This will become tedious as we work through code, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability, and catch and release mortality), but the main point is we are trying to come up with an equation that helps folks achieve some objective(s) given a net catch.
 
-Additionally, while we are only going to use two conflicting objectives, it is straightforward to do this for any specific objective(s) you want. Phrased differently, if you have explicit multi-criteria objectives and some weighting scheme you could easily adapt this script to test the performance of such an fancy objective.
+Additionally, while we are only going to use two conflicting objectives of MAY and HARA, it is straightforward and trivial exercise to do this for any specific objective(s) you want. Phrased differently, if you have explicit multi-criteria objectives and some weighting scheme you could easily adapt this script to test the performance of such an fancy objective.
 
 ## The `hcr.R` simulation script
 
@@ -227,15 +218,13 @@ The `hcr.R` script works like the `run.R` script in our earlier tutorials.  The 
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L17-L359>
 
-This function was primarily developed to test the simple linear harvest control rules (see MAY vs. HARA examples above), but it can also be used to test the DFO-style rectilinear harvest control rule.  For now, we'll ignore the rectilinear rule entirely and just focus on the simple linear rules.  Once we work through the linear harvest control rules and get a handle on how this works, we'll loop back at the end of this tutorial deal with the rectilinear policy. Eventually we will be able to compare the performance of the linear vs. rectilinear harvest control rules for Alberta Walleye fisheries.
+This function was primarily developed to test the simple linear harvest control rules (see MAY vs. HARA examples above), but it can also be used to test the DFO-style rectilinear harvest control rule.  For now, we will ignore the rectilinear rule entirely and just focus on the simple linear rules.  As stated above, we can discuss running the simulation routine for rectilinear harvest control rules in person if folks want. 
 
 Before we start jumping through this function line by line, I want you to look at the following lines of code below the function here.  
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L361-L432>
 
-Please note you don't have to know what all of this is doing yet.  The main reason to show you this is that there is eventually going to be stuff in our R environment (a bunch of simulation control parameters and our Bayesian model fits in list form) that our `get_hcr()` function is going to interact with.  If I didn't show you this up front, you might get confused as we work through the function. So keep that in mind.
-
-Lastly, you're going to have to realize that we developed this script over several months, and there were quite literally hundreds of emails flying back and forth between us.  This means that some things might not make a ton of sense right up front in terms of the code, because I tried to code things efficiently.  I'm trying to condense those emails down into something of a cookbook recipe for you to follow, at least for Alberta Walleye.  Sometimes that is quite challenging, so please bear with me... 
+Please note you don't have to know what any of this is doing yet.  The main reason to show you this is that there is eventually going to be stuff in our R environment (simulation control parameters and our Bayesian model fits in list form) that `get_hcr()` is going to interact with.  If I didn't show you this up front, you might get confused as we work through the function. So do keep that in mind.
 
 The first chunk of code in `get_hcr()` is the following: 
 
@@ -247,13 +236,13 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
 
 ```
 
-These are inputs you can change depending on your what you want.  The arguments that you can play around with are:
+These are inputs you can change and play around with easily.  The arguments that you can play around with are:
 
-- `which_lake`, a string that specifies the lake name that you want to run. This needs to be lowercase and have underscores in place of spaces.
-- `ass_int`, describes the interval at which we will assess the fishery.
-- `sd_survey`, describes the amount of noise in the survey that we base our harvest control rules off of.
-- `d_mort`, the discard mortality rate for released fish. 
-- `rule`, specifies between linear or rectilinear harvest control rules.
+- `which_lake`, a string that specifies the lake name that needs to be lowercase and have underscores in place of spaces.
+- `ass_int`, which describes the interval at which we will assess the fishery.
+- `sd_survey`, which describes the amount of noise in the survey that we base our harvest control rules off of.
+- `d_mort`, this specifies the discard mortality rate for released fish. 
+- `rule`, specifies between linear or rectilinear harvest control rules, and which for the purposes of this tutorial needs to be set to "linear." 
 
 The next few lines of the function specify a bunch of additional simulation parameters: 
 
@@ -280,15 +269,15 @@ The next few lines of the function specify a bunch of additional simulation para
   grid_size <- hcr_pars$grid_size
 ```
 
-These lines of code are looking up values from a tagged list called `hcr_pars`. I set the values in this function later on in the script in these lines: 
+These lines of code are looking up values from a tagged list called `hcr_pars`, which is declared outside the function `hcr_pars()` in these lines: 
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L386-L403>
 
-You can change these if you want, but you'll notice that I haven't put these explicitly in the function call for `get_hcr()`. I did this because you should probably know what you are doing if you want to change these parameters.  This might seem annoying, but the reason I did this is because if I needed to change any of these values I needed all the following code in this function to update automatically.  This was the best way I could think to do that, though I'm sure there are other (and perhaps more elegant) solutions. 
+You can change these if you want, but you will notice that I have not put these variables in the function call for `get_hcr()`. I did this because you should probably know what you are doing if you want to change these parameters.  This might seem annoying, but the reason I did this is because if I needed to change any of these values I needed all the following code in this function to update automatically, which I needed to do a lot while Carl and I were developing these simulation programs.  This was the best way I could think to do that, though I am sure there are other (and perhaps more elegant) solutions. 
 
-I don't want you to worry too much about these for the moment.  You may not like these initial values.  So be it.  The point of coding it this way is so that we can loop through and run many different simulations with many different input parameters.
+I don't want you to worry too much about these values in `hcr_pars` for the moment.  You may not like these initial values.  So be it.  The point of coding it this way is so that we can loop through and run many different simulations with many different input parameters.
 
-The next code block is just taking the `which_lake` string, and using it to grab the appropriate Bayesian model fit (which eventually will be stored in our R environment from the fits folds):
+The next code block takes the `which_lake` string, and uses it to grab the appropriate Bayesian model fit from our R environment: 
 
 ```{r, eval=FALSE}
 #--------------------------------------------------------------------
@@ -300,15 +289,13 @@ fit <- fits[[fit_idx]]
 rec_ctl <- ifelse(grepl("bh", names(fits)[fit_idx]), "bh", "ricker")
 ```
 
-The first line makes sure there are no spaces in the variable `which_lake`.  The next line determines which of the fits (in the R environment) corresponds to the `which_lake` we wanted to run the simulation for. We then read in the fit corresponding to our lake, and then declare a control variable  called `rec_ctl` indicating whether the fitted Bayesian model used a Beverton-Holt (i.e., "bh") or Ricker stock-recruit model (i.e., "ricker"). Sweet. 
+The first line makes sure there are no spaces in the variable `which_lake`.  The next line determines which of the fits in the R environment corresponds to the `which_lake` we wanted to run the simulation for. We then read in the fit corresponding to our lake, and declare a control variable  called `rec_ctl`.  This `rec_ctl` term indicates whether the Bayesian model was fitted with a Beverton-Holt (i.e., "bh") or Ricker stock-recruit model (i.e., "ricker").  
 
-The next ten or so lines are used for the rectilinear harvest control rule, and so we will ignore this for now.  Note this code is only triggered when rule = "rectilinear": 
+The next ten or so lines are used for the rectilinear harvest control rule, and so we will ignore this.  Note this code is only triggered when rule = "rectilinear", and you can look at it here if you want:
 
-https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L49-L62
+<https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L49-L62>
 
-And so we will ignore them for now for sanity purposes.  Again, we will come back to this later on. 
-
-Lines 64-144 or so are pretty annoying.  Quite literally all these lines of code are doing is extracting relevant values from our Bayesian model fits that we are going to use in our simulations.  Some of these terms were read into our Bayesian model as data, while others were explicitly estimated as parameters (and thus values will vary per each draw of the posterior).  
+The next 80 or so lines are pretty annoying--I am referring to lines 64-144 in the script. All these lines of code are doing is extracting relevant values from our Bayesian model fits and setting them up so that we can use them in our simulation. Some of the stuff we need for our simulation was read into our Bayesian model as data, while other stuff was explicitly estimated as parameters (and thus values will vary per each draw of the posterior).  
 
 I am using the tidybayes package to manage Bayesian model output.  There are many other ways to do this, but I like this way, and so now you have to learn it if you want to figure out what I did. Let's assume for now that `n_draws = 1`.  The next chunk of code is: 
 
@@ -321,9 +308,9 @@ devs <- fit %>%
 draw_idx <- unique(devs$.draw) # which posterior rows did sample_draws() take?
 ```
 
-This piece of code takes a specific model fit, pipes it into the function `spread_draws()` to access this fit's posterior, which is then passed to `sample_draws()`.  The `sample_draws()` function randomly samples some number of draws `n_draws` from the posterior (i.e., rows of the posterior where columns are parameter names and rows are parameter values).  Note also that we are only to grabbing three parameters in this case--$R_0$, $ln(ar)$, and $br$.  These values are stored in the object `devs`. 
+This piece of code takes a specific model fit, pipes it into the function `spread_draws()` to access this fit's posterior, which is then passed to a function called `sample_draws()`.  The `sample_draws()` function randomly samples some number of draws `n_draws` from the posterior (i.e., rows of the posterior where columns are parameter names and rows are parameter values).  Note also that we are only to grabbing three parameters in this case--$R_0$, $ln(ar)$, and $br$.  These values are then stored in the object `devs`. 
 
-We then run one more line of code that figures out which specific draw(s) or rows of the posterior we randomly selected, and we store this value as `draw_idx`.  This is important when we sample more than one parameter because we want our sample values to come from the same (randomly selected) rows of the posterior, which preserves co-variation among the parameter estimates used in our simulation (cool). 
+We then run one more line of code that figures out which specific draw(s) or rows of the posterior we randomly selected, and we store this value as `draw_idx`.  This is important when we sample more than one parameter because we want our sample values to come from the same (randomly selected) rows of the posterior, which preserves co-variation among the parameter estimates used in our simulation. 
 
 Next we basically do the same thing for all the other stuff we want to draw in from our Bayesian model fit, and we make sure we sample the same rows of the posterior as we did above via the `filter()` call: 
 
@@ -370,17 +357,17 @@ w_devs <- w_devs %>%
   filter(year %in% retro_initial_yr:retro_terminal_yr)
 ```
 
-Here you'll note that the code is a little different, and that we are extracting a summary value for $R_0$ rather than an entire posterior or some random subset of that posterior. In particular, we are extracting the most probable single estimate of $R_0$ for use a little later on.
+Here you might note that the code is a little different, and that we are extracting a summary value for $R_0$ rather than an entire posterior or some random subset of that posterior. In particular, we are extracting the most probable single estimate of $R_0$ for use a little later on.
 
-You'll note we are also subsetting our Bayesian posterior model fits a bit. Instead of using the full 1980-2018 numbers at age matrix and $w_t$ values, we'll subset these estimates to correspond to years 1990-2015.  We do this for two reasons.
+We are also sub-setting our Bayesian posterior model fits a bit. Instead of using the full 1980-2018 numbers at age matrix and $w_t$ values, we'll subset these estimates to correspond to years 1990-2015.  We do this for two reasons.
 
-First, most of the Fall Walleye Index Netting surveys had information on Walleye age structure and recruitment back to at least 1990.  While there were some systems where survey data carried information on recruitment and age structure back to the early 1980s, our choice of 1990 seemed to be a safe early year bound based on our data explorations.  
+First, most of the Fall Walleye Index Netting surveys had information on Walleye age structure and recruitment back to at least 1990.  While there were some systems where survey data carried information on recruitment and age structure back to the early 1980s, our choice of 1990 seemed to be a conservative early year bound based on our data explorations.  
 
 Second, recruitment is usually difficult to estimate until cohorts of fish have been present in a fishery for a few years, which means recruitment estimates from recent years (i.e., 2015-2018) are generally unreliable (see Hilborn and Walters 1992; Walters and Martell 2001).  
 
-As our main goal was to design harvest control rules robust to the recruitment variation present in these systems, we felt it was best to use this 1990-2015 range to initialize our age-structured simulation below because these were the estimates that we could trust the most given our data and models.
+As our main goal was to design harvest control rules robust to the recruitment variation present in these systems, we felt it was best to use this 1990-2015 range for our age-structured simulations.  We'll discuss explicitly how we set up these recruitment anomaly sequences in a later section. 
 
-Next, we join all of that stuff into one tibble:
+Next, we join all of that stuff into one tibble or dataframe:
 
 ```{r, eval=FALSE}
  # join all those devs into one big tibble called "post"
@@ -399,7 +386,7 @@ Next, we join all of that stuff into one tibble:
 
 Note, the `supressMessages()` function is just telling the join commands to shut up and not print a bunch of garbage to the console while we run this chunk of code.  I personally don't like it when my programs back sass me, and so I suppress their output here. 
 
-Next up we extract a bunch of leading parameters from the Bayesian model fit.  These are terms that were read in as data, and thus these are not changing on each draw of the posterior. So, we'll just bring them in based on a single draw of the posterior: 
+We then extract some leading parameters from the Bayesian model fit.  These are terms that were read in as data, and thus these did not changing on each draw of the posterior. Because they don't vary per draw, we can just bring them in based on a single draw of the posterior: 
 
 ```{r, eval=FALSE}
 # extract leading parameters from stan to get vbro
@@ -432,15 +419,15 @@ Next up we extract a bunch of leading parameters from the Bayesian model fit.  T
  post$vbo <- sum(Ro_map * Lo * v_fish * w_a) # biomass vulnerable to *fishing*
 ```
 
-So basically we are just extracting a bunch of the stuff from our fit that we discussed in detail during the previous tutorial If you don't remember, these terms are:
+And so we basically we are just extracting stuff from our fit that we discussed in detail during the previous tutorial. If you don't remember, these terms are:
 
 - `w_a` is a vector of relative weight at ages. 
 
 - `f_a` is a vector of relative fecundity at ages.
 
-- `v_survey` is a vector describing Walleye vulnerability to the survey gear at each age.
+- `v_survey` is a vector describing vulnerability to the survey gear at each age.
 
-- `v_fish` is a vector describing Walleye vulnerability to fishing at each age. 
+- `v_fish` is a vector describing vulnerability to fishing at each age. 
 
 - `Lo` is survivorship at age in the unfished condition.
 
@@ -450,13 +437,13 @@ So basically we are just extracting a bunch of the stuff from our fit that we di
 
 - `sbro` is spawners per recruit in the unfished condition. 
 
-and we then put the stuff we need into the `post` tibble for use later on. Remember: this is just us reading in relevant information, parameters, data, whatever from the BERTA model fits and setting it up to use with our simulations below.
+and we then put the stuff we need into a dataframe called `post` for use later on. Remember: this is just us reading in relevant information, parameters, and data, from the BERTA model fits and setting it up to use with our simulations.
 
-Now that once we have read in all of the stuff that we need to run the simulations, we are going to set up the simple linear policies for which we want to test performance in terms of how well they achieve the MAY and HARA objectives.
+Now that once we have read in all of the stuff that we need to run the simulations, we are going to set up the simple linear harvest policies for which we want to run our simulation for.
 
-The way this works is that for each policy we want to test, and then for each draw of the posterior we want to simulate across, we'll run the model some number of years into the future.  We'll then record the expected performance of our policies and pick the best policy overall for a specific objective.  The linear policies we showed above have two parameters: $b_{lrp}$ and $cslope$, which correspond to the x-axis intercept (the fixed escapement point below which fishing is shut off) and the slope of the line (or the rate at which harvesting increases as stock size increases), respectively.
+The way this works is that for each policy we want to test, and then for each draw of the posterior we want to simulate across, we'll run the age-structured model some number of years into the future.  The simple linear policies described above have two parameters: $b_{lrp}$ and $cslope$, which correspond to the x-axis intercept (the fixed escapement point below which fishing is shut off) and the slope of the line (or the rate at which harvesting increases as stock size increases), respectively.
 
-We'll plot a few of these in R to remind you what is going on: 
+Let's look at a few simple linear policies in R to remind you of what is going on: 
 
 ```{r, , message = FALSE, warning=FALSE}
 b_lrp <- seq(from = 0, to = 45, length.out = 25) # lower limit reference point
@@ -481,11 +468,11 @@ my_lines %>%
   ggtitle("Visualizing a few possible linear policies")  
 ```
 
-Each of these lines has a specific lower limit reference point $b_{lrp}$ and a slope to that particular line $c_{slope}$.  What we need to do then, is test each of these policies against our simulation and see which one wins in terms of achieving our objective(s). 
+Each of these lines has a specific lower limit reference point $b_{lrp}$ and a slope to that particular line $c_{slope}$.  What we need to do then, is test these policies (and additional linear policies--not shown) against our simulation and see which one wins in terms of achieving our objective(s). 
 
 Note that this is not all possible linear policies.  I just took a few and plotted them to give you a sense of what I am talking about--there are too many to plot on this single graph. What we really need to do is take a range of plausible $b_{lrp}$ and $c_{slope}$ values, and then test each possible combination of these values.
 
-You can, however, visualize or think about the solution space of all possible linear harvesting policies in terms of a matrix: 
+We can visualize or think about the solution space of all possible linear harvesting policies in terms of a matrix: 
 
 ```{r, message = FALSE, warning=FALSE}
 # get all combinations of blrp, cslope
@@ -506,7 +493,7 @@ my_grid %>%
 
 The key thing to recognize is that each possible combination of $b_{lrp}$ and $c_{slope}$ defines a single harvest policy (i.e., each point on the plot).  We want to test the performance of each of these policies, so we need to figure out a range of policies to iterate across for each lake.
 
-The next chunk of simulation code does declares a possible range of $b_{lrp}$ and $c_{slope}$ values: 
+The next few chunks of simulation code sets up the linear policies to test by declaring a possible range of $b_{lrp}$ and $c_{slope}$ values: 
 
 ```{r, eval=FALSE}
 bmin_max_value <- Ro_map * sum(Lo * v_fish * w_a) 
@@ -518,8 +505,7 @@ Here, we are just setting the maximum $b_{lrp}$ value at $B_0$, which is the bio
  B_0 &=  R_0 \cdot \sum_{age = 2}^{age = 20} L_{o_a} \cdot v_{f_a} \cdot w_a
 \end{align}
 
-It should make intuitive sense that we would say that the lower limit reference point shouldn't be higher than $B_0$, or at least I hope this is intuitive.  The next chunk of code in this hog of a function is: 
-
+It should make sense that we would say that the lower limit reference point shouldn't be higher than $B_0$. The next chunk of code in this beast of a function is: 
 
 ```{r, eval=FALSE}
 
@@ -537,11 +523,9 @@ bmin_seq <- c(bmin_seq_low, bmin_seq_high)
 
 First, we are setting up a simple conditional statement to handle `bmin_max_value` for situations where it gets too high. This is ugly, and required different condition handling for calling lake vs. other systems for reasons we can talk about in our tutorial in person. 
 
-Next, we are setting up a sequence of $c_{slope}$ values.  Then we do something weird relative to what I have shown you.  If you look closely, we are setting up two $b_{lrp}$ sequences, and then smushing them together.
+Next, we are setting up a sequence of $c_{slope}$ values.  Then we do something weird relative to what I have shown you.  If you look closely, we are setting up two $b_{lrp}$ sequences, and then just smushing them together.
 
-If you read code, you'll see that we are stacking half of the lower limit reference points for our policies in the range of 0-20, and half in the range 20.5-bmin_max_value.  
-
-Let's actually visualize what this is actually doing by picking some values for the `grid_size` and `bmin_max_value` parameters and just plotting it:
+We can actually visualize what this is actually doing by picking some values for the `grid_size` and `bmin_max_value` parameters and just plotting it:
 
 ```{r, message = FALSE, warning=FALSE}
 grid_size = 75
@@ -563,11 +547,11 @@ my_grid %>%
 
 ```
 
-If you look closely you can see that this code is stacking more points (policies) into the lower portion of this plot.  We did this for computational purposes.  We wanted more resolution at low stock sizes for the harvest control rule simulation, and wanted to maintain some sort of computational efficiency.  Thus, we chose more policies to test in the lower portion of the above plot. 
+If you look closely you can see that this code is stacking more points (policies) into the lower portion of this plot.  We did this for computational purposes, and because we thought more of the 'action' would be happening at these lower vulnerable biomass values.  We wanted more resolution at low stock sizes for the harvest control rule simulation, but we needed to maintain some sort of computational efficiency.  Thus, we chose more policies to test in the lower portion of the above plot. 
 
-Remember, the specific linear policies for a lake depend on a given lake's estimated $R_0$ (see above) and won't necessarily correspond to these points here. This plot is just giving you a general idea of what that damn code is doing.
+Remember, the specific linear policies for a lake depend on a given lake's estimated $R_0$ (see above) and won't necessarily correspond to these points here. This plot is just giving you a general idea of what that code is doing.
 
-So now we basically just need to loop through each of these policies, run our simulation (for some number of draws from the posterior, and some number of years into the future.  We jump into this bit of the simulation script now.
+So now we basically just need to loop through each of these policies, run our simulation (for some number of draws from the posterior), and some number of years into the future.  We jump into this bit of the simulation script now.
 
 ```{r, eval=FALSE}
 tot_y <- tot_u <- prop_below <- TAC_zero <-
@@ -577,13 +561,11 @@ yield_array <- vB_fish_array <-
 wt_seqs <- matrix(NA, nrow = n_sim_yrs, ncol = n_draws)
 ```
 
-This is just us creating a bunch of empty matrices and a couple of 3d arrays that we will fill below in the loops of misery (below).  If you are not used to arrays, you can think of a 3 dimensional array like a book where each page is a matrix with rows and columns.  
-
-We need 3d arrays for some of our model output.  For example, saving output for MAY or HARA utility for each year in our simulation and for each $c_{slope}$, $b_{lrp}$ combination requires three dimensions. 
+First we have to set up a bunch of empty matrices and a couple of 3d arrays that we will fill below in the loops of misery (below).  If you are not used to arrays, you can think of a 3 dimensional array like a book where each page represents a matrix with rows and columns.  We needed 3d arrays for some of our model output.  For example, saving output for MAY or HARA utility for each year in our simulation and for each $c_{slope}$, $b_{lrp}$ combination requires three dimensions. 
 
 ## The loops of misery
 
-Here's where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting it up to run our simulation.  So now we just need to run our simulation over some finite time horizon for each policy (determined in this case by the  $c_{slope}$, $b_{lrp}$ combinations) and for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
+And here is where the simulation actually starts to happen (finally).  Everything up to this point was just reading in data or model output and setting stuff up to run our simulation.  Now we just need to run our simulation over some finite time horizon for each policy (determined in this case by the $c_{slope}$, $b_{lrp}$ combinations) and for each draw of the posterior (which was set by the $n_{draws}$ parameter.  
 
 The next chunk of code is: 
 
@@ -606,17 +588,17 @@ for (i in seq_along(c_slope_seq)) {
 
 In words, this code is doing the following:
 
-- For each $c_{slope}$ i, pick one $c_{slope}$ 
+- For each $c_{slope}$ i, pick one $c_{slope}$. 
 
-- For each $b_{lrp}$ j, pick one $b_{lrp}$
+- For each $b_{lrp}$ j, pick one $b_{lrp}$.
 
-- Set the random number generator seed (ensures all simulations are comparable)
+- Set the random number generator seed (ensures all simulations are comparable).
 
-- Generate a matrix of random deviates called `wt_re_mat`, with dimensions of the number of simulation years and the number of draws from the posterior (we will use this below)
+- Generate a matrix of random deviates called `wt_re_mat`, with dimensions of the number of simulation years and the number of draws from the posterior (we will use this below to generate our recruitment anomaly sequences).
 
-- For each draw of the posterior k, subset the posterior for that specific draw
+- For each draw of the posterior k, subset the posterior for that specific draw.
 
-- Set up a bunch of stuff based on this specific draw to use in your simulation (not shown -- code below)
+- Set up a bunch of stuff based on this specific draw to use in your simulation (not shown -- code below).
 
 The next bit of code takes a specific draw of the posterior, and uses it to set some more parameters and variables before we begin to loop through each year of our simulation, t: 
 
@@ -635,26 +617,26 @@ Here we are plucking out the recruitment $\alpha$ and $\beta$ parameters and the
 
 The next thirty lines of code are where a bunch of critical stuff happens.  In particular, this is where we set the unpredictable recruitment anomaly sequences that we test our policies against.  Recall that we have $w_t$ values for 1990-2015.  This means we have 26 years of estimated recruitment anomalies. 
 
-Given these estimates, there are many ways one could proceed.  We could, for example, simply repeat the estimated $w_t$ sequence some number of times into the future.  In fact, we did this for a pink shrimp problem we were working on over the fall.  For the pink shrimp problem, we had longer time series of trustworthy recruitment estimates (e.g., 40 + years) and the shrimp don't live as long as a walleye.  For this pink shrimp management strategy simulation tool, we just put the recruitment anomaly sequences end-to-end-to-end many times, and then tested performance of the various policies we were interested in.
+Given these estimates, there are many ways one could proceed.  We could, for example, simply repeat the estimated $w_t$ sequence some number of times into the future.  In fact, we did this for a pink shrimp problem we were working on over the fall.  For the pink shrimp problem, we had longer time series of trustworthy recruitment estimates (e.g., 40 + years) and the shrimp only live for about four years vs. walleye which may live to 20+ in Alberta.  For this pink shrimp management strategy simulation tool, we just put the recruitment anomaly sequences end-to-end-to-end many times, and then tested performance of the various policies we were interested in.
 
-At first we tried to do this with Alberta walleye.  We repeated the recruitment series that we estimated, but it turned out this didn't work well because there were not enough recruitment estimates to make the harvest control rule simulation reliable. Thus, we had to figure out a workaround for this issue.
+At first we tried to do this with Alberta walleye.  We repeated the recruitment series that we estimated with the Bayesian models, but it turned out this didn't work well because there were not enough recruitment estimates to make the harvest control rule simulation reliable. Thus, we had to figure out a workaround for this issue.
 
-While we could not simply repeat the historical sequences for the walleye problem, it is critical to note there is still useful information in the historical $w_t$ sequences that can be exploited to inform our policy simulation. For example the historical 26 year estimated $w_t$ sequence provides at least some information on the relative frequency of strong and weak year classes, year class magnitude, and on the autocorrelation structure in recrutiment for a given lake. 
+While we could not simply repeat the historical sequences for the walleye problem, it seemed there was still useful information in the historical $w_t$ sequences that could be exploited to inform our policy simulation. For example the historical 26 year estimated $w_t$ sequence provides at least some information on the relative frequency of strong and weak year classes, year class magnitude, and on the autocorrelation structure in recruitment for a given lake. 
 
-Because we only have 26 years of recruitment estimates for a fish that lives 15-20 years, about the only thing we can be sure of is that the next 26 years will almost certainly not be an exact repeat of the last 26.  Given these ideas, we came up with the following rules to generate plausible future recruitment patterns for Alberta walleye:
+Because we only have 26 years of recruitment estimates for a fish that lives 15-20 years, about the only thing we are sure of is that the next 26 years will almost certainly not be an exact repeat of the last 26 years.  Given these ideas, we came up with the following rules to generate plausible future recruitment patterns for Alberta walleye:
 
-1. We will start by generating a repeating historical sequence of $w_t$ as $w_{t_{historical}}$ exactly how we did for shrimp problem above.  So we just repeat the estimated $w_t$ values `n_repeats` or 8 times x 26 years of reliable recruitment estimates = 208 total simulation years.
+1. We start by generating a repeating historical sequence of $w_t$ as $w_{t_{historical}}$, exactly how we did for shrimp problem above.  So we just repeat the estimated $w_t$ values `n_repeats` or 8 times x 26 years of reliable recruitment estimates = 208 total simulation years.
 
-2. Next, we'll create an entirely new autocorrelated and noisy series of where the simulation parameters for this sequence are assumed similar among lakes, call this $w_{t_{sim}}$. We'll show the math below.
+2. Next, we create an entirely new auto-correlated and noisy series of simulated recruitment anomalies $w_{t_{sim}}$ where the simulation parameters for this sequence are assumed similar among lakes. 
 
-3. For the first 26 years of simulation, simply set $w_t$ to the first 26 estimated values in $w_{t_{historical}}$. 
+3. For the first 26 years of simulation, set $w_t$ to the first 26 estimated values in $w_{t_{historical}}$. 
 
 4. For year 27-208, calculate the remaining $w_t$ values for the simulation as
 \begin{align}
  w_t &=  \psi_{w_t} \cdot (1 - w_{t_{historical}}) \cdot w_{t_{sim}} \text{, where } \psi_{w_t} \text{= 0.5}
 \end{align}
 
-You need to be careful here--these $w_t$ values in point 4 are now different than the originally estimated values from our Bayesian models (the ones we referenced in point 1).  
+You need to be careful here--these $w_t$ values in point 4 are now different than the originally estimated values from our Bayesian models (the $w_t$ values referenced in point 1).  
 
 These rules resulted in qualitatively similar patterns to the estimated recruitment anomalies for Alberta walleye.  All this jiggery-pokery does is set the first 26 years to the estimated $w_t$ values from the assessment models, and then sets the remaining $w_t$ values (i.e., years 27-208) as a weighted average of the repeated historical sequence and our simulated sequence $w_{t_{sim}}$.  The weighting between the estimated and simulated recruitment anomalies is given by the parameter $\psi_{w_t}$. 
 
@@ -687,7 +669,7 @@ We are mean-centering the historical recruitment series by calculating and then 
 
 Once we correct the `wt_historical` sequence by subtracting `wt_bar`, we repeat the sequence `n_repeats` times.  Note that we are limited to the historical 26 year reference period for our management strategy simulations.  In all our simulations we set this at 8 repeats, and so simulations are 8 x 26 = 208 years in length. A simple rule of thumb here is to run the simulation at least ten times the generation length of the fish you are working on, which for Walleye around 200+ years. This preserves the historical frequency and relative strength of strong and weak year classes that we estimated in the assessment model.
 
-Also, a side note: the reason you simulate this long into the future is to ensure the initial condition or state that you start your simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately optimal harvest control rule that works reasonably well regardless of the intial conditions. 
+Also, the reason we simulate this long into the future is to ensure the initial condition or state that we start the simulation at does not influence the best harvest control rule choice.  Phrased differently, we are trying to find a stationary and approximately stationary harvest control rule that works reasonably well regardless of the initial conditions. 
 
 Up to now we have specified the $w_t$ sequences identically to how we did for the shrimp problem, but here is where things change. Next we set up the autoregressive simulated $w_{t_{sim}}$ deviates:
 
@@ -705,7 +687,7 @@ Up to now we have specified the $w_t$ sequences identically to how we did for th
  }
 ```
 
-Recall here that we filled the whole `wt_re_mat` in line 179 above, and we did it this way for two reasons. One, we wanted to use the same deviates (we need to test the harvest control rules against the same unpredictable recruitment sequences).  The other reason we did this is because it is faster to do it this way. 
+Recall here that we filled the whole `wt_re_mat` in line 179 above, and we did it this way for two reasons. First, we wanted to use the same deviates (we need to test the harvest control rules against the same unpredictable recruitment sequences).  The other reason we did this is because it is faster to do it this way. 
 
 We first initialize  $w_{t=1_{sim}}$ using the first value of `wt_re`, and then we use a for loop to set up the rest of our autoregressive $w_{t_{sim}}$ deviates.  Fun stuff.  
 
@@ -720,11 +702,11 @@ for (t in n_historical_yrs:n_sim_yrs) { # t = 26 to 208
 
 ```
 
-And so this code represents the technical implementation of equation 4 above.  You can work through the math on your own sometime and play around with the parameters, but the key point is this helps us generate reasonable recruitment time-series into the future.  These distributions appear to have similar statistical properties as do the original estimated values.  For example, if we randomly select 30 draws of the recruitment estimates from Baptiste lake, and then simulate future recruitment using these rules and steps, we get the following:
+And so this code represents the technical implementation of equation 4 above.  You can work through the math on your own sometime and play around with the parameters, but the key point is this helps us generate reasonable recruitment time-series into the future.  These distributions appear to have statistical properties similar to the original estimated recruitment anomaly values  For example, if we randomly select 30 draws of the recruitment estimates from Baptiste lake, and then simulate future recruitment using these rules and steps, we get the following plot:
 
-![Estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the evolution of the simulated recruitment sequence into the future using the recruitment deviation rules.  Note the simulated values are modeled as a weighted average of the estimated sequence during 1990-2015 that is repeated through time and an autocorrelated stochastic process.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
+![Estimated and simulated recruitment anomalies $w_t$ that we use for harvest control rule development. Thick black line represents one estimated recruitment anomaly sequence from 1990-2015, while the light grey line shows the simulated recruitment sequence into the future using the recruitment deviation rules.  Note the simulated values are modeled as a weighted average of the estimated sequence during 1990-2015 that is repeated through time and an autocorrelated stochastic process.  Light blue lines show different recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts_baptiste.jpeg)
 
-Next up, we just do a bunch more bookkeeping: 
+Now that we have set up our recruitment anomaly sequences, we have even more bookkeeping to take care of: 
 
 ```{r, eval=FALSE}
   # extract the initial age structure
@@ -752,15 +734,15 @@ Next up, we just do a bunch more bookkeeping:
   t_last_ass <- 1 - ass_int # when was last survey / assessment (initialize)
 ```
 
-In words, this is extracting the intiial numbers at age from the posterior in the year corresponding to 1990, and then saving it as a vector named `Ninit`. Next, we do the same thing for age-2 recruits in 1991, and call this `Rinit_yr_2`. We do this because we actually have to initialize our recruitment models for two years because we are assuming critters recruit at age two. 
+In words, this is extracting the initial numbers at age from the posterior in the year corresponding to 1990, and then saving it as a vector named `Ninit`. Next, we do the same thing for age-2 recruits in 1991, and call this `Rinit_yr_2`. We do this because we actually have to initialize our recruitment models for two years because we are assuming critters recruit at age two. 
 
-Next up, we make a numbers at age matrix called `nta`, with dimensions 208 (years/rows) by 19 (ages 2-20, columns. We then declare some vectors `SSB`, `Rpred`, `vB_fish`, and `vB_survey`, and fill in or initialize the first couple values of `nta`.  
-
-Lastly, we declare a term called `t_last_ass`, which is basically keeping track of when the last assessment was.  We'll have some cool conditional statements below that use this counter to figure out how often to assess a walleye fishery.  
+Next up, we make a numbers at age matrix called `nta`, with dimensions 208 (years or rows) by 19 (ages 2-20, columns. We then declare some vectors `SSB`, `Rpred`, `vB_fish`, and `vB_survey`, and fill in or initialize the first couple values of `nta`. Lastly, we declare a term called `t_last_ass`, which is keeping track of when the last assessment occurred in a given fishery.  We will use this to figure out how often to assess a walleye fishery with some clever if-statements in a bit.  
 
 ## Loops of misery, continued
 
-Now we will begin simulating our age-structured population dynamics model into the future.  Finally.  Everything up to now was setting up the estimates from our Bayesian model, organizing and figuring out how to deal with the recruitment anomalies, and a bunch of bookkeeping crud just so that we can actually run our simulation models. That's pretty wild if you stop and think about it.
+Now we will begin simulating our age-structured population dynamics model into the future.  Finally.  Everything up to now was setting up the estimates from our Bayesian model, organizing and figuring out how to deal with the recruitment anomalies, and a bunch of bookkeeping hogwash just so that we can actually run our simulation models. 
+
+Here we finally begin to loop across years t: 
 
 ```{r, eval=FALSE}
  # run age-structured model for sim years
@@ -771,9 +753,9 @@ for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # years 1 to (n_sim_year-1)
   # more code below...
 ```
 
-These lines of code are looping through t = 1 to year 207 of the simulation, and then setting the values of spawning stock biomass `SSB`, vulnerable biomass (fishing) `vB_fish`, and vulnerable biomass (survey) `vB_survey`. The math for these terms can be found in the previous tutorial if you would like to see it. We will talk about the `ret_a` term below, when we discuss the catch and release mortality component.  For now just ignore it. 
+These lines of code are looping through t = 1 to year 207 of the simulation, and then setting the values of spawning stock biomass `SSB`, vulnerable biomass to fishing `vB_fish`, and vulnerable biomass to surveys `vB_survey`. The math for these terms can be found in the previous tutorial if you would like to see it. We will talk about the `ret_a` term below, when we discuss the catch and release mortality component.  For now you can just ignore it. 
 
-The next if statement determines whether an assessment was run, which depends on the simulation parameter `ass_int`.  Let's assume now this value is set at `ass_int` = 1, so a survey is occuring every year: 
+The next if statement determines whether an assessment is occurring in that year, which depends on the simulation parameter `ass_int`.  Let's assume now this value is set at `ass_int` = 1, so surveys occur every year: 
 
 ```{r, eval=FALSE}
 if (t - t_last_ass == ass_int) { # assess every ass_int yrs
@@ -785,7 +767,7 @@ if (t - t_last_ass == ass_int) { # assess every ass_int yrs
 
 When a survey is triggered, we first reset the value t_last_ass, to make sure that we are triggering assessments at the desired `ass_int` interval. We then randomly sample the population to get an estimate of the biomass vulnerable to fishing--we assume this alue is lognormally distributed with error term $\sigma_{survey}$. This is the value of the x-axis for vulnerable biomass that we will use set up our specific control rule. 
 
-This can be done as follows:
+We set the TAC for the linear harvest control rules as follows:
 
 ```{r, eval=FALSE}
 if (rule == "linear") {
@@ -793,11 +775,9 @@ if (rule == "linear") {
 }
 ```
 
-And this is exactly how we calculated this total allowable catch or `TAC` up in the first plot of the tutorial, with the exception that we are now assuming uncertainty in the x-axis measurement. 
+which is exactly how we calculated this total allowable catch or `TAC` up in the first plot of the tutorial, with the exception that we are now assuming uncertainty in the x-axis measurement. 
 
-There is a chunk of code below this that only applies when the harvest control rule is rectilinear in form.  Ignore this for now.  
-
-So we'll jump down to line 
+There is a chunk of code below this that only applies when the harvest control rule is rectilinear in form, and so we jump down to the next relevant line:
 
 ```{r, eval=FALSE}
 if (TAC < 0) {
@@ -806,15 +786,17 @@ if (TAC < 0) {
 Ut <- ifelse((TAC / vB_fish[t]) < Ut_overall, (TAC / vB_fish[t]), Ut_overall)
 ```
 
-The first chunk of this is handling the `TAC` variable to ensure it doesn't go below zero.  You can't harvest fewer than zero fish, so this should make some sense. 
+The first chunk of this is handling the `TAC` variable to ensure it does not go below zero.  Anglers cannot harvest fewer than zero fish, so this should make some sense. 
 
-The next line calculates the exploitation rate in year t $U_t$ using an ifelse() statement. It says that exploitation rate is equal to the `TAC` divided by the biomass vulnerable to fishing in year t if this calculation is less than a new term `Ut_overall`.  If this rate gets higher than `Ut_overall`, we set $U_t$ to `Ut_overall`.  We are doing this because we will use `Ut_overall` to model discard mortality in a bit.
+The next line calculates the exploitation rate in year t using an ifelse() statement. It says that exploitation rate $U_t$ is equal to the `TAC` divided by the biomass vulnerable to fishing in year t if this calculation is less than some term `Ut_overall`.  If this rate gets higher than `Ut_overall`, we set $U_t$ to `Ut_overall`.  We did this because we will use `Ut_overall` to help us model discard mortality in a bit.
 
-We set `Ut_overall` near the value we used for our $F_{early}$ prior in the Bayesian model.  Our rationale for this was that it was unlikely that angling alone would result in exploitation rates higher than values observed during the invisible collapse (see Post et al. 2002, Sullivan 2003), when angling was virtually unrestricted.  Also, the creel survey data that we looked at for Alberta Walleye showed no clear trend in overall fishing effort, and when we set the `Ut_overall` value near 0.5 the simulation model matches the qualitative observation from biologists on the ground that fish disappear from the fishery shortly after being exposed to fishing.
+We set `Ut_overall` near the value we used for our $F_{early}$ prior in the Bayesian model.  Our rationale for this was that it was unlikely that angling alone would result in exploitation rates higher than values observed during the invisible collapse (see Post et al. 2002, Sullivan 2003), when angling was virtually unrestricted.  
 
-Given this information, we are going to assume `Ut_overall` has been stable over time at a value near our $F_{early}$ prior.  Note that with this term, it would be relatively straightfoward to model growth in fishing demand through time (we don't do this, but you could). 
+Also, the creel survey data that we examined showed no clear trend in overall fishing effort, and when we set the `Ut_overall` value near 0.5 the simulation model matches the qualitative observation from biologists on the ground that fish disappear from the fishery shortly after being exposed to fishing (i.e., few fish beyond minimum size limits in some lakes).
 
-Next up, we calculate a second term for our discard mortality calculations, which we call `rett`. This term is calculated as 
+Given this information, we are going to assume `Ut_overall` has been stable over time at a value near our $F_{early}$ prior.  It would, however, be relatively straightforward to model growth in fishing demand through time (we don't do this, but you could). 
+
+Next up, we calculate a second term for our discard mortality calculations, which we call `rett`. This term is calculated as:
 
 ```{r, eval=FALSE}
 
@@ -823,7 +805,7 @@ rett <- ifelse(Ut / Ut_overall <= 1.0, Ut / Ut_overall, 1.0)
 
 ```
 
-The `rett` term is the annual retention proportion of fish caught that are kept by anglers.  You cannot retain more than 100% of the fish you catch, and so we used this line of code to ensure that this was the case.  Again, this is just another term we needed to model catch and release mortality. We will deal with these catch and release mortality terms when we actually update the age structure and expose our simulated numbers at age matrix to fishing.
+The `rett` term is the annual retention proportion of fish caught that are kept by anglers.  Anglers cannot retain more than 100% of the fish they catch, and so we used this line of code to ensure that this was the case.  Again, this is just another term we needed to model catch and release mortality. We will deal with these catch and release mortality terms when we actually update the age structure and expose our numbers at age matrix to fishing.
 
 ## Updating recruitment and the numbers at age matrix
 
@@ -838,7 +820,7 @@ if (rec_ctl == "bh") {
           
 ```
 
-This is similar to the BERTA tutorial and stan code that we walked through.  We are just setting the predicted recruits for year t according to either Ricker or Beverton-Holt stock-recruitment dynamics.
+This chunk of code is similar to the BERTA stan code that we walked through in an earlier tutorial.  We are just setting the predicted recruits for year t according to either Ricker or Beverton-Holt stock-recruitment dynamics.
 
 Now we actually expose the simulated critters to both natural and fishing mortality:
 
@@ -879,7 +861,7 @@ data %>%
 
 Note there are many other ways you could set this $ret_a$ term.  This seemed intuitive to us and so we will run with it for now. You might come back and play with this in the future.
 
-The other new term we need to define is just the finite discard mortality rate $U_d$. We'll eventually simulate across several $U_d$ values and so the exact number doesn't matter that much for now. Given these two new terms we can think about the tail end of the miserable line of code above, which again wass 
+The other new term we need to define is just the finite discard mortality rate $U_d$. We will eventually simulate across several $U_d$ values and so the exact number does not matter that much for now. Given these two new terms we can think about the tail end of the miserable line of code above, which again was: 
 
 ```{r, eval=FALSE}
 
@@ -901,25 +883,23 @@ nta[t + 2, 1] <- Rpred[t]
 
 ```
 
-We then "just" need to run all those calculations for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. So we record performance metricx and close off all the loops of misery and move on with our lives.
+We then "just" need to run all those calculations for all years t, all $c_{slope}$ and $b_{lrp}$ values, and all random draws from the posterior. We also record performance metrics and close off all the loops of misery and move on with our lives.
 
 ## Life after the loops of misery
 
-Everything that happens in the `get_hcr()` function below the last line of code above is actually just processing the output from our simulation or closing our loops.  Then there's a bunch of code that just creates a big list and saves it in a sims/ folder with a unique file name. Which is good, because I think if I have to explain any more code I might lose it today.
+Everything that happens in the `get_hcr()` function below the previous line of code is actually just processing the output from our simulation or closing our loops.  Then there's a bunch of code that just creates a big list and saves it in the `sims/` folder with a unique file name. 
 
 All of this code is processing our simulation run output:
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L296-L358>
 
-Really, the only important things to note are that we calculate and store average yield and HARA utility for each $c_{slope}$, $b_{lrp}$, and simulation year t in these lines: 
+Really, the only important things to note in that code are that we calculate and store average yield and HARA utility for each $c_{slope}$, $b_{lrp}$, and simulation year t in these lines: 
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L297-L301>  
 
 and where $pp$ = 0.3 as per our section on HARA utility objectives. 
 
-I recorded some additional performance measures in this section in case folks were interested.  I recorded the proportion of times that the fishery fell below some threshold in the `prop_below` matrix, and the number of times the total allowable catch was actually zero in the `TAC_zero` matrix.  
-
-I don't use these yet but you should know they exist, if only so that you see how simple it is to kick out whatever performance metric your heart desires in this part of the code.
+I recorded some additional performance measures in this section in case folks were interested.  I recorded the proportion of times that the fishery fell below some threshold in the `prop_below` matrix, and the number of times the total allowable catch was actually zero in the `TAC_zero` matrix.  I have yet to use these but you should know they exist, if only so that you see how simple it is to kick out whatever performance metric your heart desires in this part of the code.
 
 You'll also note that we correct the calculated yields and utilities in these lines so as to get annual values here:
 
@@ -929,9 +909,11 @@ and we put a ton of stuff in a big list and save it here:
 
 <https://github.com/ChrisFishCahill/managing-irf-complexity/blob/main/r-code/hcr.R#L335-L357>
 
+That's it.  We made it through `get_hcr()`.
+
 ## Running the harvest control rule simulations using {furrr}
 
-We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to fit the stan models in an earlier tutorial.  This means that we can run all of our harvest control rule simulations across many different simulation parameter inputs in parallel. 
+We set the `get_hcr()` function up in much the same way we set up the `get_fit()` function that we used to fit the stan models in an earlier tutorial.  This means that we can run all of our harvest control rule simulations across many different simulation parameter inputs in parallel using {furrr}. 
 
 To do this, we just declare some run parameters for our simulation: 
 
@@ -986,7 +968,7 @@ hcr_pars <- list(
 )
 ```
 
-We then read in the fits that we want to pass to the harvest control rule simulator.  In this case, we choose the Beverton-Holt fits where the informative prior for compensation ratio $/phi$ = 6 and read those specific fits in.  Then we set up a vector of lake names (separated by underscores like we needed at the beginning of our get_hcr() function):
+We then read in the fits that we want to pass to the harvest control rule simulator.  In this case, we choose the Beverton-Holt fits where the informative prior for compensation ratio $\phi$ = 6 and read those specific fits in.  Then we set up a vector of lake names (spaces separated by underscores):
 
 ```{r, eval=FALSE}
 #----------------------------------------------------------------------
@@ -1007,9 +989,7 @@ which_lakes <- str_extract(
 )
 ```
 
-We then want to run these across a suite of different assessment intervals, survey error terms, and discard mortalities.  
-
-To do this, we set up a dataframe called `to_sim` that has columns corresponding to the inputs for our get_hcr() function.  We do some manipulations on `to_sim` to ensure we have all possible combinations of `which_lake`, `ass_int`, `sd_survey`, `d_mort`, and in this case we set the `rule` = "linear" (we are testing the linear harvest control rules):   
+Let's say for the sake of argument that we then want to run these simulations across a suite of different assessment intervals, survey error terms, and discard mortalities.  To do this, we set up a dataframe called `to_sim` that has columns corresponding to the inputs for our get_hcr() function.  We do some manipulations on `to_sim` to ensure we have all possible combinations of `which_lake`, `ass_int`, `sd_survey`, `d_mort`, and in this case we set the `rule` = "linear":   
 
 ```{r, eval=FALSE}
 # things to simulate hcrs across
@@ -1026,7 +1006,7 @@ to_sim$rule <- "linear"
 
 ```
 
-And finally, after a 30-some odd page tutorial sufferfest we get to run this hog.  This code runs all your simulations and saves them with a convenient file name in the sims/ folder: 
+And finally, after all of that we get to run this beast.  This code runs all your simulations and saves them with a convenient file name in the `sims/` folder: 
 
 ```{r, eval=FALSE}
 
@@ -1043,59 +1023,45 @@ if (FALSE) {
 
 ```
 
-Please note I wrapped this future_pwalk() call inside an if-loop set to FALSE.  I did this so it doesn't just start running and accidentally crash your computer.  If you do indeed run the innards of this loop it would run 144 different simulation experiments given the Beverton-Holt compensation ratio prior = 6 BERTA fit.  
+The future_pwalk() call is inside an if-loop set to FALSE.  I did this so it does not just start running and accidentally crash your computer.  If you do indeed run the inside of this loop it would run 144 different simulation experiments given the Beverton-Holt $\phi$ = 6 BERTA fit.  
 
-You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or or for different compensation ratio priors.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
+You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or or for different $\phi$ = 12, too.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
 
 ## Results for MAY and HARA objectives for some of the simulation runs
 
-I ran the harvest control rule simulator for the Beverton-Holt $\phi$ = 6 Bayesian model fits across a range of $\sigma_{survey}$'s, different assessment intervals, and a set of $U_d$ values (i.e., what the code above ran).  Once that's completed, we can plot the recruitment anomaly $w_t$ sequences used for the the simulations to get an idea of the recruitment variation we are testing our policies against (see Fig. 2 below).
+I ran the harvest control rule simulator for the Beverton-Holt $\phi$ = 6 Bayesian model fits across a range of $\sigma_{survey}$, different assessment intervals, and a set of $U_d$ values.  These specfic settings were shown above in the code.  With those results, I can plot the recruitment anomaly $w_t$ sequences used for the the simulations to get an idea of the recruitment variation we are testing our policies against (see Fig. 2 below).
 
+We can also plot the performance of our policies in terms of how well they achieve either MAY or HARA objectives. Early on in the tutorial we said that optimizing MAY and HARA objectives in many theoretical studies has shown that when MAY was the objective to be maximized you typically get an answer with a non-zero fixed escapement $b_{lrp}$ point and a $c_{slope}$ value near one. When HARA is the objective, we said that the $b_{lrp}$ value tended toward zero and the $c_{slope}$ term was closer to $F_{msy}$. 
 
-Additionally, we can plot the performance of our policies in terms of how well they achieve either MAY or HARA objectives. Early on in the tutorial we said that optimizing MAY and HARA objectives in many theoretical studies has shown that when MAY was the objective to be maximized you typically get an answer with a non-zero fixed escapement $b_{lrp}$ point and a $c_{slope}$ value near one. When HARA is the objective, we said that the $b_{lrp}$ value tended toward zero and the $c_{slope}$ term was closer to $F_{msy}$.  Because we simulated across an entire policy space, we can visualize these solutions using isopleths.  When we make isopleths of the simulation output, we can see that on average the best $b_{lrp}$ values are greater than zero and the $c_{slope}$ values are near one when our objective was to maximize MAY (Fig. 3). Calling lake is a bit different, but in general harvesting theory appears to hold.  We can discuss calling in person in our weekly meeting. 
-
+Because we simulated across an entire policy space, we can visualize these solutions using isopleths.  When we make isopleths of the simulation output, we can see that on average the best $b_{lrp}$ values are greater than zero and the $c_{slope}$ values are near one when our objective was to maximize MAY (Fig. 3). Calling lake is a bit different, but in general harvesting theory appears to hold.  
 
 Next up, we can compare the Fig. 3 result with the isopleths for HARA utility (Fig. 4).  What you see is that the $b_{lrp}$ values do indeed tend to slide toward the x-y origin, and that in general the $c_{slope}$ values are less than they were in the previous plot.  Figs 3-4 are showing you there is a tradeoff between policies that seek to maximize MAY vs. those that maximize consistency in catch via HARA utility. 
 
+In addition to the isopleths, we can start to do some neat stuff because we simulated across many axes of uncertainty.  For example, we can look at the best linear harvest control policies for MAY while varying the interval at which walleye fisheries are assessed.  This could be useful as it is unlikely there is enough money or personnel to do surveys each year.  We show the result of increasing the assessment intervals on the best harvest control rules for MAY in Fig. 5, and we make the analogous plot to visualize the harvest control rules across assessment intervals for the HARA utility objective in Fig. 6.   
 
-In addition to the isopleths, we can start to do some neat stuff because we simulated across many axes of uncertainty.  For example, we can look at the best linear harvest control policies for MAY while varying the interval at which walleye fisheries are assessed.  This could be useful as it is unlikely there is enough money or personnel to do surveys each year, and surveys cost somewhere in the range of 5,000-10,000 CAD.  We show the result of increasing the assessment intervals on the best harvest control rules for MAY in Fig. 5, and we make the analogous plot to visualize the harvest control rules across assessment intervals for the HARA utility objective in Fig. 6.   
+We can play other management games and explore all sorts of relevant questions, too.  For example, does our performance (in terms of getting MAY or HARA utility) degrade when surveys are conducted more infrequently? We plot this for the MAY objective in Fig. 7, and it looks about the same as the plot for the HARA objective (Fig. 8). In this case performance doesn't appear degrade much through time, probably because there's high uncertainty in our surveys (i.e., $\sigma_{survey}$ = 0.4). 
 
-
-We can play other management games and explore all sorts of relevant questions, too.  For example, does our performance (in terms of getting MAY or HARA utility) degrade with greater survey intervals? We plot this for the MAY objective in Fig. 7, and it looks about the same as the plot for the HARA objective (Fig. 8). In this case performance doesn't appear degrade much through time, probably because there's high uncertainty in our surveys (i.e., $\sigma_{survey}$ = 0.4$). 
-
-
-These are all the plots I am going to show you, but I hope you realize that the world is really your oyster here and there are lots of interesting things you could kick out from a simulation analysis like this.
-
-## Some plots 
-
-![Recruitment anomalies $w_t$ that we use for harvest control rule development. Black line represents one estimated recruitment anomaly sequence, while the light grey line shows the evolution of the simulated recruitment sequence into the future. Light blue lines show individual recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
-
-![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best linear policy given the MAY objective. This isopleth was created using an assessment interval of 1 year, $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
-
-![Approximation in policy space results for the HARA utility objective. Black dot represents the best linear policy given the HARA objective. This isopleth was created using an assessment interval of 1 year, $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
-
-![Best linear harvest control rules for MAY objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
-
-![Best linear harvest control rules for HARA utility objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
-
-![Performance (MAY) of best polcies vs. assessment interval for each lake in the contract.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3.\label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg) 
-
-![Performance (HARA) of best polcies vs. assessment interval for each lake in the contract.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3.\label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_hara_v_assint_sd_0.4_dmort_0.3.jpeg) 
-
-## Conclusion
+These are all the plots we will look at for now, but I hope you realize that the world is really your oyster here and there are lots of interesting things you could kick out from a simulation analysis like this.
 
 ## Conclusion 
 
-Just to wrap up, let's think about what we have done in this tutorial.  We started out by discussing the importance of explicit objectives for resource management, particularly if we are to evaluate those objectives via simulation.  We talked about MAY and HARA objectives extensively. We then jumped into the `hcr_r()` simulation script, and talked through all the intricacies of reading data in from a particular Bayesian model fit and into our simulation script. 
+Just to wrap up, let's think about what we have acheived in this tutorial.  We started out by discussing the importance of explicit objectives for resource management, particularly if we are to evaluate those objectives via simulation.  We talked about MAY and HARA objectives extensively. We then jumped into the `hcr_r()` simulation script, and talked through all the intricacies of reading data into this function from a particular Bayesian model fit for use in our simulation script. 
 
-We spent a chunk of time discussing recruitment anomalies, including how to set them up to represent some sort of weighted average between our estimated values and an autocorrelated process.  From there, we jumped into the age-structured model portion of the simulation script.  This was very similiar in form to the model we fitted in our Stan tutorials, with the exception that we introduced some new terms to deal with catch and release mortality.  We then stored performance metrics and saved a bunch of simulation output with a nice file name in the `sims/` folder. 
+We spent a chunk of time discussing recruitment anomalies, including how to set them up to represent some sort of weighted average between our estimated values and an auto-correlated process.  From there, we jumped into the age-structured model portion of the simulation script.  This was very similiar in form to the model we fitted in our Stan tutorials, with the exception that we introduced some new terms to deal with catch and release mortality.  We then stored performance metrics and saved a bunch of simulation output with a nice file name in the `sims/` folder. 
 
-Lastly, we finally ran our simulation models using {furrr}, similar to what we did in earlier tutorials.  Upon running and saving those simulation runs, we plotted our findings to visualize some of the results.
+Lastly, we ran our simulation models using {furrr}, using methods and techniques we learned in earlier tutorials.  Upon running and saving those simulation runs, we plotted our findings to visualize some of the results.
 
 ## References: 
+
 Bertsekas 2019.  Reinforcement Learning and Optimal Control. 
 
 Cahill et al. 2021. Unveiling the recovery dynamics of walleye after the invisible collapse. Canadian Journal of Fisheries and Aquatic Sciences. 
+
+Clark, C.W. 1974. Mathematical bioeconomics. In Mathematical Problems in Biology. Springer. pp. 29-45.
+
+Clark, C.W., and De Pree, J.D. 1979. A simple linear model for the optimal exploitation of renewable resources. Applied Mathematics and Optimization 5(1): 181-196
+
+Conroy and Peterson. 2013. Decision making in natural resource management: a structured, adaptive approach.
 
 Department of Fisheries and Oceans 2006.  A harvest strategy compliant with the precautionary approach. 
 
@@ -1105,7 +1071,9 @@ Edwards and Dankel 2016. Management science in fisheries: an introduction to sim
 
 Gelman et al. 2013. Bayesian data analyis.
 
-Larkin. Epitaph on maximum sustainable yield.  Transactions of the American Fisheries Society.
+Larkin. 1977. Epitaph on maximum sustainable yield.  Transactions of the American Fisheries Society.
+
+Mangel, M. 1984. Decision and control in uncertain resource systems. Academic Press, Inc.
 
 Moxnes 2002.  Policy sensitivity analysis: simple vs. complex models. Centre for Fisheries Economics Discussion Paper No. 13/2002. 
 
@@ -1124,4 +1092,18 @@ Walters 1986.  Adaptive Management of Renewable Resources.
 
 Walters and Martell. 2001. Fisheries Ecology and Management. 
 
+
+![Recruitment anomalies $w_t$ that we use for harvest control rule development. Black line represents one estimated recruitment anomaly sequence, while the light grey line shows the evolution of the simulated recruitment sequence into the future. Light blue lines show individual recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
+
+![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best linear policy given the MAY objective. This isopleth was created using an assessment interval of 1 year, $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
+
+![Approximation in policy space results for the HARA utility objective. Black dot represents the best linear policy given the HARA objective. This isopleth was created using an assessment interval of 1 year, $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
+
+![Best linear harvest control rules for MAY objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+![Best linear harvest control rules for HARA utility objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+![Performance (MAY) of best polcies vs. assessment interval for each lake in the contract.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3.\label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg) 
+
+![Performance (HARA) of best polcies vs. assessment interval for each lake in the contract.  This plot was created using $\sigma_{survey}$ = 0.4, and $U_d$ = 0.3.\label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_hara_v_assint_sd_0.4_dmort_0.3.jpeg) 
 
