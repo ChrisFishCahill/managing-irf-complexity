@@ -158,8 +158,8 @@ p <-
 p
 
 ggsave("plots/hcr_wts_baptiste.jpeg",
-  width = 8,
-  height = 5
+       width = 8,
+       height = 5
 )
 
 
@@ -221,8 +221,8 @@ bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol = 3)
 
 # bigp <- gridExtra::grid.arrange(grobs = plot_list, ncol=1)
 ggsave("plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.pdf", bigp,
-  width = 8,
-  height = 5
+       width = 8,
+       height = 5
 )
 
 ggsave("plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg", bigp,
@@ -452,8 +452,8 @@ my_data[which(my_data$year == max(my_data$year)), c("Utility_vB", "HARA_yield")]
 # p
 
 ggsave("plots/vb_yield_hara_policy.pdf",
-  width = 8,
-  height = 5
+       width = 8,
+       height = 5
 )
 
 # p <-
@@ -613,11 +613,11 @@ for (l in unique(frontier$lake)) {
   d <- frontier %>%
     filter(lake == l) %>%
     filter(x_yield >= wut_percent * xint$value & 
-          y_utility >= wut_percent * yint$value
-          )
-
+             y_utility >= wut_percent * yint$value
+    )
+  
   TAC <- matrix(NA, nrow = length(vB), ncol = nrow(d))
-
+  
   for (i in 1:nrow(d)) {
     TAC[, i] <- d$cslope[i] * (vB - d$bmin[i])
   }
@@ -838,9 +838,9 @@ for (i in names(yield_list)) {
 }
 
 res_table_hara <- data.frame(bmin = rep(NA, length(unique(my_data$lake))), 
-                        cslope = rep(NA, length(unique(my_data$lake))), 
-                        lake = rep(NA, length(unique(my_data$lake))),
-                        value = rep(NA, length(unique(my_data$lake))))
+                             cslope = rep(NA, length(unique(my_data$lake))), 
+                             lake = rep(NA, length(unique(my_data$lake))),
+                             value = rep(NA, length(unique(my_data$lake))))
 
 for (i in unique(my_data$lake)) {
   highlight <- my_data %>%
@@ -909,7 +909,7 @@ p <-
                   colour=as.factor(ass_ints), 
                   linetype= objective), 
               size=0.5
-              ) +
+  ) +
   ggsidekick::theme_sleek() + 
   scale_colour_grey(start = 0.2) +
   xlab("Biomass Vulnerable to Fishing (kg/ha)") +
@@ -1622,8 +1622,8 @@ p <-
 p
 
 ggsave("plots/hcr_wts.jpeg",
-  width = 8,
-  height = 5
+       width = 8,
+       height = 5
 )
 
 trace_data2 <- 
@@ -1894,7 +1894,7 @@ ggsave("plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg", p,
        width = 6,
        height = 4
 )
-  
+
 
 res_table$y_int <- - res_table$cslope*res_table$bmin
 
