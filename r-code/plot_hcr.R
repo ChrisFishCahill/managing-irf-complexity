@@ -1891,8 +1891,8 @@ p <- res_table %>%
   ggsidekick::theme_sleek() 
 
 ggsave("plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg", p,
-       width = 6,
-       height = 4
+       width = 5,
+       height = 3
 )
 
 
@@ -2030,8 +2030,8 @@ p <- res_table %>%
   ggsidekick::theme_sleek() 
 
 ggsave("plots/performance_hara_v_assint_sd_0.4_dmort_0.3.jpeg", p,
-       width = 6,
-       height = 4
+       width = 5,
+       height = 3
 )
 res_table$y_int <- - res_table$cslope*res_table$bmin
 
