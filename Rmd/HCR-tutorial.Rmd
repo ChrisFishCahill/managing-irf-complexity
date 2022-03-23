@@ -1050,29 +1050,46 @@ Please note I wrapped this future_pwalk() call inside an if-loop set to FALSE.  
 
 You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or or for different compensation ratio priors.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
 
-That's exciting, albeit melodramatic.  So we'll proceed on with some results given these simple linear harvest control rule simulations.
+## Results given MAY and HARA objectives and Beverton-Holt stock-recruitment
 
-## Results given provisional objectives and Beverton-Holt $\phi$ = 6 Bayesian model fits
+We'll run the harvest control rule simulator for the Beverton-Holt $\phi$ = 6 Bayesian model fits.  First, we plot the recruitment anomaly $w_t$ sequences used during the simulations (see Fig. 2).
 
-In an effort to end this sufferfest, I'm going to try and wrap up some of the main findings from these model runs.  I told you a long time ago that the general patterns between the MAY and HARA objectives from lots of theoretical work showed that when MAY was maximized, you typically had a non-zero fixed escapement $b_{lrp}$ point and a $c_{slope}$ value near one. 
+![Recruitment anomalies $w_t$ that we use for harvest control rule development. Black line represents one estimated recruitment anomaly sequence, while the light grey line shows the evolution of the simulated recruitment sequence into the future. Light blue lines show individual recruitment anomaly trajectories. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
 
-Because we actually simulated across an entire policy space, we can visualize our solutions using isopleths.
+Early on in the tutorial sections on MAY and HARA objectives I told you that the general findings of optimizing MAY and HARA objectives from lots of theoretical work has shown that when MAY was the objective to be maximized, you typically get an answer with a non-zero fixed escapement $b_{lrp}$ point and a $c_{slope}$ value near one. When HARA is the objective, we said that the $b_{lrp}$ value tended toward zero and the $c_{slope}$ term was closer to $F_{msy}$.  Because we simulated across an entire policy space, we can visualize these solutions using isopleths.
 
-![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best result given the MAY objective and the simple linear policies. This isopleth was created assuming discard mortality = 0.3, assessment interval = 1 year, and sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hcr_wts.jpeg)
+When we make isopleths of the simulation output, we can see that on average the best $b_{lrp}$ vlaues are greater than zero and the $c_{slope}$ values are near one when our objective was to maximize MAY (Fig. 3). Calling lake is a bit different, but in general the theory appears to hold: 
 
+![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best linear policy given the MAY objective. This isopleth was created using an assessment interval of 1 year, a $\sigma_{survey}$ = 0.4, and a $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
 
-![Approximation in policy space results for maximum average yield (MAY) objective. Black dot represents the best result given the MAY objective and the simple linear policies. This isopleth was created assuming discard mortality = 0.3, assessment interval = 1 year, and sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
-
-And we can compare this with our HARA utility simulation results:
-
-![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
-
-![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
-
-![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+We can compare the Fig. 3 result with the isopleths determined from our simulations  maximizing HARA utility instead of MAY, and you can see that the $b_{lrp}$ values do indeed tend to slide toward the origin, and that in general the $c_{slope}$ values are less than they were in the previous plot.  This is showing you there is a tradeoff between MAY and HARA utility. Very cool.  (Fig. 4). 
 
 
-We can play other games, too, like whether performance at achieving an objective degrades with increasing survey interval: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+![Approximation in policy space results for the HARA utility objective. Black dot represents the best linear policy given the HARA objective. This isopleth was created using an assessment interval of 1 year, a $\sigma_{survey}$ = 0.4, and a $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_isos_ass_int_1_dmort_0.3_sd_0.4.jpeg)
+
+Because we have simulated across many axes of uncertainty, we can start to do some neat stuff.  For example, we can quite easily look at the best linear harvest control policies for MAY while varying the interval at which walleye fisheries are assessed: 
+
+![Best linear harvest control rules for MAY objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using a $\sigma_{survey}$ = 0.4, and a $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/yield_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+And as you might have guessed, we can do the same thing to visualize the HARA harvest control rules across assessment intervals: 
+
+![Best linear harvest control rules for HARA utility objective, where line color indicates the interval at which the fishery is assessed.  This plot was created using a $\sigma_{survey}$ = 0.4, and a $U_d$ = 0.3. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/hara_hcr_sensitivity_sd_0.4_dmort_0.3.jpeg)
+
+We can play other management games and explore all sorts of relevant questions, too.  For example, does our performance (in terms of getting some MAY or HARA utility) degrade with greater survey intervals? We plot this in Figs 7-8. 
 
 ![Isopleths for dmort = 0.4, ass int =1, sdsurvey = 0.4. \label{fig1}](C:/Users/Chris Cahill/Documents/GitHub/managing-irf-complexity/plots/performance_v_assint_sd_0.4_dmort_0.3.jpeg)
 
@@ -1084,50 +1101,73 @@ And we can do the same thing for HARA utility vs. assessment interval:
 
 
 
-A bewildering array of harvest control rule shapes and forms exists (see review in Deroba and Bence 20XX). These rules relate how much should be allocated for harvest relative to the biomass or number of critters vulnerable to harvesting.  Here is an example of a simple harvest control rule: 
-After examining the data and model outputs for Alberta walleye in detail it seemed more appropriate to model recruitment anomalies into the future as a weighted average between the original estimated $w_t$ values and another autocorrelated time series. 
 
 
-e just need to preserve the observed historical frequency and severity of strong and weak year classes, i.e. avoid any stupid assumption about things being more or less variable into the future.  So for each lake, repeat the sequence estimated for that lake for the 1990-2015 period. We can “see” back to 1990 for all those lakes (including Newell and Pigeon, just had low recruitments not highly uncertain ones), and cannot see after 2015 or 6 since only weak observations of younger fish.  That gives us a 25 year reference period for each lake, will just have to warn them that we can’t see any longer term patterns or event occurrances than have been visible during the reference period.
-
-Early optimization work on harvesting theory shows that optimal rules given simple models and single objectives typically decrease harvest rate as population size decreases and increase harvest rate as population size increases (citations).  It doesn't have to be complicated.  Many rules, such as the generic rule proposed in Fisheries and Oceans Canada (DFO) 20XX, suggest that rectilinear harvest control rules are "precautionary." However, what *specifically* is precautionary about such rules is rarely 
-
-rarely specify what is precautionary about the specific rule beyond references to Restrepo XXXX. 
-
-(and 
-
-Given these considerations, we will primarily focus on the simulation evaluation of simple linear harvest control rules. If it isn't broke, don't fix it sort of thing.
 
 
-To do this, we first generated an anomaly sequence where we simply repeated the estimated $w_t$ values `n_repeats` times. 
 
 
-and repeat this process many times (e.g., 30-100 random draws).  Each time we record the performance of a policy
 
-each of some number (e.g., say 30 or 100) of random values from our assessment posteriors, run our model into the future. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## Resources: 
 
-Cahill et al. 2021 CJFAS. 
+Cahill et al. 2021. Unveiling the recovery dynamics of walleye after the invisible collpase. Canadian Journal of Fisheries and Aquatic Sciences. 
 
 Department of Fisheries and Oceans 2006.  A harvest strategy compliant with the precautionary approach. 
 
-Deroba and Bence XXXX.  Harvest control rules.
+Deroba and Bence 2008. A review of harvest policies: Understanding relative performance of control rules. Fisheries Research.
 
-Edwards and Dankel 20XX.  Fisheries Management Science.
+Edwards and Dankel 2016. Management science in fisheries: an introduction to simulation-based methods. Routledge.
 
-Gelman et al. 2013. Bayesian Data Analsyis.
+Gelman et al. 2013. Bayesian data analyis.
 
-Larkin. Epitaph on Maximum Sustainable Yield.
+Larkin. Epitaph on maximum sustainable yield.  Transactions of the American Fisheries Society.
 
-Moxnes XXXX. 
+Moxnes 2002.  Policy sensitivity analysis: simple vs. complex models. Centre for Fisheries Economics Discussion Paper No. 13/2002. 
 
-Post et al. 2002. Invisible Collapse.
+Post et al. 2002. Canada's recreational fisheries: the Invisible Collapse? Fisheries.
 
-Restrepo XXXX. Precautionary stuff.
+Restrepo and Powers 1999. Precautionary control rules in US fisheries management: specification and performance. ICES Journal of Marine Sci. 
 
-Sullivan 2003. 
+Sullivan 2003.  Active management of walleye fisheries in Alberta: dilemmas of managing recovering fisheries. North American Journal of Fisheries Management. 
 
 Walters and Hilborn 1976. Adaptive control of fishing systems. 
 
