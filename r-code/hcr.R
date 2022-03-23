@@ -446,6 +446,7 @@ to_sim$rule <- "linear"
 #                  sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # pwalk(to_sim, get_hcr)
 #----------------------------------------------------------------------
+# run the linear policies 
 
 # if you run all these your gov computer may explode
 if (FALSE) {
