@@ -1,5 +1,6 @@
 ## Developing harvest control rules for Alberta walleye fisheries with highly variable recruitment dynamics
-Chris Cahill and Carl Walters, March 2022
+Chris Cahill and Carl Walters
+25 March 2022
 
 ### Directory organization
 This directory contains data, Stan, and R code to fit age structured population dynamics models to Alberta FWIN data as per Cahill et al. 2021.  It also contains .R simulation code that develops harvest control rules for Special Harvest License (SHL) walleye fisheries given these model fits. 
@@ -43,6 +44,6 @@ We made these changes to ensure the development of our harvest control rules was
 
 This is a personal repository that is not meant for public use at this time. It is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. No installation or technical support will be provided.
 
-TODO for Chris: 
+### TODO for Chris: 
 
 * drink more espresso 
