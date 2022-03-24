@@ -1025,7 +1025,7 @@ if (FALSE) {
 
 The future_pwalk() call is inside an if-loop set to FALSE.  I did this so it does not just start running and accidentally crash your computer.  If you do indeed run the inside of this loop it would run 144 different simulation experiments given the Beverton-Holt $\phi$ = 6 BERTA fit.  
 
-You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or or for different $\phi$ = 12, too.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
+You could use this simulation framework to run a harvest control rule simulator for the Ricker fits or for different $\phi$ = 12, too.  You could play around with different assessment intervals, survey error, or discard mortality values.  The point of going through all that miserable coding was so that we have some freedom now with what we actually simulate. 
 
 ## Results for MAY and HARA objectives for some of the simulation runs
 
