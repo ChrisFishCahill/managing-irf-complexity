@@ -26,7 +26,7 @@ There have been three changes to the .stan model from what was published in Cahi
 
 * We now assume logistic vulnerability to fishing, which was not used in the paper.
 * We have assumed a higher Fearly mortality rate prior of 0.5 (vs. 0.3 used in the paper). 
-* We have corrected the estimates of MSY and Fmsy so that they now account for the lognormal bias. 
+* We have corrected the estimates of MSY and Fmsy so that they now account for transformation bias. 
 
 We made these changes to ensure the development of our harvest control rules was robust and more conservative from a fishing mortality perspective.  None of the major findings from Cahill et al. 2021 changed when we made these additional changes. 
 
