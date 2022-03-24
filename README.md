@@ -17,7 +17,7 @@ A recent paper used age-structured population dynamics models to assess walleye 
 
 MSE is a powerful technique with which to design effective fisheries management systems (see Punt et al. 2016 for details of the approach).  This is particularly true for walleye fisheries managed via a total allowable catch in terms of the number of tags managers allocate in a given year. The primary goal of this project, then, was to develop defensible harvest control rules for Alberta managers that were robust to this (as of yet) unpredictable recruitment variability.  To do this, we used the assessment results from Cahill et al. 2021 (i.e., the Bayesian posteriors from their fitted models) to parameterize a harvest control rule simulation. 
 
-The simulation tests simple linear management policies or harvest control rules to find policies that maximize simple objectives like maximum average yield or HARA utility (defined explicitly in tutorial on harvest control rules).  We chose conflicting but simple objectives to demonstrate how these fisheries could be managed rather than show folks how they should be managed.
+The simulation tests simple linear management policies or harvest control rules to find policies that maximize simple objectives like maximum average yield or HARA utility (defined explicitly in tutorial on harvest control rules).  We chose conflicting but simple objectives to demonstrate how these fisheries could be managed rather than show folks how they should be managed.  The simulation routine can also be used to simulate "precautionary" rectilinear harvest control rules of the shape that Fisheries and Oceans Canada has officially adopted for Canadian Fisheries Management. 
 
 ### Changes 
 
