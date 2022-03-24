@@ -29,14 +29,13 @@ There have been three changes to the .stan model from what was published in Cahi
 
 We made these changes to ensure the development of our harvest control rules was robust and more conservative from a fishing mortality perspective.  None of the major findings from Cahill et al. 2021 changed when we made these additional changes. 
 
-The project plan is as follows:
+### Project plan:
 
 * Create a single lake version of the BERTA models from Cahill et al. 2021 so that one can easily run models for a single lake.
 * Develop the necessary programs to evaluate harvest control rules for a collection of lakes given model fits from part 1. 
-* Build capacity within AEP so that they can implement assessments and harvest control rule development on their own (via tutorials).
-* Teach Andrew Paul and Laura MacPherson how to do this via Zoom (taught during Jan - March 2022).
+* Build capacity within AEP so that they can implement assessments and harvest control rule development on their own (via tutorials / zoom sessions).
 
-Additional notes:
+### Additional notes:
 
 * There are two .stan files in the /src folder.  The first is BERTA.stan and the second is BERTA_single_lake.stan.  These correspond to the original and single-lake versions of BERTA used in Cahill et al. 2021, respectively. The BERTA.stan file is not used, but is here in case folks want to compare with the single lake version. 
 
