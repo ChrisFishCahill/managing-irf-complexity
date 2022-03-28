@@ -203,9 +203,13 @@ Before we begin working through the harvest control rule simulation script, we a
 The posteriors that we have saved capture uncertainty in Walleye population dynamics given our model structure, priors, and data for a given lake.  Thus, we can use results from these assessments to initialize a harvest control rule simulation, and run these simulations for many random draws from the posterior to characterize uncertainty in our policy development.  The primary goal here is to develop harvest policies that are robust to the recruitment dynamics that were estimated in Cahill et al. (2021). 
 
 Conceptually, the way we will do this is as follows: 
+
 1. Initialize our population dynamics simulation model using assessment model results for some lake.
+
 2. For each policy we want to test the performance of, we initialize our simulation model using some number of random draws of the posterior, run the simulation forward in time while implementing that specific policy for each random draw, and record average performance in terms of our objectives over years of the simulation and number of draws.
+
 3. Once we are done, look back across all policies we tested, and look up the policy that maximized average yield or HARA utility, respectively.
+
 4. Go for a long run and drink tasty beer, never think about designing controllers for nonlinear dynamical systems again.
 
 This will become tedious as we work through code, but the key point to remember here is that we are trying to create a rule for managers that says "if our objective is x and our net catch is y, how many fish should we allocate in year t?"  We will relax a variety of assumptions around this (assessment interval, survey variability, and catch and release mortality), but the main point is we are trying to come up with an equation that helps folks achieve some objective(s) given a net catch.
