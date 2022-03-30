@@ -240,7 +240,9 @@ Lastly, Stan will then pass these accepted parameter values to the generated qua
 
 Stan does all this magic for you, which is pretty dope. 
 
-If you remind me in person, I will show you a video animation to give you an idea of how the Stan algorithms are working.
+See this link for a visualization of how Stan is simulating the posterior--we won't dive into the specfics unless people want to, but I think this is cool: 
+
+<https://chi-feng.github.io/mcmc-demo/app.html>
 
 # Examining chains and debugging
 
