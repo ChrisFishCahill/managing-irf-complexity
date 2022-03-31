@@ -35,7 +35,7 @@ parameters {
 }
 transformed parameters{ 
   // this section takes parameter estimates and data (or transformed data) 
-  // and transforms them for use later on 
+  // and transforms them for use later on in model section
 }
 model{
   // this section specifies the prior(s) and likelihood terms, 
