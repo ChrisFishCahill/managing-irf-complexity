@@ -238,7 +238,7 @@ Stan, in the background, then creates a log probability function as the log of t
 
 Lastly, Stan will then pass these accepted parameter values to the generated quantities block.
 
-Stan does all this magic for you, which is pretty dope. 
+Stan does all this magic for you, which is pretty fantastic. 
 
 See [this link](https://chi-feng.github.io/mcmc-demo/app.html) for a visualization of how Stan is simulating the posterior--we won't dive into the specfics unless people want to, but I think this is cool: 
 
