@@ -224,6 +224,9 @@ contract_lakes <- c("lac ste. anne", "baptiste lake",
                     "moose lake", "lake newell"
 )
 
+# data <- data[which(data$name %in% contract_lakes),]
+# saveRDS(data, "data/BERTA-wide-0-25.rds")
+
 to_fit <- tibble(which_lake = contract_lakes)
 to_fit$n_iter <- n_iter
 to_fit$n_chains <- n_chains
