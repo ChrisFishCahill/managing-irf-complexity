@@ -20,7 +20,7 @@ rstan::rstan_options(auto_write = TRUE)
 # compile the model
 m <- rstan::stan_model("src/BERTA_single_lake.stan", verbose = F)
 
-# read in the data from all lakes used in Cahill et al. 2021
+# read in the data from all six lakes for Alta contract:
 data <- readRDS("data/BERTA-wide-0-25.rds")
 stocking <- readRDS("data/stocking_matrix_ha.rds")
 
