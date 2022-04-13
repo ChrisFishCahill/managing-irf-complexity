@@ -13,7 +13,7 @@ The purpose of this tutorial is to develop a management strategy evaluation or s
 
 ## Goals
 - Provide readers with some background on the development of policies for fisheries management.
-- Understand what a harvest control rule is and why such rules is useful for managing natural resources.
+- Understand what a harvest control rule is and why such rules are useful for managing natural resources.
 - Understand how the `hcr_r()` code is pulling results from the stock assessments and using these as inputs into the harvest control rule simulation program.
 - Work through the model structure of the harvest control rule simulator, including calculations of maximum average yield and HARA utility.
 - Develop intuition for the catch and release mortality components of the age-structured simulation model.
