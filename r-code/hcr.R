@@ -193,16 +193,16 @@ get_hcr <- function(which_lake = "lac_ste._anne", ass_int = 1,
         wt_bar <- mean(wt_historical)
         wt_historical <- wt_historical - wt_bar # correct nonzero wt over initialization period
         wt_historical <- rep(wt_historical, n_repeats) # 8 x 26 year sequence of values
-        
-        # set wt = BERTA estimated values for yrs 1-26
-        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
-
+ 
         # set the random effect vector
         wt_re <- wt_re_mat[, k]
 
         # generate auto-correlated w(t)'s
         wt_sim <- wt <- rep(NA, length(wt_historical))
         wt_sim[1] <- wt_re[1] # initialize the process for t = 1
+        
+        # set wt = BERTA estimated values for yrs 1-26
+        wt[1:n_historical_yrs] <- wt_historical[1:n_historical_yrs]
 
         # create autoregressive wt_sim[t]
         for (t in seq_len(n_sim_yrs)[-n_sim_yrs]) { # t = 1 to 207
@@ -439,8 +439,8 @@ to_sim$rule <- "linear"
 #   "pigeon lake", "calling lake",
 #   "moose lake", "lake newell"
 # )
-# run <- get_hcr(which_lake = "lac ste. anne", ass_int = 1,
-#                sd_survey = 0.05, d_mort = 0.03, rule = "linear")
+get_hcr(which_lake = "lac ste. anne", ass_int = 1,
+        sd_survey = 0.05, d_mort = 0.03, rule = "linear")
 # purrr
 # to_sim <- tibble(which_lake = "lac ste. anne", ass_int = 1,
 #                  sd_survey = 0.05, d_mort = 0.03, rule = "linear")
