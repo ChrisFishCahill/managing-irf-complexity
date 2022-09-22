@@ -51,4 +51,3 @@ This is a personal repository that is not meant for public use at this time. It 
 ### TODO for Chris: 
 
 * drink more espresso 
-* sell mountainbike for $3200 
