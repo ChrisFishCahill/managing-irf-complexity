@@ -6,8 +6,8 @@
 vbk <- 0.23
 pbig <- 0.05 # Pr(spasmodic cohort)
 surv <- 0.84
-cost <- 0.05 # ?
-seq <- 0 # ?
+cost <- 0.05 # small cost to get solver to stop fishing after peak years
+seq <- 0 # --not used in our code, used to toggle between random number sequences in Excel
 
 years <- 1:198
 # create a vector indicating whether a big cohort happen
