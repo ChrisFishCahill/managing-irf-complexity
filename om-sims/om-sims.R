@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------
-# tranlate Carl Walter's omniscient manager simulations  for spasmodic stocks
+# port Carl Walter's omniscient manager simulations  for spasmodic stocks
 #                          from excel to R
 #                         Cahill 7 Oct 2022
 #-----------------------------------------------------------------------
