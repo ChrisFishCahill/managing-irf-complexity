@@ -51,10 +51,10 @@ model {
  // loop through years and add up yield or utility
  for(t in 1:n_year){
    if(obj_ctl == 0){
-     target += sum(yield) - cost * Ut_sum + 1e-9; 
+     target += sum(yield) - cost * Ut_sum; 
    }
    if(obj_ctl == 1){
-     target += sum(utility) - cost * Ut_sum + 1e-9; 
+     target += sum(utility) - cost * Ut_sum; 
    }
    // print("target = ", target()); 
  }
