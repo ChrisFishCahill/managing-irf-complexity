@@ -180,6 +180,25 @@ ggplot(aes(x = year, y = med)) +
   theme_qfc()
 
 
+fit %>%
+  spread_draws(Ut[year]) %>%
+  mutate(
+    value = Ut,
+    year = year
+  ) %>%
+  summarise(
+    lwr = quantile(Ut, 0.1),
+    med = quantile(Ut, 0.5),
+    upr = quantile(Ut, 0.9),
+    lwr2 = quantile(Ut, 0.25),
+    upr2 = quantile(Ut, 0.75),
+  ) %>%
+  ggplot(aes(x = year, y = med)) + 
+  geom_point() + 
+  geom_line() + 
+  theme_qfc()
+
+
 
 
 fit %>%
