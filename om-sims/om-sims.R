@@ -57,7 +57,7 @@ obj <- function(Ut) { # want optimizer to solve for Ut
   # my_data <- data.frame(years, Ut, Ndom, Nresid, Adom, Wdom, R, B)
   -obj
 }
-which_obj <- "utility"
+which_obj <- "catch"
 leading_pars <- c(vbk, pbig, surv, cost, seq)
 
 obj(Ut)
@@ -75,11 +75,12 @@ plot(my_data$B ~ my_data$years, type = "l", col = "blue", ylim = c(0, 1),
      lwd = 1.5, main="total biomass, Rt for Utility objective", ylab="", 
      xlab = "Year")
 lines(my_data$R ~ my_data$years, type = "l", col = "black", lwd = 1.5)
-lines(my_data$Ut ~ my_data$years, type = "l", col = "orange", lwd = 1.5) 
+lines(opt$par ~ my_data$years, type = "l", col = "orange", lwd = 1.5) 
 legend(x = "topright",          # Position
        legend = c("biomass", "Recruits", "Ut"),  # Legend texts
        col = c("blue", "black", "orange"),       # Line colors
        lwd = 1.5)               
 
-plot(my_data$Adom, my_data$Ut, type="b", main = "Optimum U vs. Adom", 
-     ylab="Optimum Ut", xlab = "Age of Dominant Cohort")
+plot(my_data$Adom, opt$par, type="b", main = "Optimum U vs. Adom", 
+     ylab="Optimum Ut", xlab = "Age of Dominant")
+
