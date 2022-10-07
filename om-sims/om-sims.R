@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------
-# port Carl Walter's omniscient manager simulations  for spasmodic stocks
+#          omniscient manager simulations  for spasmodic stocks
 #                          from excel to R
-#                         Cahill 7 Oct 2022
+#                   Walters & Cahill 7 Oct 2022
 #-----------------------------------------------------------------------
 vbk <- 0.23
 pbig <- 0.05 # Pr(spasmodic cohort)
