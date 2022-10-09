@@ -14,7 +14,7 @@ Type objective_function<Type>::operator()()
   DATA_SCALAR(vbk);
   DATA_SCALAR(s);
   DATA_SCALAR(cr);
-  DATA_VECTOR(ages);
+  DATA_VECTOR(ages); 
   DATA_VECTOR(recmult);
   DATA_INTEGER(obj_ctl);
   
@@ -23,20 +23,21 @@ Type objective_function<Type>::operator()()
   vector<Type> w(n_age);
   vector<Type> vul(n_age);
   vector<Type> mwt(n_age);
+  n.setZero(); w.setZero(); vul.setZero(); mwt.setZero(); 
 
   Type ro = 1;
   n(0) = 2;
   w(0) = pow((1 - exp(-vbk)),3);
-  vul(0) = 1/(1 + exp(-0.5*(1-5)));
-  mwt(0) = w(0) / (1 + exp(-0.5*(1 - 7)));
+  vul(0) = 1/(1 + exp(-0.5*(ages(0)-5)));
+  mwt(0) = w(0) / (1 + exp(-0.5*(ages(0) - 7)));
 
   for(int a = 1; a < n_age; a ++){
     n(a) = n(a-1)*s;
-    w(a) = pow((1 - exp(-vbk*(a+1))), 3);
+    w(a) = pow((1 - exp(-vbk*(ages(a)))), 3);
     vul(a) = 1 / (1 + exp(-0.5*(ages(a) - 5)));
     mwt(a) = w(a) / (1 + exp(-0.5*(ages(a) - 7)));
   }
-  n(n_age-1) = n(n_age - 1) / ( 1 -s ); // plus group
+  n(n_age-1) = n(n_age - 1) / ( 1 - s ); // plus group
   Type spro = 0;
   for(int a = 0; a < n_age; a++){spro += n(a)*mwt(a);}
 
@@ -51,11 +52,7 @@ Type objective_function<Type>::operator()()
   vector<Type> utility(n_year);
   vector<Type> ssb(n_year);
   vector<Type> vulb(n_year); 
-  abar.setZero();
-  yield.setZero();
-  utility.setZero();
-  ssb.setZero();
-  vulb.setZero(); 
+  abar.setZero(); yield.setZero(); utility.setZero(); ssb.setZero(); vulb.setZero(); 
 
   for(int t = 0; t < n_year; t++){
     vector<Type> sumterms(1);
@@ -71,9 +68,12 @@ Type objective_function<Type>::operator()()
     for(int a = 0; a < n_age; a++){
       n(a) = s*n(a)*(1-vul(a)*Ut(t));
     }
-    n(n_age - 1) = n(n_age - 1) + n(n_age - 2);            // plus group
-    for(int a = (n_age-2); a --> 1; ){ n(a) = n(a - 1); }  // advance fish one a
-    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);     // recruits
+    
+   n(n_age - 1) = n(n_age - 1) + n(n_age - 2);                                     // plus group
+   for(int a = (CppAD::Integer(ages(19-1))); a --> CppAD::Integer((ages(1-1)));){ 
+     n(a) = n(a - 1); // advance fish one a
+   } 
+    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);                  // recruits
   }
   
   REPORT(ssb);

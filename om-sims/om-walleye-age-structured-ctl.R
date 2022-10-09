@@ -52,7 +52,6 @@ plot(abar, type = "l")
 # -----------------------------------------------------------
 # Libraries -- do the same analysis in TMB
 # -----------------------------------------------------------
-library(ggqfc)
 library(devtools)
 library(TMB)
 devtools::install_github("kaskr/TMB_contrib_R/TMBhelper")
@@ -68,7 +67,7 @@ s <- .86
 recmult <- rep(1.0, length(years))
 by <- seq(from = 10., to = max(years) - 10, by = 10)
 recmult[by] <- 20 # set by years to recmult
-obj_ctl <- 1 # 1 = utility, 0 = MAY
+obj_ctl <- 0 # 1 = utility, 0 = MAY
 
 cppfile <- "om-sims/src/om.cpp"
 compile(cppfile)
@@ -89,105 +88,117 @@ tmb_pars <- list(
   Ut = rep(0.1, length(years))
 )
 
-tmb_data$obj_ctl <- 0
 obj <- MakeADFun(tmb_data,
   tmb_pars,
   DLL = "om"
 )
 
-# obj$report()$`yield`
+obj$report()$`yield`[2]
 # obj$fn(obj$par)
 # obj$gr(obj$par)
 
-opt <- nlminb(obj$par, obj$fn, obj$gr,
+opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
   control = list(eval.max = 1000, iter.max = 500),
   lower = rep(0, length(years)), upper = rep(1, length(years))
 )
 
-plot(opt$par, type = "l")
+tmb_data$obj_ctl <- 1
+obj <- MakeADFun(tmb_data,
+  tmb_pars,
+  DLL = "om"
+)
 
+opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
+  control = list(eval.max = 1000, iter.max = 500),
+  lower = rep(0, length(years)), upper = rep(1, length(years))
+)
 
-
-
-
-###############################################################
-###############################################################
-###############################################################
-
+# -----------------------------------------------------------
+# now visualize solutions from the omniscient manager
+# -----------------------------------------------------------
 library(ggqfc)
 library(tidyverse)
 library(tidybayes)
+library(ggtext)
+library(cowplot)
 
-fit %>%
-  spread_draws(Ut[year]) %>%
-  mutate(
-    value = Ut,
-    year = year
-  ) %>%
-  summarise(
-    lwr = quantile(Ut, 0.1),
-    med = quantile(Ut, 0.5),
-    upr = quantile(Ut, 0.9),
-    lwr2 = quantile(Ut, 0.25),
-    upr2 = quantile(Ut, 0.75),
-  ) %>%
-  ggplot(aes(x = year, y = med)) +
-  geom_point() +
-  geom_line() +
-  theme_qfc()
+ssb <- obj$report(opt_yield$par)$`ssb`
+abar <- obj$report(opt_yield$par)$`abar`
+ut <- opt_yield$par
+plot_dat <- data.frame(ssb, abar, ut, year = years)
 
-fit %>%
-  spread_draws(abar[year]) %>%
-  mutate(
-    value = abar,
-    year = year
-  ) %>%
-  summarise(
-    lwr = quantile(abar, 0.1),
-    med = quantile(abar, 0.5),
-    upr = quantile(abar, 0.9),
-    lwr2 = quantile(abar, 0.25),
-    upr2 = quantile(abar, 0.75),
-  ) %>%
-  ggplot(aes(x = year, y = med)) +
-  geom_point() +
-  geom_line() +
-  theme_qfc()
+plot_dat <- plot_dat %>% pivot_longer(-year)
 
-fit %>%
-  spread_draws(yield[year]) %>%
-  mutate(
-    value = yield,
-    year = year
-  ) %>%
-  summarise(
-    lwr = quantile(yield, 0.1),
-    med = quantile(yield, 0.5),
-    upr = quantile(yield, 0.9),
-    lwr2 = quantile(yield, 0.25),
-    upr2 = quantile(yield, 0.75),
-  ) %>%
-  ggplot(aes(x = year, y = med)) +
-  geom_point() +
-  geom_line() +
-  theme_qfc()
+yield <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
+  scale_color_manual(
+    name = NULL,
+    values = c(ssb = "#0072B2", abar = "#009E73", ut = "#D55E00"),
+    labels = c(
+      ssb = "<i style='color:#0072B2'>SSB</i>",
+      abar = "<i style='color:#009E73'>Abar</i>",
+      ut = "<i style='color:#D55E00'>Ut</i>"
+    )
+  ) +
+  labs(
+    title = "Omniscient Manager
+    <span style='font-size:11pt'>yield solutions for
+    <span style='color:#0072B2;'>SSB</span>,
+    <span style='color:#009E73;'>Abar</span>,
+    <span style='font-size:11pt'> and
+    <span style='color:#D55E00;'>Ut</span>
+    </span>"
+  ) +
+  ylab("Value") + xlab("Year") + 
+  theme_qfc() +
+  theme(
+    plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
+    legend.text = element_markdown(size = 11)
+  )
+yield
 
-fit %>%
-  spread_draws(ssb[year])
+# now do it for utility
+ssb <- obj$report(opt_hara$par)$`ssb`
+abar <- obj$report(opt_hara$par)$`abar`
+ut <- opt_hara$par
+plot_dat <- data.frame(ssb, abar, ut, year = years)
 
+plot_dat <- plot_dat %>% pivot_longer(-year)
 
+hara <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
+  scale_color_manual(
+    name = NULL,
+    values = c(ssb = "#0072B2", abar = "#009E73", ut = "#D55E00"),
+    labels = c(
+      ssb = "<i style='color:#0072B2'>SSB</i>",
+      abar = "<i style='color:#009E73'>Abar</i>",
+      ut = "<i style='color:#D55E00'>Ut</i>"
+    )
+  ) +
+  labs(
+    title = "Omniscient Manager
+    <span style='font-size:11pt'>utility solutions for
+    <span style='color:#0072B2;'>SSB</span>,
+    <span style='color:#009E73;'>Abar</span>,
+    <span style='font-size:11pt'> and
+    <span style='color:#D55E00;'>Ut</span>
+    </span>"
+  ) +
+  ylab("Value") + xlab("Year") + 
+  theme_qfc() +
+  theme(
+    plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
+    legend.text = element_markdown(size = 11)
+  )
+hara
 
-Ut_om <- fit$par[grep("Ut", names(fit$par))]
-plot(Ut_om ~ years, type = "l", ylim = c(0, 1))
-B <- fit$par[grep("B", names(fit$par))]
-lines(B, col = "blue")
-lines(R, col = "orange")
+#-------------------------------------------------------------
+# arrange plots into one big plot
+#-------------------------------------------------------------
+p1 <- plot_grid(yield, hara, ncol = 1)
+p1
 
-abar_om <- fit$par[grep("abar", names(fit$par))]
-plot(abar_om ~ years, type = "l")
-
-ssb_om <- fit$par[grep("ssb", names(fit$par))]
-plot(ssb_om ~ years, type = "l")
-
-yield_om <- fit$par[grep("yield", names(fit$par))]
-plot(yield_om ~ years, type = "l")
+ggsave("plots/om-sims-tmb.pdf", width = 5, height = 5)
