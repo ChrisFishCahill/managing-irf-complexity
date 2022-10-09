@@ -58,13 +58,13 @@ Type objective_function<Type>::operator()()
     vector<Type> sumterms(1);
     sumterms.setZero();
     for(int a = 0; a < n_age; a++){
-      vulb(t) += vul(a)*n(a)*w(a);                        // sumproduct(vul*n*w) across a
-      ssb(t) += mwt(a)*n(a);                              // sumproduct(mwt * n)
-      sumterms(0) += ages(a)*n(a);                        // sumproduct(n,a)
+      vulb(t) += vul(a)*n(a)*w(a);                          // sumproduct(vul*n*w) across a
+      ssb(t) += mwt(a)*n(a);                                // sumproduct(mwt * n)
+      sumterms(0) += ages(a)*n(a);                          // sumproduct(n,a)
     }
     yield(t) = Ut(t)*vulb(t);
     utility(t) = pow(yield(t),0.6);
-    abar(t) = sumterms(0) / sum(n);                       // sumproduct(ages*n) / sum(n)
+    abar(t) = sumterms(0) / sum(n);                         // sumproduct(ages*n) / sum(n)
     for(int a = 0; a < n_age; a++){
       n(a) = s*n(a)*(1-vul(a)*Ut(t));
     }
