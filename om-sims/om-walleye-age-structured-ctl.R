@@ -50,7 +50,7 @@ plot(yield, type = "l")
 plot(abar, type = "l")
 
 # -----------------------------------------------------------
-# Libraries
+# Libraries -- do the same analysis in TMB
 # -----------------------------------------------------------
 library(ggqfc)
 library(devtools)
