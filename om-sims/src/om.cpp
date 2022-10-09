@@ -85,7 +85,6 @@ Type objective_function<Type>::operator()()
   REPORT(mwt); 
   REPORT(w); 
   REPORT(vul); 
-  REPORT(n); 
 
   // objective function
   Type obj = 0;
