@@ -93,9 +93,9 @@ obj <- MakeADFun(tmb_data,
   DLL = "om"
 )
 
-sum(obj$report()$`yield` - yield)
-sum(obj$report()$`abar` - abar)
-obj$report()$`yield` 
+# sum(obj$report()$`yield` - yield)
+# sum(obj$report()$`abar` - abar)
+# obj$report()$`yield` 
 
 # obj$fn(obj$par)
 # obj$gr(obj$par)

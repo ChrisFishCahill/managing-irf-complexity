@@ -24,20 +24,26 @@ Type objective_function<Type>::operator()()
   vector<Type> vul(n_age);
   vector<Type> mwt(n_age);
   n.setZero(); w.setZero(); vul.setZero(); mwt.setZero(); 
-
-  Type ro = 1;
-  n(0) = 2;
+  
+  Type rinit = 0.6; // initial number age 1 fish
+  Type uo = 0.4;    // average historical exploitation rate
+  Type ro = rinit;  
+  Type sso = 1;     // avg survivorship to a
+  n(0) = rinit;
   w(0) = pow((1 - exp(-vbk)),3);
   vul(0) = 1/(1 + exp(-0.5*(ages(0)-5)));
   mwt(0) = w(0) / (1 + exp(-0.5*(ages(0) - 7)));
 
   for(int a = 1; a < n_age; a ++){
+    sso += sso*s*(1-vul(a-1)*uo); 
+    n(a) = rinit*sso; 
     n(a) = n(a-1)*s;
     w(a) = pow((1 - exp(-vbk*(ages(a)))), 3);
     vul(a) = 1 / (1 + exp(-0.5*(ages(a) - 5)));
     mwt(a) = w(a) / (1 + exp(-0.5*(ages(a) - 7)));
   }
-  n(n_age-1) = n(n_age - 1) / ( 1 - s ); // plus group
+  n(n_age-1) = n(n_age - 1) / ( 1 - s * vul(n_age - 1) * uo); // plus group
+
   Type spro = 0;
   for(int a = 0; a < n_age; a++){spro += n(a)*mwt(a);}
 
@@ -88,10 +94,10 @@ Type objective_function<Type>::operator()()
 
   // objective function
   Type obj = 0;
-  if(obj_ctl == 0){// yield objective
+  if(obj_ctl == 0){  // yield objective
     obj -= sum(yield);
   }
-  if(obj_ctl == 1){// hara utility objective
+  if(obj_ctl == 1){  // hara utility objective
     obj -= sum(utility);
   }
   return obj; 
