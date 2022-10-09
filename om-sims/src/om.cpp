@@ -64,7 +64,7 @@ Type objective_function<Type>::operator()()
     }
     yield(t) = Ut(t)*vulb(t);
     utility(t) = pow(yield(t),0.6);
-    abar(t) = sumterms(0) / sum(n);                        //sumproduct(ages*n) / sum(n)
+    abar(t) = sumterms(0) / sum(n);                        // sumproduct(ages*n) / sum(n)
     for(int a = 0; a < n_age; a++){
       n(a) = s*n(a)*(1-vul(a)*Ut(t));
     }
