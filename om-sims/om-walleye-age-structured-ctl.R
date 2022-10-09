@@ -93,7 +93,7 @@ obj <- MakeADFun(tmb_data,
   DLL = "om"
 )
 
-obj$report()$`yield`[2]
+obj$report()$`yield`
 # obj$fn(obj$par)
 # obj$gr(obj$par)
 

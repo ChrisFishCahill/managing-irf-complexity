@@ -68,10 +68,9 @@ Type objective_function<Type>::operator()()
     for(int a = 0; a < n_age; a++){
       n(a) = s*n(a)*(1-vul(a)*Ut(t));
     }
-    
-    n(n_age - 1) = n(n_age - 1) + n(n_age - 2);                                                     // plus group
-    for(int a = (CppAD::Integer(ages(19-1))); a --> CppAD::Integer((ages(1-1)));){n(a) = n(a - 1);} // advance fish one a  
-    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);                                              // recruits
+    n(n_age - 1) = n(n_age - 1) + n(n_age - 2);           // plus group
+    for(int a = (n_age-1); a --> 1;){n(a) = n(a - 1);}    // advance fish one a
+    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);    // recruits
   }
   
   REPORT(ssb);
@@ -86,6 +85,7 @@ Type objective_function<Type>::operator()()
   REPORT(mwt); 
   REPORT(w); 
   REPORT(vul); 
+  REPORT(n); 
 
   // objective function
   Type obj = 0;
