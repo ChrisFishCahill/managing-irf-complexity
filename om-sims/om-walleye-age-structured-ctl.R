@@ -3,51 +3,51 @@
 # Carl Walters and Chris Cahill 9 Oct 2022
 # -----------------------------------------------------------
 
-vbk <- .23
-s <- .86
-age <- c(1:20)
-n <- array(0., 20) # numbers at age
-n[1] <- 2.
-for (a in 2:20) {
-  n[a] <- n[a - 1] * s
-} # initial numbers at age
-n[20] <- n[20] / (1 - s) # set n in age 20 as plus group
-w <- array(0, 20) # weight at age
-vul <- array(0, 20)
-w <- (1 - exp(-vbk * age))^3
-mwt <- array(0, 20)
-vul <- 1 / (1 + exp(-.5 * (age - 5)))
-mwt <- w / (1 + exp(-.5 * (age - 7))) # maturity x weight for SSB calculation
-spro <- sum(n * mwt)
-cr <- 6
-reca <- cr / spro
-ro <- 1
-recb <- (cr - 1) / (ro * spro)
-recmult <- array(1, 200)
-by <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190)
-for (t in by) {
-  recmult[t] <- 20
-} # big recruitment every 10 yrs
-ut <- array(.1, 200)
-yield <- array(0, 200)
-abar <- array(0, 200)
-for (t in 1:200) {
-  yield[t] <- ut[t] * sum(vul * n * w)
-  ssb <- sum(n * mwt)
-  abar[t] <- sum(age * n) / sum(n)
-  n <- s * n * (1 - vul * ut[t])
-
-  n[20] <- n[20] + n[19] # update plus group n
-  for (a in 19:2) {
-    n[a] <- n[a - 1]
-  } # move fish up one age
-  n[1] <- reca * ssb / (1 + recb * ssb) * recmult[t] # put in new recruits
-  # if (t/10-int(t/10)=0){n[1]=n[1]*20} #big cohort every 10 years
-}
-totalyield <- sum(yield)
-totalutility <- sum(yield^.6)
-plot(yield, type = "l")
-plot(abar, type = "l")
+# vbk <- .23
+# s <- .86
+# age <- c(1:20)
+# n <- array(0., 20) # numbers at age
+# n[1] <- 2.
+# for (a in 2:20) {
+#   n[a] <- n[a - 1] * s
+# } # initial numbers at age
+# n[20] <- n[20] / (1 - s) # set n in age 20 as plus group
+# w <- array(0, 20) # weight at age
+# vul <- array(0, 20)
+# w <- (1 - exp(-vbk * age))^3
+# mwt <- array(0, 20)
+# vul <- 1 / (1 + exp(-.5 * (age - 5)))
+# mwt <- w / (1 + exp(-.5 * (age - 7))) # maturity x weight for SSB calculation
+# spro <- sum(n * mwt)
+# cr <- 6
+# reca <- cr / spro
+# ro <- 1
+# recb <- (cr - 1) / (ro * spro)
+# recmult <- array(1, 200)
+# by <- c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190)
+# for (t in by) {
+#   recmult[t] <- 20
+# } # big recruitment every 10 yrs
+# ut <- array(.1, 200)
+# yield <- array(0, 200)
+# abar <- array(0, 200)
+# for (t in 1:200) {
+#   yield[t] <- ut[t] * sum(vul * n * w)
+#   ssb <- sum(n * mwt)
+#   abar[t] <- sum(age * n) / sum(n)
+#   n <- s * n * (1 - vul * ut[t])
+# 
+#   n[20] <- n[20] + n[19] # update plus group n
+#   for (a in 19:2) {
+#     n[a] <- n[a - 1]
+#   } # move fish up one age
+#   n[1] <- reca * ssb / (1 + recb * ssb) * recmult[t] # put in new recruits
+#   # if (t/10-int(t/10)=0){n[1]=n[1]*20} #big cohort every 10 years
+# }
+# totalyield <- sum(yield)
+# totalutility <- sum(yield^.6)
+# plot(yield, type = "l")
+# plot(abar, type = "l")
 
 # -----------------------------------------------------------
 # Libraries -- do the same analysis in TMB
@@ -59,28 +59,40 @@ devtools::install_github("kaskr/TMB_contrib_R/TMBhelper")
 
 # Set starting values:
 # leading parameters/values for simulation
-years <- 1:200
-ages <- 1:20 # slot 1 = recruits
-cr <- 6
-vbk <- .23
-s <- .86
-recmult <- rep(1.0, length(years))
-by <- seq(from = 10., to = max(years) - 10, by = 10)
-recmult[by] <- 20 # set by years to recmult
+years = 1:200
+ages = 1:20 # slot 1 = recruits
+cr = 6
+vbk = .23
+s = .86
+rinit = 0.6
+uo = 0.13
+asl = 0.5
+ahv = 5
+ahm = 6
+upow = 0.6
 obj_ctl <- 0 # 1 = utility, 0 = MAY
 
 cppfile <- "om-sims/src/om.cpp"
 compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
+# read in carl's recmult
+library(readxl)
+recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx","MaxU", range = "AG9:AG209")
 tmb_data <- list(
   n_year = length(years),
   n_age = length(ages),
   vbk = vbk,
   s = s,
   cr = cr,
+  rinit = rinit, 
+  uo = uo, 
+  asl = asl, 
+  ahv = ahv, 
+  ahm = ahm, 
+  upow = upow, 
   ages = ages,
-  recmult = recmult,
+  recmult = recmult$Rmult,
   obj_ctl = obj_ctl
 )
 
@@ -95,7 +107,7 @@ obj <- MakeADFun(tmb_data,
 
 # sum(obj$report()$`yield` - yield)
 # sum(obj$report()$`abar` - abar)
-# obj$report()$`yield` 
+# obj$report()$`yield`[1] 
 
 # obj$fn(obj$par)
 # obj$gr(obj$par)
@@ -205,3 +217,16 @@ p1 <- plot_grid(yield, hara, ncol = 1)
 p1
 
 ggsave("plots/om-sims-tmb.pdf", width = 5, height = 5)
+
+#-------------------------------------------------------------
+vulb <- obj$report(opt_hara$par)$`vulb`
+plot_dat <- plot_dat %>% pivot_wider() 
+plot_dat$vulb = vulb
+
+plot_dat %>%
+  ggplot(aes(x=abar, y = ut)) + 
+  geom_point()
+
+plot_dat %>%
+  ggplot(aes(x=vulb, y = ut)) + 
+  geom_point()
