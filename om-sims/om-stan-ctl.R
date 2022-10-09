@@ -32,52 +32,26 @@ stan_data <- list(
 
 inits <- function() {
   list(
-    Ut = rep(0.1, length(years))
-  )
-}
-
-#run the model
-# fit <-
-#   rstan::sampling(
-#     m,
-#     data = stan_data,
-#     init = inits,
-#     pars = 
-#       c(
-#         "Ut", "B", "Wdom", "Adom", "yield", 
-#         "utility"
-#       ),
-#      iter = 2000,
-#     # warmup = 500,
-#     chains = 1
-#   )
-
-inits <- function() {
-  list(
     Ut = rep(0.5, length(years))
   )
 }
 
-stan_data$obj_ctl <- 0 
+stan_data$obj_ctl <- 0
 #run the model
 fit <-
   rstan::optimizing(
     m,
     data = stan_data,
-    init = inits
+    init = inits 
   )
 
-Ut_MLEs <- fit$par[grep("Ut", names(fit$par))]
-
-Ut_MLEs <- Ut_MLEs[-length(Ut_MLEs)]
-Ut_MLEs
-plot(Ut_MLEs~years, type = "b")
-
-inits <- function() {
-  list(
-    Ut = Ut_MLEs
-  )
-}
+Ut_om <- fit$par[grep("Ut", names(fit$par))]
+Ut_om <- Ut_om[-length(Ut_om)]
+Ut_om
+plot(Ut_om ~ years, type = "l", ylim=c(0,1))
+B <- fit$par[grep("B", names(fit$par))]
+lines(B, col = "blue")
+lines(R, col = "orange")
 
 library(tidybayes)
 library(ggqfc)
@@ -119,9 +93,6 @@ fit %>%
   geom_line() + 
   theme_qfc()
 
-
-
-
 fit %>%
   spread_draws(obj) %>%
   mutate(
@@ -131,19 +102,5 @@ fit %>%
   geom_histogram() + 
   theme_qfc()
 
+m <- rstan::stan_model("om-sims/src/omg-age.stan", verbose = F)
 
-
-
-
-spread_draws(R2[year]) %>%
-  mutate(
-    value = R2,
-    year = year + initial_yr_minus_one
-  ) %>%
-  summarise(
-    lwr = quantile(R2, 0.1),
-    med = quantile(R2, 0.5),
-    upr = quantile(R2, 0.9),
-    lwr2 = quantile(R2, 0.25),
-    upr2 = quantile(R2, 0.75),
-  ) 

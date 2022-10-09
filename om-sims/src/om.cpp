@@ -62,8 +62,8 @@ Type objective_function<Type>::operator()()
     sumterms.setZero();
     for(int a = 0; a < n_age; a++){
       vulb(t) += vul(a)*n(a)*w(a);                         // sumproduct(vul*n*w) across a
-      sumterms(0) += ages(a)*n(a);                         // sumproduct(n,a)
       ssb(t) += mwt(a)*n(a);                               // sumproduct(mwt * n)
+      sumterms(0) += ages(a)*n(a);                         // sumproduct(n,a)
     }
     yield(t) = Ut(t)*vulb(t);
     utility(t) = pow(yield(t),0.6);
