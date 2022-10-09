@@ -1,7 +1,7 @@
 #include <TMB.hpp>
 /*
  * omniscient manager for spasmodic recruitment
- *                cahill oct 2022
+ *          cahill & walters oct 2022
  */
 template <class Type>
 Type objective_function<Type>::operator()()
