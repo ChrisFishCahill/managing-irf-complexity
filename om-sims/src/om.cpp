@@ -51,14 +51,15 @@ Type objective_function<Type>::operator()()
       Lf(a) = Lf(a-1)*s*(1 - vul(a-1)*uo);
     }
     if(a == (n_age - 1)){ // plus group age 20
-      Lo(a) = Lo(a) / (1 - s); 
+      Lo(a) = Lo(a - 1)*s / (1 - s); 
       Lf(a) = Lf(a - 1)*s*(1 - vul(a-1)*uo) / (1 - s*(1 - vul(a-1)*uo)); 
     }
     n(a) = rinit*Lf(a);
-    ninit(a) = n(a); 
     mwt(a) = mat(a)*wt(a); 
     sbro += Lo(a)*mwt(a); 
   } 
+  // n(n_age - 1) += n(n_age - 1) / (1 - s*(1 - vul(n_age - 1)*uo));
+  ninit = n; 
   Type reca = cr/sbro; 
   Type recb = (cr - 1) / (ro*sbro); 
 
