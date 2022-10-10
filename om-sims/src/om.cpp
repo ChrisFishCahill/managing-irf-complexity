@@ -30,8 +30,7 @@ Type objective_function<Type>::operator()()
   vector<Type> mwt(n_age);
   vector<Type> Lf(n_age);
   n.setZero(); vul.setZero(); wt.setZero(); mat.setZero();
-  Lo.setZero(); mwt.setZero(); Lf.setZero(); 
-  Type sbro = 0;  
+  Lo.setZero(); mwt.setZero(); Lf.setZero(); Type sbro = 0;  
   
   // set up leading vectors
   for(int a = 0; a < n_age; a ++){
