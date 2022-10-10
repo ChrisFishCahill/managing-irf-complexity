@@ -71,7 +71,6 @@ Type objective_function<Type>::operator()()
   vector<Type> utility(n_year);
   vector<Type> ssb(n_year);
   vector<Type> vulb(n_year);
-
   abar.setZero(); yield.setZero(); utility.setZero();
   ssb.setZero(); vulb.setZero(); 
   for(int t = 0; t < n_year; t++){
