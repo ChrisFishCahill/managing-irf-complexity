@@ -76,8 +76,8 @@ Type objective_function<Type>::operator()()
   for(int t = 0; t < n_year; t++){
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
-    yield(t) = Ut(t)*vulb(t);                                      // sumproduct(n,a)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
+    yield(t) = Ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     for(int a = 0; a < n_age; a++){n(a) = s*n(a)*(1-vul(a)*Ut(t));}
     n(n_age - 1) = n(n_age - 1) + n(n_age - 2);                    // plus group
