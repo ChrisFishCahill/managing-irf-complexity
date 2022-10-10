@@ -34,7 +34,7 @@ Type objective_function<Type>::operator()()
   
   // set up leading vectors
   for(int a = 0; a < n_age; a ++){
-    vul(a) =1 /( 1 + exp(-asl*(ages(a) - ahv))); 
+    vul(a) = 1 /( 1 + exp(-asl*(ages(a) - ahv))); 
     wt(a) = pow((1 - exp(-vbk*(ages(a)))), 3); 
     mat(a) = 1/(1 + exp(-asl*(ages(a) - ahm))); 
     if(a == 0){ 
