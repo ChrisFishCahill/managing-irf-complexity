@@ -30,13 +30,9 @@ Type objective_function<Type>::operator()()
   vector<Type> Lo(n_age);   
   vector<Type> mwt(n_age);
   vector<Type> Lf(n_age);
-  vector<Type> ninit(n_age);
   n.setZero(); vul.setZero(); wt.setZero(); mat.setZero();
-  Lo.setZero(); mwt.setZero(); Lf.setZero(); ninit.setZero(); 
+  Lo.setZero(); mwt.setZero(); Lf.setZero(); 
   Type sbro = 0;  
-  wt(0) = pow((1 - exp(-vbk)),3);
-  vul(0) = 1/(1 + exp(-asl*(ages(0) - ahv)));
-  mwt(0) = wt(0) / (1 + exp(-asl*(ages(0) - ahm)));
   
   for(int a = 0; a < n_age; a ++){
     vul(a) =1 /( 1 + exp(-asl*(ages(a) - ahv))); 
@@ -54,11 +50,10 @@ Type objective_function<Type>::operator()()
       Lo(a) = Lo(a - 1)*s / (1 - s); 
       Lf(a) = Lf(a - 1)*s*(1 - vul(a-1)*uo) / (1 - s*(1 - vul(a-1)*uo)); 
     }
-    n(a) = rinit*Lf(a);
-    mwt(a) = mat(a)*wt(a); 
-    sbro += Lo(a)*mwt(a); 
   } 
-  ninit = n; 
+  n = rinit*Lf; 
+  mwt = mat*wt; 
+  sbro = (Lo*mwt).sum(); 
   Type reca = cr/sbro; 
   Type recb = (cr - 1) / (ro*sbro); 
 
@@ -100,7 +95,6 @@ Type objective_function<Type>::operator()()
   REPORT(n);
   REPORT(Lf);
   REPORT(Lo);
-  REPORT(ninit);
 
   // objective function
   Type obj = 0;
