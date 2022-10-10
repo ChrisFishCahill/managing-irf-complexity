@@ -219,7 +219,7 @@ hara
 p1 <- plot_grid(yield, hara, ncol = 1)
 p1
 
-ggsave("plots/om-sims-tmb.pdf", width = 8, height = 5)
+ggsave("plots/om-sims-tmb.pdf", width = 6, height = 5)
 
 #-------------------------------------------------------------
 # more yield plots

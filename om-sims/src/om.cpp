@@ -45,7 +45,6 @@ Type objective_function<Type>::operator()()
     if(a == 0){ 
       Lo(a) = 1;
       Lf(a) = 1; 
-      n(a) = rinit*Lf(a);
     } 
     if(a > 0 && a < (n_age -1)){ // ages 2-19
       Lo(a) = Lo(a-1)*s;
