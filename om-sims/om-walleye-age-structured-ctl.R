@@ -29,8 +29,9 @@ upow <- 0.6
 obj_ctl <- 0 # 1 = utility, 0 = MAY
 
 # read in carl's recmult
-library(readxl)
-recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx", "MaxU", range = "AG9:AG209")
+# library(readxl)
+# recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx", "MaxU", range = "AG9:AG209")
+
 tmb_data <- list(
   n_year = length(years),
   n_age = length(ages),

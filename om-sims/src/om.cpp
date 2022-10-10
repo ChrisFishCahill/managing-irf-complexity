@@ -71,25 +71,19 @@ Type objective_function<Type>::operator()()
   vector<Type> utility(n_year);
   vector<Type> ssb(n_year);
   vector<Type> vulb(n_year);
+
   abar.setZero(); yield.setZero(); utility.setZero();
-  ssb.setZero(); vulb.setZero();
+  ssb.setZero(); vulb.setZero(); 
   for(int t = 0; t < n_year; t++){
-    vector<Type> sumterms(1);
-    sumterms.setZero();
-    for(int a = 0; a < n_age; a++){
-      vulb(t) += vul(a)*n(a)*wt(a);                         // sumproduct(vul*n*w) across a
-      ssb(t) += mwt(a)*n(a);                                // sumproduct(mwt * n)
-      sumterms(0) += ages(a)*n(a);                          // sumproduct(n,a)
-    }
-    yield(t) = Ut(t)*vulb(t);
+    vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
+    ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
+    yield(t) = Ut(t)*vulb(t);                                      // sumproduct(n,a)
+    abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
     utility(t) = pow(yield(t), upow);
-    abar(t) = sumterms(0) / sum(n);                         // sumproduct(ages*n) / sum(n)
-    for(int a = 0; a < n_age; a++){
-      n(a) = s*n(a)*(1-vul(a)*Ut(t));
-    }
-    n(n_age - 1) = n(n_age - 1) + n(n_age - 2);             // plus group
-    for(int a = (n_age - 2); a > 0; a--){n(a) = n(a - 1);}  // advance fish one a
-    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);      // recruits
+    for(int a = 0; a < n_age; a++){n(a) = s*n(a)*(1-vul(a)*Ut(t));}
+    n(n_age - 1) = n(n_age - 1) + n(n_age - 2);                    // plus group
+    for(int a = (n_age - 2); a > 0; a--){n(a) = n(a - 1);}         // advance fish one a
+    n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);             // recruits
   }
   
   REPORT(ssb);
