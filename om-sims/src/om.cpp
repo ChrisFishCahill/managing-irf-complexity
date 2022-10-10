@@ -47,21 +47,21 @@ Type objective_function<Type>::operator()()
       Lf(a) = 1; 
       n(a) = rinit*Lf(a);
     } 
-    if(a > 0){
+    if(a > 0 && a < (n_age -1)){ // ages 2-19
       Lo(a) = Lo(a-1)*s;
       Lf(a) = Lf(a-1)*s*(1 - vul(a-1)*uo);
-      if(a == (n_age - 1)){ // plus group 
-        Lo(a) = Lo(a) / (1 - s); 
-        Lf(a) = Lf(a - 1)*s*(1 - vul(a-1)*uo) / (s*(1 - vul(a-1)*uo)); 
-      }
-      n(a) = n(a-1)*Lf(a);
     }
+    if(a == (n_age - 1)){ // plus group age 20
+      Lo(a) = Lo(a) / (1 - s); 
+      Lf(a) = Lf(a - 1)*s*(1 - vul(a-1)*uo) / (1 - s*(1 - vul(a-1)*uo)); 
+    }
+    n(a) = rinit*Lf(a);
     mwt(a) = mat(a)*wt(a); 
     sbro += Lo(a)*mwt(a); 
   } 
   Type reca = cr/sbro; 
   Type recb = (cr - 1) / (ro*sbro); 
-  
+
   // parameters to solve 
   PARAMETER_VECTOR(Ut);
   
@@ -70,10 +70,9 @@ Type objective_function<Type>::operator()()
   vector<Type> yield(n_year);
   vector<Type> utility(n_year);
   vector<Type> ssb(n_year);
-  vector<Type> vulb(n_year); 
-  abar.setZero(); yield.setZero(); utility.setZero(); 
-  ssb.setZero(); vulb.setZero(); 
-
+  vector<Type> vulb(n_year);
+  abar.setZero(); yield.setZero(); utility.setZero();
+  ssb.setZero(); vulb.setZero();
   for(int t = 0; t < n_year; t++){
     vector<Type> sumterms(1);
     sumterms.setZero();
@@ -95,19 +94,19 @@ Type objective_function<Type>::operator()()
   
   REPORT(ssb);
   REPORT(yield);
-  REPORT(vulb); 
+  REPORT(vulb);
   REPORT(abar);
   REPORT(utility);
-  REPORT(ro); 
-  REPORT(sbro); 
-  REPORT(reca); 
-  REPORT(recb); 
-  REPORT(mwt); 
-  REPORT(wt); 
-  REPORT(vul); 
+  REPORT(ro);
+  REPORT(sbro);
+  REPORT(reca);
+  REPORT(recb);
+  REPORT(mwt);
+  REPORT(wt);
+  REPORT(vul);
   REPORT(n);
-  REPORT(Lf); 
-  REPORT(Lo); 
+  REPORT(Lf);
+  REPORT(Lo);
 
   // objective function
   Type obj = 0;
@@ -119,3 +118,4 @@ Type objective_function<Type>::operator()()
   }
   return obj; 
 }
+

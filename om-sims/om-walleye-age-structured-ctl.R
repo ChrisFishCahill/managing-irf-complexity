@@ -36,7 +36,7 @@
 #   ssb <- sum(n * mwt)
 #   abar[t] <- sum(age * n) / sum(n)
 #   n <- s * n * (1 - vul * ut[t])
-# 
+#
 #   n[20] <- n[20] + n[19] # update plus group n
 #   for (a in 19:2) {
 #     n[a] <- n[a - 1]
@@ -59,36 +59,36 @@ devtools::install_github("kaskr/TMB_contrib_R/TMBhelper")
 
 # Set starting values:
 # leading parameters/values for simulation
-years = 1:200
-ages = 1:20 # slot 1 = recruits
-cr = 6
-vbk = .23
-s = .86
-rinit = 0.6
-uo = 0.13
-asl = 0.5
-ahv = 5
-ahm = 6
-upow = 0.6
+years <- 1:200
+ages <- 1:20 # slot 1 = recruits
+cr <- 6
+vbk <- .23
+s <- .86
+rinit <- 0.6
+uo <- 0.13
+asl <- 0.5
+ahv <- 5
+ahm <- 6
+upow <- 0.6
 obj_ctl <- 0 # 1 = utility, 0 = MAY
 
 # read in carl's recmult
 library(readxl)
-recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx","MaxU", range = "AG9:AG209")
+recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx", "MaxU", range = "AG9:AG209")
 tmb_data <- list(
   n_year = length(years),
   n_age = length(ages),
   vbk = vbk,
   s = s,
   cr = cr,
-  rinit = rinit, 
-  uo = uo, 
-  asl = asl, 
-  ahv = ahv, 
-  ahm = ahm, 
-  upow = upow, 
+  rinit = rinit,
+  uo = uo,
+  asl = asl,
+  ahv = ahv,
+  ahm = ahm,
+  upow = upow,
   ages = ages,
-  recmult = recmult$Rmult,
+  recmult = rep(recmult$Rmult, 1),
   obj_ctl = obj_ctl
 )
 
@@ -107,7 +107,7 @@ obj <- MakeADFun(tmb_data,
 
 # sum(obj$report()$`yield` - yield)
 # sum(obj$report()$`abar` - abar)
-# obj$report()$`yield`[1] 
+# obj$report()$`yield`[1]
 
 # obj$fn(obj$par)
 # obj$gr(obj$par)
@@ -136,15 +136,16 @@ library(tidyverse)
 library(tidybayes)
 library(ggtext)
 library(cowplot)
+library(ggpmisc)
 
 ssb <- obj$report(opt_yield$par)$`ssb`
 abar <- obj$report(opt_yield$par)$`abar`
 ut <- opt_yield$par
-plot_dat <- data.frame(ssb, abar, ut, year = years)
+plot_dat_yield <- data.frame(ssb, abar, ut, year = years)
 
-plot_dat <- plot_dat %>% pivot_longer(-year)
+plot_dat_yield <- plot_dat_yield %>% pivot_longer(-year)
 
-yield <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
+yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
   geom_line(size = 0.8) +
   geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
   scale_color_manual(
@@ -165,7 +166,8 @@ yield <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
     <span style='color:#D55E00;'>Ut</span>
     </span>"
   ) +
-  ylab("Value") + xlab("Year") + 
+  ylab("Value") +
+  xlab("Year") +
   theme_qfc() +
   theme(
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
@@ -177,11 +179,11 @@ yield
 ssb <- obj$report(opt_hara$par)$`ssb`
 abar <- obj$report(opt_hara$par)$`abar`
 ut <- opt_hara$par
-plot_dat <- data.frame(ssb, abar, ut, year = years)
+plot_dat_hara <- data.frame(ssb, abar, ut, year = years)
 
-plot_dat <- plot_dat %>% pivot_longer(-year)
+plot_dat_hara <- plot_dat_hara %>% pivot_longer(-year)
 
-hara <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
+hara <- ggplot(plot_dat_hara, aes(year, value, color = as.factor(name))) +
   geom_line(size = 0.8) +
   geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
   scale_color_manual(
@@ -202,7 +204,8 @@ hara <- ggplot(plot_dat, aes(year, value, color = as.factor(name))) +
     <span style='color:#D55E00;'>Ut</span>
     </span>"
   ) +
-  ylab("Value") + xlab("Year") + 
+  ylab("Value") +
+  xlab("Year") +
   theme_qfc() +
   theme(
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
@@ -216,17 +219,58 @@ hara
 p1 <- plot_grid(yield, hara, ncol = 1)
 p1
 
-ggsave("plots/om-sims-tmb.pdf", width = 5, height = 5)
+ggsave("plots/om-sims-tmb.pdf", width = 8, height = 5)
 
 #-------------------------------------------------------------
-vulb <- obj$report(opt_hara$par)$`vulb`
-plot_dat <- plot_dat %>% pivot_wider() 
-plot_dat$vulb = vulb
+# more yield plots
+vulb <- obj$report(opt_yield$par)$`vulb`
+plot_dat_yield <- plot_dat_yield %>% pivot_wider()
+plot_dat_yield$vulb <- vulb
 
-plot_dat %>%
-  ggplot(aes(x=abar, y = ut)) + 
+# remove last 25 rows to deal with risky omniscient manager:
+n <- nrow(plot_dat_yield)
+plot_dat_yield <- plot_dat_yield[1:(n - 25), ]
+plot_dat_yield %>%
+  ggplot(aes(x = abar, y = ut)) +
+  stat_poly_line() +
+  stat_poly_eq(aes(label = paste(after_stat(eq.label),
+    after_stat(rr.label),
+    sep = "*\", \"*"
+  ))) +
   geom_point()
 
-plot_dat %>%
-  ggplot(aes(x=vulb, y = ut)) + 
+plot_dat_yield[which(plot_dat_yield$ut > 0),] %>%
+  ggplot(aes(x = vulb, y = ut)) +
+  stat_poly_line() +
+  stat_poly_eq(aes(label = paste(after_stat(eq.label),
+    after_stat(rr.label),
+    sep = "*\", \"*"
+  ))) +
+  geom_point()
+
+# same plots for hara
+#-------------------------------------------------------------
+vulb <- obj$report(opt_hara$par)$`vulb`
+plot_dat_hara <- plot_dat_hara %>% pivot_wider()
+plot_dat_hara$vulb <- vulb
+
+# remove last 25 rows to deal with risky omniscient manager:
+n <- nrow(plot_dat_hara)
+plot_dat_hara <- plot_dat_hara[1:(n - 25), ]
+plot_dat_hara %>%
+  ggplot(aes(x = abar, y = ut)) +
+  stat_poly_line() +
+  stat_poly_eq(aes(label = paste(after_stat(eq.label),
+                                 after_stat(rr.label),
+                                 sep = "*\", \"*"
+  ))) +
+  geom_point()
+
+plot_dat_hara[which(plot_dat_hara$ut > 0),] %>%
+  ggplot(aes(x = vulb, y = ut)) +
+  stat_poly_line() +
+  stat_poly_eq(aes(label = paste(after_stat(eq.label),
+                                 after_stat(rr.label),
+                                 sep = "*\", \"*"
+  ))) +
   geom_point()
