@@ -6,7 +6,6 @@
 template <class Type>
 Type objective_function<Type>::operator()()
 {
-  using namespace Eigen;
   DATA_INTEGER(n_year); 
   DATA_INTEGER(n_age);
   DATA_SCALAR(vbk);      // von bertalanffy k 
@@ -117,4 +116,3 @@ Type objective_function<Type>::operator()()
   }
   return obj; 
 }
-

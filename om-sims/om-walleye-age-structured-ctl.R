@@ -69,7 +69,6 @@ obj <- MakeADFun(tmb_data,
 # obj$gr(obj$par)
 
 opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-  control = list(eval.max = 1000, iter.max = 500),
   lower = rep(0, length(years)), upper = rep(1, length(years))
 )
 
@@ -80,7 +79,6 @@ obj <- MakeADFun(tmb_data,
 )
 
 opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-  control = list(eval.max = 1000, iter.max = 500),
   lower = rep(0, length(years)), upper = rep(1, length(years))
 )
 
