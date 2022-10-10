@@ -46,7 +46,7 @@ Type objective_function<Type>::operator()()
       Lo(a) = 1;
       Lf(a) = 1; 
     } 
-    if(a > 0 && a < (n_age -1)){ // ages 2-19
+    if(a > 0 && a < (n_age - 1)){ // ages 2-19
       Lo(a) = Lo(a-1)*s;
       Lf(a) = Lf(a-1)*s*(1 - vul(a-1)*uo);
     }
