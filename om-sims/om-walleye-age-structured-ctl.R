@@ -55,7 +55,7 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 tmb_pars <- list(
-  Ut = rep(.1, length(years))
+  Ut = rep(1, length(years))
 )
 
 obj <- MakeADFun(tmb_data,
@@ -69,10 +69,9 @@ obj <- MakeADFun(tmb_data,
 
 # obj$fn(obj$par)
 # obj$gr(obj$par)
-
 opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-  lower = rep(0, length(years)), 
-  upper = rep(1, length(years))
+                    lower = rep(0, length(years)), 
+                    upper = rep(1, length(years))
 )
 
 # re-run the optimization until convergence achieved 
@@ -103,8 +102,9 @@ obj <- MakeADFun(tmb_data,
 )
 
 opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-  lower = rep(0, length(years)), 
-  upper = rep(1, length(years))
+                   eval.max = 1000, iter.max = 500,
+                   lower = rep(0, length(years)), 
+                   upper = rep(1, length(years))
 )
 
 # re-run the optimization until convergence achieved 
