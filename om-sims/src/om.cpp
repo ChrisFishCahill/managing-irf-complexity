@@ -12,6 +12,7 @@ Type objective_function<Type>::operator()()
   DATA_SCALAR(s);        // avg survival
   DATA_SCALAR(cr);       // compensation ratio
   DATA_SCALAR(rinit);    // initial number age 1 recruits
+  DATA_SCALAR(ro);       // average unfished recruitment
   DATA_SCALAR(uo);       // average historical exploitation rate
   DATA_SCALAR(asl);      // vul parameter 1
   DATA_SCALAR(ahv);      // vul parameter 2
@@ -33,7 +34,6 @@ Type objective_function<Type>::operator()()
   n.setZero(); vul.setZero(); wt.setZero(); mat.setZero();
   Lo.setZero(); mwt.setZero(); Lf.setZero(); ninit.setZero(); 
   Type sbro = 0;  
-  Type ro = rinit;  
   wt(0) = pow((1 - exp(-vbk)),3);
   vul(0) = 1/(1 + exp(-asl*(ages(0) - ahv)));
   mwt(0) = wt(0) / (1 + exp(-asl*(ages(0) - ahm)));
@@ -58,7 +58,6 @@ Type objective_function<Type>::operator()()
     mwt(a) = mat(a)*wt(a); 
     sbro += Lo(a)*mwt(a); 
   } 
-  // n(n_age - 1) += n(n_age - 1) / (1 - s*(1 - vul(n_age - 1)*uo));
   ninit = n; 
   Type reca = cr/sbro; 
   Type recb = (cr - 1) / (ro*sbro); 

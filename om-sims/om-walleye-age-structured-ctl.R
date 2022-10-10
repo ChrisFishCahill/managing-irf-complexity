@@ -7,7 +7,6 @@ library(TMB)
 devtools::install_github("ChrisFishCahill/gg-qfc")
 library(ggqfc)
 library(tidyverse)
-library(tidybayes)
 library(ggtext)
 library(cowplot)
 library(ggpmisc)
@@ -21,6 +20,7 @@ cr <- 6
 vbk <- .23
 s <- .86
 rinit <- 0.6
+ro <- 1
 uo <- 0.13
 asl <- 0.5
 ahv <- 5
@@ -38,6 +38,7 @@ tmb_data <- list(
   s = s,
   cr = cr,
   rinit = rinit,
+  ro = ro,
   uo = uo,
   asl = asl,
   ahv = ahv,
@@ -53,7 +54,7 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 tmb_pars <- list(
-  Ut = rep(0.1, length(years))
+  Ut = rep(.1, length(years))
 )
 
 obj <- MakeADFun(tmb_data,
@@ -69,18 +70,58 @@ obj <- MakeADFun(tmb_data,
 # obj$gr(obj$par)
 
 opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-  lower = rep(0, length(years)), upper = rep(1, length(years))
+  lower = rep(0, length(years)), 
+  upper = rep(1, length(years))
 )
 
+# re-run the optimization until convergence achieved 
+while(opt_yield$convergence == 1){
+  tmb_pars <- list(
+   Ut = opt_yield$par
+  )
+  
+  obj <- MakeADFun(tmb_data,
+                   tmb_pars,
+                   DLL = "om"
+  )
+  
+  opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
+                      lower = rep(0, length(years)), 
+                      upper = rep(1, length(years))
+  )
+}
+
+# now for utility
 tmb_data$obj_ctl <- 1
+tmb_pars <- list(
+  Ut = rep(.1, length(years))
+)
 obj <- MakeADFun(tmb_data,
   tmb_pars,
   DLL = "om"
 )
 
 opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-  lower = rep(0, length(years)), upper = rep(1, length(years))
+  lower = rep(0, length(years)), 
+  upper = rep(1, length(years))
 )
+
+# re-run the optimization until convergence achieved 
+while(opt_hara$convergence == 1){
+  tmb_pars <- list(
+    Ut = opt_hara$par
+  )
+  
+  obj <- MakeADFun(tmb_data,
+                   tmb_pars,
+                   DLL = "om"
+  )
+  
+  opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
+                     lower = rep(0, length(years)), 
+                     upper = rep(1, length(years))
+  )
+}
 
 # -----------------------------------------------------------
 # now visualize solutions from the omniscient manager
@@ -119,7 +160,8 @@ yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
   theme_qfc() +
   theme(
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
-    legend.text = element_markdown(size = 11)
+    legend.position = "non"
+    # legend.text = element_markdown(size = 11)
   )
 yield
 
@@ -157,8 +199,9 @@ hara <- ggplot(plot_dat_hara, aes(year, value, color = as.factor(name))) +
   theme_qfc() +
   theme(
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
-    legend.text = element_markdown(size = 11)
-  )
+    legend.position = "none"
+    #legend.text = element_markdown(size = 11)
+  ) 
 hara
 
 #-------------------------------------------------------------
@@ -187,7 +230,8 @@ plot_dat_yield %>%
   ))) +
   geom_point()
 
-plot_dat_yield[which(plot_dat_yield$ut > 0),] %>%
+#plot_dat_yield[which(plot_dat_yield$ut > 0),] %>%
+plot_dat_yield %>%
   ggplot(aes(x = vulb, y = ut)) +
   stat_poly_line() +
   stat_poly_eq(aes(label = paste(after_stat(eq.label),
@@ -222,7 +266,6 @@ plot_dat_hara[which(plot_dat_hara$ut > 0),] %>%
                                  sep = "*\", \"*"
   ))) +
   geom_point()
-
 
 
 #####################################################################
