@@ -7,7 +7,6 @@ template <class Type>
 Type objective_function<Type>::operator()()
 {
   using namespace Eigen;
-  
   DATA_INTEGER(n_year); 
   DATA_INTEGER(n_age);
   DATA_SCALAR(vbk);      // von bertalanffy k 
@@ -23,32 +22,45 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
   
-  // transformed data -- set up leading vectors
+  // set up leading vectors
   vector<Type> n(n_age);
-  vector<Type> w(n_age);
   vector<Type> vul(n_age);
+  vector<Type> wt(n_age);
+  vector<Type> mat(n_age);
+  vector<Type> Lo(n_age);   
   vector<Type> mwt(n_age);
-  n.setZero(); w.setZero(); vul.setZero(); mwt.setZero(); 
-  
+  vector<Type> Lf(n_age);
+  n.setZero(); vul.setZero(); wt.setZero(); mat.setZero();
+  Lo.setZero(); mwt.setZero(); Lf.setZero(); 
+  Type sbro = 0;  
   Type ro = rinit;  
-  Type sso = 1; // avg survivorship to a
-  n(0) = rinit;
-  w(0) = pow((1 - exp(-vbk)),3);
+  wt(0) = pow((1 - exp(-vbk)),3);
   vul(0) = 1/(1 + exp(-asl*(ages(0) - ahv)));
-  mwt(0) = w(0) / (1 + exp(-asl*(ages(0) - ahm)));
-
-  for(int a = 1; a < n_age; a ++){
-    sso *= s*(1-vul(a-1)*uo); 
-    n(a) = rinit*sso;
-    w(a) = pow((1 - exp(-vbk*(ages(a)))), 3);
-    vul(a) = 1 / (1 + exp(-asl*(ages(a) - ahv)));
-    mwt(a) = w(a) / (1 + exp(-0.5*(ages(a) - ahm)));
-  }
-  n(n_age-1) = n(n_age - 1) / ( 1 - s * vul(n_age - 1) * uo); // plus group
-  Type spro = 0;
-  for(int a = 0; a < n_age; a++){spro += n(a)*mwt(a);}
-  Type reca = cr / spro;
-  Type recb = (cr - 1) / (ro * spro);
+  mwt(0) = wt(0) / (1 + exp(-asl*(ages(0) - ahm)));
+  
+  for(int a = 0; a < n_age; a ++){
+    vul(a) =1 /( 1 + exp(-asl*(ages(a) - ahv))); 
+    wt(a) = pow((1 - exp(-vbk*(ages(a)))), 3); 
+    mat(a) = 1/(1 + exp(-asl*(ages(a) - ahm))); 
+    if(a == 0){ 
+      Lo(a) = 1;
+      Lf(a) = 1; 
+      n(a) = rinit*Lf(a);
+    } 
+    if(a > 0){
+      Lo(a) = Lo(a-1)*s;
+      Lf(a) = Lf(a-1)*s*(1 - vul(a-1)*uo);
+      if(a == (n_age - 1)){ // plus group 
+        Lo(a) = Lo(a) / (1 - s); 
+        Lf(a) = Lf(a - 1) * s * (1 - vul(a-1)*uo) / (s * (1 - vul(a-1)*uo)); 
+      }
+      n(a) = n(a-1)*Lf(a);
+    }
+    mwt(a) = mat(a)*wt(a); 
+    sbro += Lo(a)*mwt(a); 
+  } 
+  Type reca = cr/sbro; 
+  Type recb = (cr - 1) / (ro*sbro); 
   
   // parameters to solve 
   PARAMETER_VECTOR(Ut);
@@ -59,12 +71,14 @@ Type objective_function<Type>::operator()()
   vector<Type> utility(n_year);
   vector<Type> ssb(n_year);
   vector<Type> vulb(n_year); 
-  abar.setZero(); yield.setZero(); utility.setZero(); ssb.setZero(); vulb.setZero(); 
+  abar.setZero(); yield.setZero(); utility.setZero(); 
+  ssb.setZero(); vulb.setZero(); 
+
   for(int t = 0; t < n_year; t++){
     vector<Type> sumterms(1);
     sumterms.setZero();
     for(int a = 0; a < n_age; a++){
-      vulb(t) += vul(a)*n(a)*w(a);                          // sumproduct(vul*n*w) across a
+      vulb(t) += vul(a)*n(a)*wt(a);                         // sumproduct(vul*n*w) across a
       ssb(t) += mwt(a)*n(a);                                // sumproduct(mwt * n)
       sumterms(0) += ages(a)*n(a);                          // sumproduct(n,a)
     }
@@ -85,12 +99,15 @@ Type objective_function<Type>::operator()()
   REPORT(abar);
   REPORT(utility);
   REPORT(ro); 
-  REPORT(spro); 
+  REPORT(sbro); 
   REPORT(reca); 
   REPORT(recb); 
   REPORT(mwt); 
-  REPORT(w); 
+  REPORT(wt); 
   REPORT(vul); 
+  REPORT(n);
+  REPORT(Lf); 
+  REPORT(Lo); 
 
   // objective function
   Type obj = 0;

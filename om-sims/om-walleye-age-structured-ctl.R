@@ -72,10 +72,6 @@ ahm = 6
 upow = 0.6
 obj_ctl <- 0 # 1 = utility, 0 = MAY
 
-cppfile <- "om-sims/src/om.cpp"
-compile(cppfile)
-dyn.load(dynlib("om-sims/src/om"))
-
 # read in carl's recmult
 library(readxl)
 recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx","MaxU", range = "AG9:AG209")
@@ -95,6 +91,10 @@ tmb_data <- list(
   recmult = recmult$Rmult,
   obj_ctl = obj_ctl
 )
+
+cppfile <- "om-sims/src/om.cpp"
+compile(cppfile)
+dyn.load(dynlib("om-sims/src/om"))
 
 tmb_pars <- list(
   Ut = rep(0.1, length(years))
