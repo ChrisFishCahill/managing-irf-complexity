@@ -11,7 +11,37 @@ library(ggtext)
 library(cowplot)
 library(ggpmisc)
 # -----------------------------------------------------------
+# function to get recmult sequences: 
 
+get_recmult <- function(n_years, pbig, Rbig, sdr) {
+  urand <- runif(n_years, 0, 1)
+  Nrand <- rnorm(n_years, 0, 1)
+  recmult <- rep(1, n_years)
+  for (t in 1:n_years) {
+    if (urand[t] < pbig) {
+      recmult[t] <- Rbig
+    }
+    recmult[t] <- recmult[t] * exp(sdr * Nrand[t])
+  }
+  out <- tibble(year = 1:n_years,
+    urand, Nrand, recmult
+  )
+  list(dat = out)
+}
+
+years <- 1:200
+n_years <- length(years)
+pbig <- 0.05
+Rbig <- 10
+sdr <- 0.4
+
+set.seed(1)
+sim <- get_recmult(n_years, pbig, Rbig, sdr)
+sim$dat %>%
+  ggplot(aes(x = year, y = recmult))+
+  geom_line()
+
+# -----------------------------------------------------------
 # Set starting values:
 # leading parameters/values for simulation
 years <- 1:200
@@ -70,24 +100,24 @@ obj <- MakeADFun(tmb_data,
 # obj$fn(obj$par)
 # obj$gr(obj$par)
 opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-                    lower = rep(0, length(years)), 
-                    upper = rep(1, length(years))
+  lower = rep(0, length(years)),
+  upper = rep(1, length(years))
 )
 
-# re-run the optimization until convergence achieved 
-while(opt_yield$convergence == 1){
+# re-run the optimization until convergence achieved
+while (opt_yield$convergence == 1) {
   tmb_pars <- list(
-   Ut = opt_yield$par
+    Ut = opt_yield$par
   )
-  
+
   obj <- MakeADFun(tmb_data,
-                   tmb_pars,
-                   DLL = "om"
+    tmb_pars,
+    DLL = "om"
   )
-  
+
   opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-                      lower = rep(0, length(years)), 
-                      upper = rep(1, length(years))
+    lower = rep(0, length(years)),
+    upper = rep(1, length(years))
   )
 }
 
@@ -102,25 +132,25 @@ obj <- MakeADFun(tmb_data,
 )
 
 opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-                   eval.max = 1000, iter.max = 500,
-                   lower = rep(0, length(years)), 
-                   upper = rep(1, length(years))
+  eval.max = 1000, iter.max = 500,
+  lower = rep(0, length(years)),
+  upper = rep(1, length(years))
 )
 
-# re-run the optimization until convergence achieved 
-while(opt_hara$convergence == 1){
+# re-run the optimization until convergence achieved
+while (opt_hara$convergence == 1) {
   tmb_pars <- list(
     Ut = opt_hara$par
   )
-  
+
   obj <- MakeADFun(tmb_data,
-                   tmb_pars,
-                   DLL = "om"
+    tmb_pars,
+    DLL = "om"
   )
-  
+
   opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-                     lower = rep(0, length(years)), 
-                     upper = rep(1, length(years))
+    lower = rep(0, length(years)),
+    upper = rep(1, length(years))
   )
 }
 
@@ -201,8 +231,8 @@ hara <- ggplot(plot_dat_hara, aes(year, value, color = as.factor(name))) +
   theme(
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
     legend.position = "none"
-    #legend.text = element_markdown(size = 11)
-  ) 
+    # legend.text = element_markdown(size = 11)
+  )
 hara
 
 #-------------------------------------------------------------
@@ -231,7 +261,7 @@ plot_dat_yield %>%
   ))) +
   geom_point()
 
-#plot_dat_yield[which(plot_dat_yield$ut > 0),] %>%
+# plot_dat_yield[which(plot_dat_yield$ut > 0),] %>%
 plot_dat_yield %>%
   ggplot(aes(x = vulb, y = ut)) +
   stat_poly_line() +
@@ -254,17 +284,17 @@ plot_dat_hara %>%
   ggplot(aes(x = abar, y = ut)) +
   stat_poly_line() +
   stat_poly_eq(aes(label = paste(after_stat(eq.label),
-                                 after_stat(rr.label),
-                                 sep = "*\", \"*"
+    after_stat(rr.label),
+    sep = "*\", \"*"
   ))) +
   geom_point()
 
-plot_dat_hara[which(plot_dat_hara$ut > 0),] %>%
+plot_dat_hara[which(plot_dat_hara$ut > 0), ] %>%
   ggplot(aes(x = vulb, y = ut)) +
   stat_poly_line() +
   stat_poly_eq(aes(label = paste(after_stat(eq.label),
-                                 after_stat(rr.label),
-                                 sep = "*\", \"*"
+    after_stat(rr.label),
+    sep = "*\", \"*"
   ))) +
   geom_point()
 
