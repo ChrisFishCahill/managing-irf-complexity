@@ -75,7 +75,7 @@ Type objective_function<Type>::operator()()
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
     yield(t) = Ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
-    for(int a = 0; a < n_age; a++){n(a) = s*n(a)*(1-vul(a)*Ut(t));}
+    n = s*n*(1-vul*Ut(t)); 
     n(n_age - 1) = n(n_age - 1) + n(n_age - 2);                    // plus group
     for(int a = (n_age - 2); a > 0; a--){n(a) = n(a - 1);}         // advance fish one a
     n(0) = reca*ssb(t) / (1 + recb*ssb(t))*recmult(t);             // recruits
