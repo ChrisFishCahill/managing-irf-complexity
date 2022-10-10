@@ -52,7 +52,7 @@ Type objective_function<Type>::operator()()
       Lf(a) = Lf(a-1)*s*(1 - vul(a-1)*uo);
       if(a == (n_age - 1)){ // plus group 
         Lo(a) = Lo(a) / (1 - s); 
-        Lf(a) = Lf(a - 1) * s * (1 - vul(a-1)*uo) / (s * (1 - vul(a-1)*uo)); 
+        Lf(a) = Lf(a - 1)*s*(1 - vul(a-1)*uo) / (s*(1 - vul(a-1)*uo)); 
       }
       n(a) = n(a-1)*Lf(a);
     }
