@@ -85,16 +85,6 @@ Type objective_function<Type>::operator()()
   REPORT(vulb);
   REPORT(abar);
   REPORT(utility);
-  REPORT(ro);
-  REPORT(sbro);
-  REPORT(reca);
-  REPORT(recb);
-  REPORT(mwt);
-  REPORT(wt);
-  REPORT(vul);
-  REPORT(n);
-  REPORT(Lf);
-  REPORT(Lo);
 
   // objective function
   Type obj = 0;
