@@ -22,7 +22,6 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
   
-  // set up leading vectors
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
   vector<Type> wt(n_age);
@@ -34,6 +33,7 @@ Type objective_function<Type>::operator()()
   Lo.setZero(); mwt.setZero(); Lf.setZero(); 
   Type sbro = 0;  
   
+  // set up leading vectors
   for(int a = 0; a < n_age; a ++){
     vul(a) =1 /( 1 + exp(-asl*(ages(a) - ahv))); 
     wt(a) = pow((1 - exp(-vbk*(ages(a)))), 3); 
@@ -60,7 +60,6 @@ Type objective_function<Type>::operator()()
   // parameters to solve 
   PARAMETER_VECTOR(Ut);
   
-  // vectors for results
   vector<Type> abar(n_year);
   vector<Type> yield(n_year);
   vector<Type> utility(n_year);
@@ -68,6 +67,8 @@ Type objective_function<Type>::operator()()
   vector<Type> vulb(n_year);
   abar.setZero(); yield.setZero(); utility.setZero();
   ssb.setZero(); vulb.setZero(); 
+  
+  // run simulation 
   for(int t = 0; t < n_year; t++){
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
