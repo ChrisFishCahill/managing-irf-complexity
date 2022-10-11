@@ -19,7 +19,10 @@ get_recmult <- function(pbig, Rbig, sdr) {
   urand <- runif(n_year, 0, 1)
   Nrand <- rnorm(n_year, 0, 1)
   recmult <- rep(1, n_year)
+  rlow <- (1 - pbig*Rbig) / (1 - pbig)
+  if(rlow < 0) rlow = 0
   for (t in 1:n_year) {
+    recmult[t] <- rlow
     if (urand[t] < pbig) {
       recmult[t] <- Rbig
     }
