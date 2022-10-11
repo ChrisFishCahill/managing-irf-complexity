@@ -73,7 +73,7 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
     recmult = sim$dat$recmult,
     obj_ctl = 0 # 0 = MAY, 1 = utility
   )
-  tmb_pars <- list(Ut = rep(0.5, length(1:n_year)))
+  tmb_pars <- list(Ut = rep(1, length(1:n_year))) # MAY 
   obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
@@ -100,6 +100,7 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   yield <- sim
   # now do it for utility
   tmb_pars$obj_ctl <- 1
+  tmb_pars <- list(Ut = rep(0.1, length(1:n_year))) # utility
   obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
@@ -151,7 +152,7 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- c(0, 0.5, 0.25)
+pbig <- seq(from = 0, to = 1, by = 0.05)#c(0, 0.5, 0.25)
 Rbig <- c(10, 20)
 sdr <- c(0.4, 0.5)
 ahv <- c(5, 0)
