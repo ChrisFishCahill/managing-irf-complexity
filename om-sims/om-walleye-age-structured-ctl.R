@@ -10,41 +10,143 @@ library(tidyverse)
 library(ggtext)
 library(cowplot)
 library(ggpmisc)
+library(clisymbols)
 # -----------------------------------------------------------
-# function to get recmult sequences: 
+# function to get recmult sequences:
 
-get_recmult <- function(n_years, pbig, Rbig, sdr) {
-  urand <- runif(n_years, 0, 1)
-  Nrand <- rnorm(n_years, 0, 1)
-  recmult <- rep(1, n_years)
-  for (t in 1:n_years) {
+get_recmult <- function(n_year, pbig, Rbig, sdr) {
+  urand <- runif(n_year, 0, 1)
+  Nrand <- rnorm(n_year, 0, 1)
+  recmult <- rep(1, n_year)
+  for (t in 1:n_year) {
     if (urand[t] < pbig) {
       recmult[t] <- Rbig
     }
     recmult[t] <- recmult[t] * exp(sdr * Nrand[t])
   }
-  out <- tibble(year = 1:n_years,
+  out <- tibble(
+    year = 1:n_year,
     urand, Nrand, recmult
   )
   list(dat = out)
 }
 
+# testing: 
+# years <- 1:200
+# n_year <- length(years)
+# pbig <- 0.05
+# Rbig <- 10
+# sdr <- 0.4
+# set.seed(1)
+# sim <- get_recmult(n_year, pbig = 0.02, Rbig, sdr)
+# sim$dat %>%
+#   ggplot(aes(x = year, y = recmult)) +
+#   geom_line() +
+#   theme_qfc()
+
+# -----------------------------------------------------------
+
+run_om <- function(n_year, pbig, Rbig, sdr) { # recruitment parameters 
+  # this if is used for parallel computations:
+  if (!"om" %in% names(getLoadedDLLs())) {
+    cat(crayon::blue(clisymbols::symbol$star), "Loading DLL\n")
+    dyn.load(dynlib("om-sims/src/om"))
+  }
+  sim <- get_recmult(n_year, pbig, Rbig, sdr) # draw recruitment sequence
+  tmb_data <- list(
+    n_year = length(years),
+    n_age = length(ages),
+    vbk = vbk,
+    s = s,
+    cr = cr,
+    rinit = rinit,
+    ro = ro,
+    uo = uo,
+    asl = asl,
+    ahv = ahv,
+    ahm = ahm,
+    upow = upow,
+    ages = ages,
+    recmult = sim$dat$recmult,
+    obj_ctl = 0 # 0 = MAY, 1 = utility
+  )
+  tmb_pars <- list(
+    Ut = rep(0.5, length(1:n_year))
+  )
+  obj <- MakeADFun(tmb_data,
+    tmb_pars,
+    DLL = "om"
+  )
+  # run om simulation
+  opt <- nlminb(obj$par, obj$fn, obj$gr,
+    lower = rep(0, length(years)),
+    upper = rep(1, length(years))
+  )
+  # re-run the optimization until convergence achieved
+  while (opt$convergence == 1) {
+    tmb_pars <- list(
+      Ut = opt$par
+    )
+    obj <- MakeADFun(tmb_data,
+      tmb_pars,
+      DLL = "om"
+    )
+    opt <- nlminb(obj$par, obj$fn, obj$gr,
+      lower = rep(0, length(years)),
+      upper = rep(1, length(years))
+    )
+  }
+  sim <- sim$dat %>% add_column(
+    ssb = obj$report(opt$par)$`ssb`,
+    abar = obj$report(opt$par)$`abar`,
+    ut = opt$par, 
+    objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility"), 
+    pbig, Rbig, sdr
+  )
+  yield <- list(opt = opt, tmb_data = tmb_data, plot_dat = sim)
+  
+  # now do it for utility
+  tmb_pars$obj_ctl = 1
+  obj <- MakeADFun(tmb_data,
+                   tmb_pars,
+                   DLL = "om"
+  )
+  # run om simulation
+  opt <- nlminb(obj$par, obj$fn, obj$gr,
+                lower = rep(0, length(years)),
+                upper = rep(1, length(years))
+  )
+  # re-run the optimization until convergence achieved
+  while (opt$convergence == 1) {
+    tmb_pars <- list(
+      Ut = opt$par
+    )
+    obj <- MakeADFun(tmb_data,
+                     tmb_pars,
+                     DLL = "om"
+    )
+    opt <- nlminb(obj$par, obj$fn, obj$gr,
+                  lower = rep(0, length(years)),
+                  upper = rep(1, length(years))
+    )
+  }
+  sim$ssb = obj$report(opt$par)$`ssb`
+  sim$abar = obj$report(opt$par)$`abar`
+  sim$ut =  opt$par
+  sim$objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility")
+  utility <- list(opt = opt, tmb_data = tmb_data, plot_dat = sim)
+  out = list(yield, utility)
+  out
+}
+
+# Set starting values:
+# leading parameters/values for simulation
 years <- 1:200
-n_years <- length(years)
+n_year <- length(years)
 pbig <- 0.05
 Rbig <- 10
 sdr <- 0.4
 
-set.seed(1)
-sim <- get_recmult(n_years, pbig, Rbig, sdr)
-sim$dat %>%
-  ggplot(aes(x = year, y = recmult))+
-  geom_line()
-
-# -----------------------------------------------------------
-# Set starting values:
-# leading parameters/values for simulation
-years <- 1:200
 ages <- 1:20 # slot 1 = recruits
 cr <- 6
 vbk <- .23
@@ -56,104 +158,31 @@ asl <- 0.5
 ahv <- 5
 ahm <- 6
 upow <- 0.6
-obj_ctl <- 0 # 1 = utility, 0 = MAY
+objective <- "MAY" # MAY or utility
 
-# read in carl's recmult
-# library(readxl)
-# recmult <- read_excel("C:/Users/Chris/Documents/manuscripts/alta harvest control rules/spasmodic age model optimization.xlsx", "MaxU", range = "AG9:AG209")
-
-tmb_data <- list(
-  n_year = length(years),
-  n_age = length(ages),
-  vbk = vbk,
-  s = s,
-  cr = cr,
-  rinit = rinit,
-  ro = ro,
-  uo = uo,
-  asl = asl,
-  ahv = ahv,
-  ahm = ahm,
-  upow = upow,
-  ages = ages,
-  recmult = rep(recmult$Rmult, 1),
-  obj_ctl = obj_ctl
-)
-
+# compile and load the cpp
 cppfile <- "om-sims/src/om.cpp"
 compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
-tmb_pars <- list(
-  Ut = rep(1, length(years))
+# simulate the om across these quantities
+n_year <- 200
+pbig <- c(0, 0.5, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4)
+Rbig <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+sdr <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5)
+to_sim <- expand.grid(n_year = n_year, pbig = pbig, 
+                      Rbig = Rbig, sdr = sdr)
+to_sim <- to_sim %>% distinct()
+glimpse(to_sim)
+
+set.seed(1)
+system.time(
+ out <- purrr::pmap(to_sim, run_om) # testing
 )
+str(out)
 
-obj <- MakeADFun(tmb_data,
-  tmb_pars,
-  DLL = "om"
-)
-
-# sum(obj$report()$`yield` - yield)
-# sum(obj$report()$`abar` - abar)
-# obj$report()$`yield`[1]
-
-# obj$fn(obj$par)
-# obj$gr(obj$par)
-opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-  lower = rep(0, length(years)),
-  upper = rep(1, length(years))
-)
-
-# re-run the optimization until convergence achieved
-while (opt_yield$convergence == 1) {
-  tmb_pars <- list(
-    Ut = opt_yield$par
-  )
-
-  obj <- MakeADFun(tmb_data,
-    tmb_pars,
-    DLL = "om"
-  )
-
-  opt_yield <- nlminb(obj$par, obj$fn, obj$gr,
-    lower = rep(0, length(years)),
-    upper = rep(1, length(years))
-  )
-}
-
-# now for utility
-tmb_data$obj_ctl <- 1
-tmb_pars <- list(
-  Ut = rep(.1, length(years))
-)
-obj <- MakeADFun(tmb_data,
-  tmb_pars,
-  DLL = "om"
-)
-
-opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-  eval.max = 1000, iter.max = 500,
-  lower = rep(0, length(years)),
-  upper = rep(1, length(years))
-)
-
-# re-run the optimization until convergence achieved
-while (opt_hara$convergence == 1) {
-  tmb_pars <- list(
-    Ut = opt_hara$par
-  )
-
-  obj <- MakeADFun(tmb_data,
-    tmb_pars,
-    DLL = "om"
-  )
-
-  opt_hara <- nlminb(obj$par, obj$fn, obj$gr,
-    lower = rep(0, length(years)),
-    upper = rep(1, length(years))
-  )
-}
-
+# now chris needs to figure out how to pluck results
+# from list of misery
 # -----------------------------------------------------------
 # now visualize solutions from the omniscient manager
 # -----------------------------------------------------------
