@@ -100,8 +100,7 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   yield <- sim
   # now do it for utility
   tmb_data$obj_ctl <- 1
-  tmb_pars <- list(Ut = rep(0.1, length(1:n_year))) # MAY 
-  
+  tmb_pars <- list(Ut = rep(0.1, length(1:n_year))) # utility 
   obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
