@@ -158,7 +158,6 @@ asl <- 0.5
 ahv <- 5
 ahm <- 6
 upow <- 0.6
-objective <- "MAY" # MAY or utility
 
 # compile and load the cpp
 cppfile <- "om-sims/src/om.cpp"
