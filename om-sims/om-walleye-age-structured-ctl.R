@@ -19,10 +19,10 @@ get_recmult <- function(pbig, Rbig, sdr) {
   urand <- runif(n_year, 0, 1)
   Nrand <- rnorm(n_year, 0, 1)
   recmult <- rep(1, n_year)
-  #rlow <- (1 - pbig * Rbig) / (1 - pbig)
-  #if (rlow < 0) rlow <- 0
+  rlow <- (1 - pbig * Rbig) / (1 - pbig)
+  if (rlow < 0) rlow <- 0
   for (t in 1:n_year) {
-    #recmult[t] <- rlow
+    recmult[t] <- rlow
     if (urand[t] < pbig) {
       recmult[t] <- Rbig
     }
@@ -50,7 +50,7 @@ get_recmult <- function(pbig, Rbig, sdr) {
 
 # -----------------------------------------------------------
 
-run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
+run_om <- function(pbig, Rbig, sdr, ahv, iter = NA) { # recruitment parameters
   # this if is used for parallel computations:
   if (!"om" %in% names(getLoadedDLLs())) {
     dyn.load(dynlib("om-sims/src/om"))
@@ -95,7 +95,7 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
     ut = opt$par,
     objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility"),
     convergence = opt$convergence,
-    pbig, Rbig, sdr
+    pbig, Rbig, sdr, iter = iter
   )
   yield <- sim
   # now do it for utility
@@ -152,12 +152,13 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- seq(1)#c(0, 0.5, 0.25)
-Rbig <- c(1)
-sdr <- c(0.0001)
-ahv <- c(3)
+pbig <- seq(0.1)#c(0, 0.5, 0.25)
+Rbig <- c(10)
+sdr <- c(0.1)
+ahv <- c(5)
+iter <- 1:12
 
-to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv)
+to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv, iter = iter)
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
@@ -194,12 +195,14 @@ data <-
 
 plot_dat_yield <- data %>% 
   filter(objective == "MAY") %>%
-  select(year, ssb, abar, ut) %>%
-  pivot_longer(-year)
+  select(year, ssb, abar, ut, iter) %>%
+  pivot_longer(-c(year, iter))
 
 #ot_dat_yield <- plot_dat_yield %>% pivot_longer(-year)
 
-yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
+yield <- 
+  plot_dat_yield %>%
+  ggplot(aes(year, value, color = name)) +
   geom_line(size = 0.8) +
   geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
   scale_color_manual(
@@ -209,7 +212,7 @@ yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
       ssb = "<i style='color:#0072B2'>SSB</i>",
       abar = "<i style='color:#009E73'>Abar</i>",
       ut = "<i style='color:#D55E00'>Ut</i>"
-    )
+    ), 
   ) +
   labs(
     title = "Omniscient Manager
@@ -227,8 +230,54 @@ yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
     plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
     legend.position = "non"
     # legend.text = element_markdown(size = 11)
-  )
-yield
+  ) + facet_wrap(~as.factor(iter))
+yield 
+ggsave("plots/om-sims-yield.pdf", width = 11, height = 8)
+
+plot_dat_utility <- data %>% 
+  filter(objective == "utility") %>%
+  select(year, ssb, abar, ut, iter) %>%
+  pivot_longer(-c(year, iter))
+
+utility <- 
+  plot_dat_utility %>%
+  ggplot(aes(year, value, color = name)) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
+  scale_color_manual(
+    name = NULL,
+    values = c(ssb = "#0072B2", abar = "#009E73", ut = "#D55E00"),
+    labels = c(
+      ssb = "<i style='color:#0072B2'>SSB</i>",
+      abar = "<i style='color:#009E73'>Abar</i>",
+      ut = "<i style='color:#D55E00'>Ut</i>"
+    ), 
+  ) +
+  labs(
+    title = "Omniscient Manager
+    <span style='font-size:11pt'>yield solutions for
+    <span style='color:#0072B2;'>SSB</span>,
+    <span style='color:#009E73;'>Abar</span>,
+    <span style='font-size:11pt'> and
+    <span style='color:#D55E00;'>Ut</span>
+    </span>"
+  ) +
+  ylab("Value") +
+  xlab("Year") +
+  theme_qfc() +
+  theme(
+    plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
+    legend.position = "non"
+    # legend.text = element_markdown(size = 11)
+  ) + facet_wrap(~as.factor(iter))
+utility 
+ggsave("plots/om-sims-utility.pdf", width = 11, height = 8)
+
+
+
+
+
+
 
 # now do it for utility
 plot_dat_utility <- data %>% 
