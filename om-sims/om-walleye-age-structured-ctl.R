@@ -19,8 +19,8 @@ get_recmult <- function(pbig, Rbig, sdr) {
   urand <- runif(n_year, 0, 1)
   Nrand <- rnorm(n_year, 0, 1)
   recmult <- rep(1, n_year)
-  rlow <- (1 - pbig*Rbig) / (1 - pbig)
-  if(rlow < 0) rlow = 0
+  rlow <- (1 - pbig * Rbig) / (1 - pbig)
+  if (rlow < 0) rlow <- 0
   for (t in 1:n_year) {
     recmult[t] <- rlow
     if (urand[t] < pbig) {
@@ -35,7 +35,7 @@ get_recmult <- function(pbig, Rbig, sdr) {
   list(dat = out)
 }
 
-# testing: 
+# testing:
 # years <- 1:200
 # n_year <- length(years)
 # pbig <- 0.05
@@ -50,7 +50,7 @@ get_recmult <- function(pbig, Rbig, sdr) {
 
 # -----------------------------------------------------------
 
-run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters 
+run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   # this if is used for parallel computations:
   if (!"om" %in% names(getLoadedDLLs())) {
     dyn.load(dynlib("om-sims/src/om"))
@@ -73,13 +73,8 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
     recmult = sim$dat$recmult,
     obj_ctl = 0 # 0 = MAY, 1 = utility
   )
-  tmb_pars <- list(
-    Ut = rep(0.5, length(1:n_year))
-  )
-  obj <- MakeADFun(tmb_data,
-    tmb_pars,
-    DLL = "om"
-  )
+  tmb_pars <- list(Ut = rep(0.5, length(1:n_year)))
+  obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
     lower = rep(0, length(years)),
@@ -87,13 +82,8 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   )
   # re-run the optimization until convergence achieved
   while (opt$convergence == 1) {
-    tmb_pars <- list(
-      Ut = opt$par
-    )
-    obj <- MakeADFun(tmb_data,
-      tmb_pars,
-      DLL = "om"
-    )
+    tmb_pars <- list(Ut = opt$par)
+    obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
     opt <- nlminb(obj$par, obj$fn, obj$gr,
       lower = rep(0, length(years)),
       upper = rep(1, length(years))
@@ -102,42 +92,36 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   sim <- sim$dat %>% add_column(
     ssb = obj$report(opt$par)$`ssb`,
     abar = obj$report(opt$par)$`abar`,
-    ut = opt$par, 
-    objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility"), 
+    ut = opt$par,
+    objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility"),
+    convergence = opt$convergence,
     pbig, Rbig, sdr
   )
-  yield <- list(opt = opt, tmb_data = tmb_data, plot_dat = sim)
+  yield <- sim
   # now do it for utility
-  tmb_pars$obj_ctl = 1
-  obj <- MakeADFun(tmb_data,
-                   tmb_pars,
-                   DLL = "om" 
-  )
+  tmb_pars$obj_ctl <- 1
+  obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
-                lower = rep(0, length(years)),
-                upper = rep(1, length(years))
+    lower = rep(0, length(years)),
+    upper = rep(1, length(years))
   )
   # re-run the optimization until convergence achieved
   while (opt$convergence == 1) {
-    tmb_pars <- list(
-      Ut = opt$par
-    )
-    obj <- MakeADFun(tmb_data,
-                     tmb_pars,
-                     DLL = "om"
-    )
+    tmb_pars <- list(Ut = opt$par)
+    obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
     opt <- nlminb(obj$par, obj$fn, obj$gr,
-                  lower = rep(0, length(years)),
-                  upper = rep(1, length(years))
+      lower = rep(0, length(years)),
+      upper = rep(1, length(years))
     )
   }
-  sim$ssb = obj$report(opt$par)$`ssb`
-  sim$abar = obj$report(opt$par)$`abar`
-  sim$ut =  opt$par
-  sim$objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility")
-  utility <- list(opt = opt, tmb_data = tmb_data, plot_dat = sim)
-  out = list(yield, utility)
+  sim$ssb <- obj$report(opt$par)$`ssb`
+  sim$abar <- obj$report(opt$par)$`abar`
+  sim$ut <- opt$par
+  sim$objective <- ifelse(tmb_data$obj_ctl == 0, "MAY", "utility")
+  sim$convergence <- opt$convergence
+  utility <- sim
+  out <- bind_rows(yield, utility)
   out
 }
 
@@ -167,10 +151,10 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- c(0, 0.5, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4)
-Rbig <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
-sdr <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5)
-ahv <- c(1,3,5,7,9)
+pbig <- c(0, 0.5, 0.25)
+Rbig <- c(10, 20)
+sdr <- c(0.4, 0.5)
+ahv <- c(5, 0)
 
 to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv)
 to_sim <- to_sim %>% distinct()
@@ -185,14 +169,24 @@ glimpse(to_sim)
 # options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
-out <- future_pmap(to_sim, run_om,
-                   .options = furrr_options(seed = TRUE), 
-                   .progress = TRUE
+  out <- future_pmap(to_sim, run_om,
+    .options = furrr_options(seed = TRUE),
+    .progress = TRUE
   )
 })
 
+data <-
+  out %>%
+  map_dfr(~.x)
 # now chris needs to figure out how to pluck results
 # from list of misery
+
+
+
+
+
+# %>%
+# pivot_longer(cols = !model, values_to = "Births_MLE", names_to = NULL)
 # -----------------------------------------------------------
 # now visualize solutions from the omniscient manager
 # -----------------------------------------------------------
