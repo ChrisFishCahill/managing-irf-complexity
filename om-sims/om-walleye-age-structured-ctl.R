@@ -93,6 +93,7 @@ run_om <- function(pbig, Rbig, sdr, ahv, iter = NA) { # recruitment parameters
     ssb = obj$report(opt$par)$`ssb`,
     abar = obj$report(opt$par)$`abar`,
     ut = opt$par,
+    vulb = obj$report(opt$par)$`vulb`,
     objective = ifelse(tmb_data$obj_ctl == 0, "MAY", "utility"),
     convergence = opt$convergence,
     pbig, Rbig, sdr, iter = iter
@@ -119,6 +120,7 @@ run_om <- function(pbig, Rbig, sdr, ahv, iter = NA) { # recruitment parameters
   sim$ssb <- obj$report(opt$par)$`ssb`
   sim$abar <- obj$report(opt$par)$`abar`
   sim$ut <- opt$par
+  sim$vulb <- obj$report(opt$par)$`vulb`
   sim$objective <- ifelse(tmb_data$obj_ctl == 0, "MAY", "utility")
   sim$convergence <- opt$convergence
   utility <- sim
@@ -152,9 +154,9 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- seq(0.1)#c(0, 0.5, 0.25)
-Rbig <- c(10)
-sdr <- c(0.1)
+pbig <- seq(0.05)
+Rbig <- c(20)
+sdr <- c(0.4)
 ahv <- c(5)
 iter <- 1:12
 
@@ -166,9 +168,7 @@ glimpse(to_sim)
 # system.time(
 #  out <- furrr::pmap(to_sim, run_om) # testing
 # )
-# str(out)
 
-# options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
 future::plan(multisession)
 system.time({
   out <- future_pmap(to_sim, run_om,
@@ -180,15 +180,7 @@ system.time({
 data <-
   out %>%
   map_dfr(~.x)
-# now chris needs to figure out how to pluck results
-# from list of misery
 
-
-
-
-
-# %>%
-# pivot_longer(cols = !model, values_to = "Births_MLE", names_to = NULL)
 # -----------------------------------------------------------
 # now visualize solutions from the omniscient manager
 # -----------------------------------------------------------
@@ -273,11 +265,33 @@ utility <-
 utility 
 ggsave("plots/om-sims-utility.pdf", width = 11, height = 8)
 
+data %>%
+  filter(year <= 175 & year >= 25) %>%
+  ggplot(aes(x = vulb, y = ut, color = objective))+
+  scale_color_manual(
+    name = NULL,
+    values = c(MAY = "#0072B2", utility = "#D55E00")
+  ) +
+  geom_point() + 
+  facet_wrap(~iter) + 
+  ylab(expression(Omniscient~manager~U[t])) + 
+  xlab(expression(Vulnerable~biomass)) + 
+  theme_qfc()
+ggsave("plots/om-ut-vb.pdf", width = 11, height = 8)
+
+data %>%
+  ggplot(aes(x = year, y = recmult, group = iter))+
+  geom_line() + 
+  facet_wrap(~iter) + 
+  ylab("Simulated Recruitment") + 
+  xlab("Year") + 
+  theme_qfc()
+ggsave("plots/om-rec.pdf", width = 11, height = 8)
 
 
 
-
-
+################################################################################
+# Extra plotting code
 
 # now do it for utility
 plot_dat_utility <- data %>% 
