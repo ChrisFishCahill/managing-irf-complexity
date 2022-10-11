@@ -10,11 +10,12 @@ library(tidyverse)
 library(ggtext)
 library(cowplot)
 library(ggpmisc)
-library(clisymbols)
+library(future)
+library(furrr)
 # -----------------------------------------------------------
 # function to get recmult sequences:
 
-get_recmult <- function(n_year, pbig, Rbig, sdr) {
+get_recmult <- function(pbig, Rbig, sdr) {
   urand <- runif(n_year, 0, 1)
   Nrand <- rnorm(n_year, 0, 1)
   recmult <- rep(1, n_year)
@@ -46,13 +47,12 @@ get_recmult <- function(n_year, pbig, Rbig, sdr) {
 
 # -----------------------------------------------------------
 
-run_om <- function(n_year, pbig, Rbig, sdr) { # recruitment parameters 
+run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters 
   # this if is used for parallel computations:
   if (!"om" %in% names(getLoadedDLLs())) {
-    cat(crayon::blue(clisymbols::symbol$star), "Loading DLL\n")
     dyn.load(dynlib("om-sims/src/om"))
   }
-  sim <- get_recmult(n_year, pbig, Rbig, sdr) # draw recruitment sequence
+  sim <- get_recmult(pbig, Rbig, sdr) # draw recruitment sequence
   tmb_data <- list(
     n_year = length(years),
     n_age = length(ages),
@@ -104,12 +104,11 @@ run_om <- function(n_year, pbig, Rbig, sdr) { # recruitment parameters
     pbig, Rbig, sdr
   )
   yield <- list(opt = opt, tmb_data = tmb_data, plot_dat = sim)
-  
   # now do it for utility
   tmb_pars$obj_ctl = 1
   obj <- MakeADFun(tmb_data,
                    tmb_pars,
-                   DLL = "om"
+                   DLL = "om" 
   )
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
@@ -165,20 +164,29 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-n_year <- 200
 pbig <- c(0, 0.5, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4)
 Rbig <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
 sdr <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5)
-to_sim <- expand.grid(n_year = n_year, pbig = pbig, 
-                      Rbig = Rbig, sdr = sdr)
+ahv <- c(1,3,5,7,9)
+
+to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv)
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
-set.seed(1)
-system.time(
- out <- purrr::pmap(to_sim, run_om) # testing
-)
-str(out)
+# set.seed(1)
+# system.time(
+#  out <- furrr::pmap(to_sim, run_om) # testing
+# )
+# str(out)
+
+# options(future.globals.maxSize = 8000 * 1024^2) # 8 GB
+future::plan(multisession)
+system.time({
+out <- future_pmap(to_sim, run_om,
+                   .options = furrr_options(seed = TRUE), 
+                   .progress = TRUE
+  )
+})
 
 # now chris needs to figure out how to pluck results
 # from list of misery
