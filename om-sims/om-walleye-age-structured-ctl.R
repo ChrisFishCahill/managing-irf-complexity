@@ -19,10 +19,10 @@ get_recmult <- function(pbig, Rbig, sdr) {
   urand <- runif(n_year, 0, 1)
   Nrand <- rnorm(n_year, 0, 1)
   recmult <- rep(1, n_year)
-  rlow <- (1 - pbig * Rbig) / (1 - pbig)
-  if (rlow < 0) rlow <- 0
+  #rlow <- (1 - pbig * Rbig) / (1 - pbig)
+  #if (rlow < 0) rlow <- 0
   for (t in 1:n_year) {
-    recmult[t] <- rlow
+    #recmult[t] <- rlow
     if (urand[t] < pbig) {
       recmult[t] <- Rbig
     }
@@ -99,8 +99,9 @@ run_om <- function(pbig, Rbig, sdr, ahv) { # recruitment parameters
   )
   yield <- sim
   # now do it for utility
-  tmb_pars$obj_ctl <- 1
-  tmb_pars <- list(Ut = rep(0.1, length(1:n_year))) # utility
+  tmb_data$obj_ctl <- 1
+  tmb_pars <- list(Ut = rep(0.1, length(1:n_year))) # MAY 
+  
   obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
@@ -152,10 +153,10 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- seq(from = 0, to = 1, by = 0.05)#c(0, 0.5, 0.25)
-Rbig <- c(10, 20)
-sdr <- c(0.4, 0.5)
-ahv <- c(5, 0)
+pbig <- seq(1)#c(0, 0.5, 0.25)
+Rbig <- c(1)
+sdr <- c(0.0001)
+ahv <- c(3)
 
 to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv)
 to_sim <- to_sim %>% distinct()
@@ -192,12 +193,12 @@ data <-
 # now visualize solutions from the omniscient manager
 # -----------------------------------------------------------
 
-ssb <- obj$report(opt_yield$par)$`ssb`
-abar <- obj$report(opt_yield$par)$`abar`
-ut <- opt_yield$par
-plot_dat_yield <- data.frame(ssb, abar, ut, year = years)
+plot_dat_yield <- data %>% 
+  filter(objective == "MAY") %>%
+  select(year, ssb, abar, ut) %>%
+  pivot_longer(-year)
 
-plot_dat_yield <- plot_dat_yield %>% pivot_longer(-year)
+#ot_dat_yield <- plot_dat_yield %>% pivot_longer(-year)
 
 yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
   geom_line(size = 0.8) +
@@ -231,14 +232,12 @@ yield <- ggplot(plot_dat_yield, aes(year, value, color = as.factor(name))) +
 yield
 
 # now do it for utility
-ssb <- obj$report(opt_hara$par)$`ssb`
-abar <- obj$report(opt_hara$par)$`abar`
-ut <- opt_hara$par
-plot_dat_hara <- data.frame(ssb, abar, ut, year = years)
+plot_dat_utility <- data %>% 
+  filter(objective == "utility") %>%
+  select(year, ssb, abar, ut) %>%
+  pivot_longer(-year)
 
-plot_dat_hara <- plot_dat_hara %>% pivot_longer(-year)
-
-hara <- ggplot(plot_dat_hara, aes(year, value, color = as.factor(name))) +
+hara <- ggplot(plot_dat_utility, aes(year, value, color = as.factor(name))) +
   geom_line(size = 0.8) +
   geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
   scale_color_manual(
