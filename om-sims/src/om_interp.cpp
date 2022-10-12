@@ -3,16 +3,15 @@
  * omniscient manager for highly variable recruitment
  *             cahill & walters oct 2022
  */
-
-// f(x) to interpolate ut along control axis vulb
 template <class Type> 
-Type ut_fn(vector<Type> par_vec, Type vulb, Type xinc)
+Type ut_fn(vector<Type> ln_par_vec, Type vulb, Type xinc)
 { 
+  vector<Type> par_vec = exp(ln_par_vec); 
   int ix = CppAD::Integer(vulb / xinc);
-  if(ix > par_vec.size()){ ix = par_vec.size() - 2; }
+  if(ix > par_vec.size() - 1){ ix = par_vec.size() - 2; }
   Type y1 = par_vec(ix);
   Type y2 = par_vec(ix + 1);
-  Type out = y1 + (vulb/xinc - (ix - 1))* (y2 - y1); 
+  Type out = y1 + (vulb/xinc - (ix))* (y2 - y1); 
   return out; 
 }  
 
@@ -35,7 +34,6 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
   DATA_SCALAR(xinc);     // xinc
-  
   
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
@@ -72,7 +70,7 @@ Type objective_function<Type>::operator()()
   Type recb = (cr - 1) / (ro*sbro); 
   
   // parameters to solve 
-  PARAMETER_VECTOR(par_vec);
+  PARAMETER_VECTOR(ln_par_vec); 
   
   vector<Type> abar(n_year);
   vector<Type> yield(n_year);
@@ -88,7 +86,7 @@ Type objective_function<Type>::operator()()
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
-    ut(t) = ut_fn(par_vec, vulb(t), xinc); 
+    ut(t) = ut_fn(ln_par_vec, vulb(t), xinc); 
     yield(t) = ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     n = s*n*(1-vul*ut(t)); 

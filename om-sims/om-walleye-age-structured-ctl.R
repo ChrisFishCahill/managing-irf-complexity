@@ -35,7 +35,7 @@ get_recmult <- function(pbig, Rbig, sdr) {
   list(dat = out)
 }
 
-# testing:
+# testing recmult
 # years <- 1:200
 # n_year <- length(years)
 # pbig <- 0.05
@@ -73,7 +73,7 @@ run_om <- function(pbig, Rbig, sdr, ahv, iter = NA) { # recruitment parameters
     recmult = sim$dat$recmult,
     obj_ctl = 0 # 0 = MAY, 1 = utility
   )
-  tmb_pars <- list(Ut = rep(1, length(1:n_year))) # MAY 
+  tmb_pars <- list(Ut = rep(0.5, length(1:n_year))) # MAY 
   obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
   # run om simulation
   opt <- nlminb(obj$par, obj$fn, obj$gr,
@@ -144,7 +144,6 @@ rinit <- 0.6
 ro <- 1
 uo <- 0.13
 asl <- 0.5
-ahv <- 5
 ahm <- 6
 upow <- 0.6
 
@@ -154,20 +153,19 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- seq(0.05)
-Rbig <- c(20)
-sdr <- c(0.4)
-ahv <- c(5)
-iter <- 1:12
+pbig <- seq(0.01)
+Rbig <- c(1.5)
+sdr <- c(0.1)
+ahv <- c(12.75)
+iter <- 1
 
 to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv, iter = iter)
 to_sim <- to_sim %>% distinct()
 glimpse(to_sim)
 
 # set.seed(1)
-# system.time(
-#  out <- furrr::pmap(to_sim, run_om) # testing
-# )
+out <- purrr::pmap(to_sim, run_om) # testing
+
 
 future::plan(multisession)
 system.time({
@@ -287,6 +285,47 @@ data %>%
   xlab("Year") + 
   theme_qfc()
 ggsave("plots/om-rec.pdf", width = 11, height = 8)
+
+
+plot_dat_yield <- data %>% 
+  filter(objective == "MAY") %>%
+  select(year, recmult, ut, iter) %>%
+  pivot_longer(-c(year, iter))
+
+#ot_dat_yield <- plot_dat_yield %>% pivot_longer(-year)
+
+rec <- 
+  plot_dat_yield %>%
+  ggplot(aes(year, value, color = name)) +
+  geom_line(size = 0.8) +
+  geom_hline(yintercept = 1, lwd = 0.75, lty = 2) +
+  scale_color_manual(
+    name = NULL,
+    values = c(recmult = "#0072B2", ut = "#D55E00"),
+    labels = c(
+      ssb = "<i style='color:#0072B2'>SSB</i>",
+      abar = "<i style='color:#009E73'>Abar</i>",
+      ut = "<i style='color:#D55E00'>Ut</i>"
+    ), 
+  ) +
+  labs(
+    title = "Omniscient Manager
+    <span style='font-size:11pt'>yield solutions for
+    <span style='color:#0072B2;'>Recmult</span>,
+    <span style='font-size:11pt'> and
+    <span style='color:#D55E00;'>Ut</span>
+    </span>"
+  ) +
+  ylab("Value") +
+  xlab("Year") +
+  theme_qfc() +
+  theme(
+    plot.title = element_markdown(lineheight = 1.1, hjust = 0.5),
+    legend.position = "non"
+    # legend.text = element_markdown(size = 11)
+  ) + facet_wrap(~as.factor(iter))
+rec 
+ggsave("plots/om-sims-rec-ut.pdf", width = 11, height = 8)
 
 
 
