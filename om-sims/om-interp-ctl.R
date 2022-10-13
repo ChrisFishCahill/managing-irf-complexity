@@ -70,10 +70,10 @@ upow <- 0.6
 xinc <- 0.5
 
 # simulate the om across these quantities
-pbig <- 0.01
-Rbig <- 1.2
-sdr <- 0.3
-ahv <- 6
+pbig <- 0.05
+Rbig <- 10
+sdr <- 0.4
+ahv <- 5
 
 # draw recruitment sequence
 sim <- get_recmult(pbig, Rbig, sdr) 
@@ -93,11 +93,12 @@ tmb_data <- list(
   upow = upow,
   ages = ages,
   recmult = sim$dat$recmult,
-  obj_ctl = 0, # 0 = MAY, 1 = utility
-  xinc = 0.2
+  obj_ctl = 1, # 0 = MAY, 1 = utility
+  xinc = 0.2, 
+  penalty = 0 # 1 = on 
 )
 
-tmb_pars <- list(par = rep(0.5, 15))
+tmb_pars <- list(par = c(0.1, 0.9))
 
 # compile and load the cpp
 cppfile <- "om-sims/src/om_interp.cpp"
@@ -108,10 +109,11 @@ obj$fn()
 obj$gr()
 obj$hessian <- TRUE
 obj$he()
+
 # run om simulation
 opt <- nlminb(obj$par, obj$fn, obj$gr, 
-              lower = rep(0, length(years)),
-              upper = rep(1, length(years)))
+              lower = rep(0, length(tmb_pars$par)),
+              upper = rep(1, length(tmb_pars$par)))
 
 opt$par
 

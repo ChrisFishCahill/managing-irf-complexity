@@ -19,8 +19,8 @@ Type ut_linear(vector<Type> par, Type vulb)
 { 
   Type G = 10; 
   Type tiny = 1e-6; 
-  Type TAC = tiny + (par(1)*(vulb - par(0)))/(1+exp(-G*(vulb-par(0)))); // /(1+exp(-G*(vulb-par(1))))linear equation TAC=cslope*(B-vulb) with >0 constraint created smoothly
-  Type out = TAC/(vulb+tiny);                                           // ut is catch/biomass, tiny added to denominator in case vulb=0 passed to function
+  Type TAC = tiny + (par(1)*(vulb - par(0)))/(1+exp(-G*(vulb-par(0)))); 
+  Type out = TAC/(vulb+tiny);                                           
   return out;
 }  
 
@@ -43,6 +43,7 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
   DATA_SCALAR(xinc);     // increment for interpolation
+  DATA_INTEGER(penalty); // obj penalty 
   
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
@@ -119,6 +120,9 @@ Type objective_function<Type>::operator()()
   }
   if(obj_ctl == 1){  // hara utility objective
     obj -= sum(utility);
+  }
+  if(penalty == 1){
+   for(int i = 0; i < par.size(); i++){ obj += 0.000001*pow(par(i),2); }  
   }
   return obj; 
 }
