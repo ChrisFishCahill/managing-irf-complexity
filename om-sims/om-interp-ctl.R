@@ -70,11 +70,10 @@ upow <- 0.6
 xinc <- 0.5
 
 # simulate the om across these quantities
-pbig <- seq(0.01)
-Rbig <- c(1.5)
-sdr <- c(0.1)
-ahv <- c(12.75)
-iter <- 1
+pbig <- 0.01
+Rbig <- 1.2
+sdr <- 0.3
+ahv <- 6
 
 # draw recruitment sequence
 sim <- get_recmult(pbig, Rbig, sdr) 
@@ -95,7 +94,7 @@ tmb_data <- list(
   ages = ages,
   recmult = sim$dat$recmult,
   obj_ctl = 0, # 0 = MAY, 1 = utility
-  xinc = .12
+  xinc = 0.2
 )
 
 tmb_pars <- list(par = rep(0.5, 15))
@@ -107,15 +106,23 @@ dyn.load(dynlib("om-sims/src/om_interp"))
 obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
 obj$fn()
 obj$gr()
-
-
-
-
+obj$hessian <- TRUE
+obj$he()
 # run om simulation
-opt <- nlminb(obj$par, obj$fn, obj$gr, lower = rep(0, length(years)),
+opt <- nlminb(obj$par, obj$fn, obj$gr, 
+              lower = rep(0, length(years)),
               upper = rep(1, length(years)))
 
+opt$par
+
+
 obj$report(opt$par)$`ut`
+
+fit2 <- TMBhelper::fit_tmb(obj = obj, getsd = T, newtonsteps = 0, 
+                   lower = rep(0, length(tmb_pars$par)),
+                   upper = rep(1, length(tmb_pars$par)))
+
+
 
 
 #############################

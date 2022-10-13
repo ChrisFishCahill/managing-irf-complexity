@@ -103,6 +103,7 @@ Type objective_function<Type>::operator()()
 
   // objective function
   Type obj = 0;
+  obj = pow(0.000001*par.sum(), 2); 
   if(obj_ctl == 0){  // yield objective
     obj -= sum(yield);
   }
