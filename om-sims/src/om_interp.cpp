@@ -14,6 +14,16 @@ Type ut_map(vector<Type> par, Type vulb, Type xinc)
   return out;
 }  
 
+template <class Type> 
+Type ut_linear(vector<Type> par, Type vulb)
+{ 
+  Type G = 10; 
+  Type tiny = 1e-6; 
+  Type TAC = tiny + (par(1)*(vulb - par(0)))/(1+exp(-G*(vulb-par(0)))); // /(1+exp(-G*(vulb-par(1))))linear equation TAC=cslope*(B-vulb) with >0 constraint created smoothly
+  Type out = TAC/(vulb+tiny);                                           // ut is catch/biomass, tiny added to denominator in case vulb=0 passed to function
+  return out;
+}  
+
 template <class Type>
 Type objective_function<Type>::operator()()
 {
@@ -85,7 +95,7 @@ Type objective_function<Type>::operator()()
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
-    ut(t) = ut_map(par, vulb(t), xinc); 
+    ut(t) = ut_linear(par, vulb(t)); 
     yield(t) = ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     n = s*n*(1-vul*ut(t)); 
@@ -103,7 +113,7 @@ Type objective_function<Type>::operator()()
 
   // objective function
   Type obj = 0;
-  obj = pow(0.000001*par.sum(), 2); 
+  // obj = pow(0.1*par.sum(), 2); 
   if(obj_ctl == 0){  // yield objective
     obj -= sum(yield);
   }
