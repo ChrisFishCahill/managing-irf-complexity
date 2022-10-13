@@ -4,15 +4,15 @@
  *             cahill & walters oct 2022
  */
 template <class Type> 
-Type ut_fn(vector<Type> ln_par_vec, Type vulb, Type xinc)
+Type ut_map(vector<Type> par, Type vulb)
 { 
-  vector<Type> par_vec = exp(ln_par_vec); 
+  Type xinc = 2;
   int ix = CppAD::Integer(vulb / xinc);
-  if(ix > par_vec.size() - 1){ ix = par_vec.size() - 2; }
-  Type y1 = par_vec(ix);
-  Type y2 = par_vec(ix + 1);
-  Type out = y1 + (vulb/xinc - (ix))* (y2 - y1); 
-  return out; 
+  if(ix > par.size() - 1){ ix = par.size() - 2; }
+  Type y1 = par(ix);
+  Type y2 = par(ix + 1);
+  Type out = y1 + (vulb/xinc - (ix))* (y2 - y1);
+  return out;
 }  
 
 template <class Type>
@@ -33,7 +33,7 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(ages); 
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
-  DATA_SCALAR(xinc);     // xinc
+  // DATA_SCALAR(xinc);     // xinc
   
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
@@ -70,7 +70,7 @@ Type objective_function<Type>::operator()()
   Type recb = (cr - 1) / (ro*sbro); 
   
   // parameters to solve 
-  PARAMETER_VECTOR(ln_par_vec); 
+  PARAMETER_VECTOR(par); 
   
   vector<Type> abar(n_year);
   vector<Type> yield(n_year);
@@ -86,7 +86,7 @@ Type objective_function<Type>::operator()()
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
-    ut(t) = ut_fn(ln_par_vec, vulb(t), xinc); 
+    ut(t) = ut_map(par, vulb(t)); 
     yield(t) = ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     n = s*n*(1-vul*ut(t)); 
@@ -101,7 +101,7 @@ Type objective_function<Type>::operator()()
   REPORT(abar);
   REPORT(utility);
   REPORT(ut); 
-  
+
   // objective function
   Type obj = 0;
   if(obj_ctl == 0){  // yield objective
@@ -112,3 +112,4 @@ Type objective_function<Type>::operator()()
   }
   return obj; 
 }
+

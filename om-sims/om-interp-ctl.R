@@ -51,7 +51,7 @@ get_recmult <- function(pbig, Rbig, sdr) {
 # -----------------------------------------------------------
 # Set starting values
 # leading parameters/values for simulation
-years <- 1:1000
+years <- 1:2000
 n_year <- length(years)
 pbig <- 0.05
 Rbig <- 10
@@ -98,20 +98,22 @@ tmb_data <- list(
   xinc = .12
 )
 
-tmb_pars <- list(ln_par_vec = rep(0.5, 10))
+tmb_pars <- list(par = rep(0.5, 15))
 
 # compile and load the cpp
 cppfile <- "om-sims/src/om_interp.cpp"
 compile(cppfile)
 dyn.load(dynlib("om-sims/src/om_interp"))
-
-obj <- MakeADFun(tmb_data, tmb_pars, type = "Fun", silent = F, DLL = "om_interp")
+obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
 obj$fn()
 obj$gr()
 
+
+
+
 # run om simulation
-opt <- nlminb(obj$par, obj$fn, obj$gr, 
-              eval.max = 1000, iter.max = 500)
+opt <- nlminb(obj$par, obj$fn, obj$gr, lower = rep(0, length(years)),
+              upper = rep(1, length(years)))
 
 obj$report(opt$par)$`ut`
 
