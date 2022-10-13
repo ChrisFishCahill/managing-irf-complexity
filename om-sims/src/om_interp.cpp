@@ -4,11 +4,10 @@
  *             cahill & walters oct 2022
  */
 template <class Type> 
-Type ut_map(vector<Type> par, Type vulb)
+Type ut_map(vector<Type> par, Type vulb, Type xinc)
 { 
-  Type xinc = 2;
   int ix = CppAD::Integer(vulb / xinc);
-  if(ix > par.size() - 1){ ix = par.size() - 2; }
+  if(ix > par.size() - 2){ ix = par.size() - 2; }
   Type y1 = par(ix);
   Type y2 = par(ix + 1);
   Type out = y1 + (vulb/xinc - (ix))* (y2 - y1);
@@ -33,7 +32,7 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(ages); 
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
-  // DATA_SCALAR(xinc);     // xinc
+  DATA_SCALAR(xinc);     // increment for interpolation
   
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
@@ -86,7 +85,7 @@ Type objective_function<Type>::operator()()
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
-    ut(t) = ut_map(par, vulb(t)); 
+    ut(t) = ut_map(par, vulb(t), xinc); 
     yield(t) = ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     n = s*n*(1-vul*ut(t)); 

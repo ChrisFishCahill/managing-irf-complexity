@@ -153,11 +153,11 @@ compile(cppfile)
 dyn.load(dynlib("om-sims/src/om"))
 
 # simulate the om across these quantities
-pbig <- seq(0.01)
-Rbig <- c(1.5)
+pbig <- seq(0.1)
+Rbig <- c(10)
 sdr <- c(0.1)
-ahv <- c(12.75)
-iter <- 1
+ahv <- c(5)
+iter <- 6
 
 to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv, iter = iter)
 to_sim <- to_sim %>% distinct()
@@ -178,7 +178,7 @@ system.time({
 data <-
   out %>%
   map_dfr(~.x)
-
+plot(data$ut~data$vulb)
 # -----------------------------------------------------------
 # now visualize solutions from the omniscient manager
 # -----------------------------------------------------------
