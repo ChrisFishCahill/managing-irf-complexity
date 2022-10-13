@@ -18,9 +18,9 @@ template <class Type>
 Type ut_linear(vector<Type> par, Type vulb)
 { 
   Type G = 10; 
-  Type tiny = 1e-6; 
-  Type TAC = tiny + (par(1)*(vulb - par(0)))/(1+exp(-G*(vulb-par(0)))); 
-  Type out = TAC/(vulb+tiny);                                           
+  Type offset = 1e-6; 
+  Type TAC = offset + (par(1)*(vulb - par(0)))/(1+exp(-G*(vulb-par(0)))); 
+  Type out = TAC/(vulb + offset);                                           
   return out;
 }  
 
@@ -43,7 +43,7 @@ Type objective_function<Type>::operator()()
   DATA_VECTOR(recmult);  // recruitment sequence
   DATA_INTEGER(obj_ctl); // 0 = MAY, 1 = HARA utility
   DATA_SCALAR(xinc);     // increment for interpolation
-  DATA_INTEGER(penalty); // obj penalty 
+  DATA_INTEGER(hcr);     // which harvest control rule 0 = linear; 1 = misery 
   
   vector<Type> n(n_age);
   vector<Type> vul(n_age);
@@ -96,7 +96,8 @@ Type objective_function<Type>::operator()()
     vulb(t) = (vul*n*wt).sum();                                    // sumproduct(vul*n*w) across a
     ssb(t) = (mwt*n).sum();                                        // sumproduct(mwt * n)
     abar(t) = (ages*n).sum() / sum(n);                             // sumproduct(ages*n) / sum(n)
-    ut(t) = ut_linear(par, vulb(t)); 
+    if(hcr == 0){ut(t) = ut_linear(par, vulb(t));}                 // linear
+    if(hcr == 1){ut(t) = ut_map(par, vulb(t), xinc);}              // moxnes interpolation
     yield(t) = ut(t)*vulb(t);                                      
     utility(t) = pow(yield(t), upow);
     n = s*n*(1-vul*ut(t)); 
@@ -121,8 +122,8 @@ Type objective_function<Type>::operator()()
   if(obj_ctl == 1){  // hara utility objective
     obj -= sum(utility);
   }
-  if(penalty == 1){
-   for(int i = 0; i < par.size(); i++){ obj += 0.000001*pow(par(i),2); }  
+  if(hcr == 1){
+   for(int i = 0; i < par.size(); i++){ obj += 0.000001*pow(par(i),2); }
   }
   return obj; 
 }

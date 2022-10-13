@@ -70,9 +70,9 @@ upow <- 0.6
 xinc <- 0.5
 
 # simulate the om across these quantities
-pbig <- 0.05
-Rbig <- 10
-sdr <- 0.4
+pbig <- 0.1
+Rbig <- 0.99
+sdr <- 0.5
 ahv <- 5
 
 # draw recruitment sequence
@@ -93,16 +93,20 @@ tmb_data <- list(
   upow = upow,
   ages = ages,
   recmult = sim$dat$recmult,
-  obj_ctl = 1, # 0 = MAY, 1 = utility
+  obj_ctl = 0, # 0 = MAY, 1 = utility
   xinc = 0.2, 
-  penalty = 0 # 1 = on 
+  hcr = 1 # linear = 0; moxnes = 1
 )
-
-tmb_pars <- list(par = c(0.1, 0.9))
+tmb_pars <- list(par = rep(0, 5))
+tmb_pars <- list(par = rep(1, 5))
+tmb_pars <- list(par = rep(0.5, 5))
 
 # compile and load the cpp
 cppfile <- "om-sims/src/om_interp.cpp"
 compile(cppfile)
+
+# tmb_data$hcr <- 0 
+# tmb_pars = list(par = c(0.5, 0.5))
 dyn.load(dynlib("om-sims/src/om_interp"))
 obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
 obj$fn()
@@ -111,20 +115,25 @@ obj$hessian <- TRUE
 obj$he()
 
 # run om simulation
-opt <- nlminb(obj$par, obj$fn, obj$gr, 
+opt <- nlminb(obj$par, obj$fn, obj$gr,  eval.max = 1000, iter.max = 500,
               lower = rep(0, length(tmb_pars$par)),
               upper = rep(1, length(tmb_pars$par)))
 
 opt$par
 
+TMBhelper::fit_tmb(
+  obj = obj,
+  lower = rep(0, length(tmb_pars$par)),
+  upper = rep(1, length(tmb_pars$par)),
+  control = list(eval.max = 1000, iter.max = 1000),
+  getsd = T, newtonsteps = 0 # newtonsteps required for ML model convergence
+)
 
-obj$report(opt$par)$`ut`
 
-fit2 <- TMBhelper::fit_tmb(obj = obj, getsd = T, newtonsteps = 0, 
-                   lower = rep(0, length(tmb_pars$par)),
-                   upper = rep(1, length(tmb_pars$par)))
-
-
+library(tmbstan)
+tmbstan(obj, lower = rep(0, length(tmb_pars$par)),
+        upper = rep(1, length(tmb_pars$par)), 
+        silent = F, chains = 1, iter = 100)
 
 
 #############################
