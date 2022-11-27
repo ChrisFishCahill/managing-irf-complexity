@@ -61,21 +61,22 @@ ages <- 1:20 # slot 1 = recruits
 cr <- 6
 vbk <- .23
 s <- .86
-rinit <- 0.6
+rinit <- 0.001
 ro <- 1
 uo <- 0.13
 asl <- 0.5
 ahm <- 6
 upow <- 0.6
-xinc <- 0.5
+xinc <- 0.1
 
 # simulate the om across these quantities
 pbig <- 0.1
 Rbig <- 0.99
-sdr <- 0.5
+sdr <- 0.3
 ahv <- 5
 
 # draw recruitment sequence
+set.seed(1)
 sim <- get_recmult(pbig, Rbig, sdr) 
 
 tmb_data <- list(
@@ -94,88 +95,71 @@ tmb_data <- list(
   ages = ages,
   recmult = sim$dat$recmult,
   obj_ctl = 0, # 0 = MAY, 1 = utility
-  xinc = 0.2, 
-  hcr = 1 # linear = 0; moxnes = 1
+  xinc = 0.1, 
+  hcr = 0 # linear = 0; moxnes = 1
 )
-tmb_pars <- list(par = rep(0, 5))
-tmb_pars <- list(par = rep(1, 5))
-tmb_pars <- list(par = rep(0.5, 5))
+
+#par=c(0.01,0.01,0.01,0.03,0.05,0.07,0.08,0.1,0.11,0.12,0.12)
+tmb_pars <- list(par = par)
+tmb_pars <- list(par = c(0.5, 0.5))
+
 
 # compile and load the cpp
 cppfile <- "om-sims/src/om_interp.cpp"
 compile(cppfile)
 
-# tmb_data$hcr <- 0 
-# tmb_pars = list(par = c(0.5, 0.5))
 dyn.load(dynlib("om-sims/src/om_interp"))
 obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
 obj$fn()
 obj$gr()
-obj$hessian <- TRUE
-obj$he()
+#obj$hessian <- TRUE
+#obj$he()
 
 # run om simulation
-opt <- nlminb(obj$par, obj$fn, obj$gr,  eval.max = 1000, iter.max = 500,
+opt <- nlminb(obj$par, obj$fn, obj$gr,  eval.max = 1000, iter.max = 1000,
               lower = rep(0, length(tmb_pars$par)),
               upper = rep(1, length(tmb_pars$par)))
 
+#opt2$par
 opt$par
+obj$fn(opt$par)
 
-TMBhelper::fit_tmb(
-  obj = obj,
-  lower = rep(0, length(tmb_pars$par)),
-  upper = rep(1, length(tmb_pars$par)),
-  control = list(eval.max = 1000, iter.max = 1000),
-  getsd = T, newtonsteps = 0 # newtonsteps required for ML model convergence
-)
+to i*Xinc for i=0 to 10 and Y=par(i).
+Y = X = rep(NA, length(opt$par))
+for(i in 0:10){
+ Y[i] = opt$par[i]
+ X[i] = i*tmb_data$xinc
+}
+plot(Y~X, type = "b")
 
+tmb_pars = list(par = opt2$par)
+obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
 
-library(tmbstan)
-tmbstan(obj, lower = rep(0, length(tmb_pars$par)),
-        upper = rep(1, length(tmb_pars$par)), 
-        silent = F, chains = 1, iter = 100)
+prof <- tmbprofile(obj, lincomb = c(1,1,1,1,1,1,-1,1, 1, 1, 1))
+plot(prof)
 
+tmb_pars <- list(par = jitter(c(0.5, 0.5), 0.1))
 
-#############################
-# code the fucking scheme in R
-xinc <- 2
-vulb <- 7
-idx <- as.integer(vulb/xinc)
-idx_plus1 <- idx + 1
-diff <- vulb/xinc -idx
-
-
-# re-run the optimization until convergence achieved
-while (opt$convergence == 1) {
-  tmb_pars <- list(Ut = opt$par)
-  obj <- MakeADFun(tmb_data, tmb_pars, silent = T, DLL = "om")
-  opt <- nlminb(obj$par, obj$fn, obj$gr,
-                lower = rep(0, length(years)),
-                upper = rep(1, length(years))
+tmb_pars <- function() {
+  list(
+    par = jitter(c(0.5, 0.5), 0.25)
   )
 }
+tmb_pars()
+obj <- MakeADFun(tmb_data, tmb_pars,  silent = F, DLL = "om_interp")
+
+options(mc.cores = parallel::detectCores())
+library(tmbstan)
+fit <- tmbstan(obj, lower = rep(0, length(tmb_pars$par)),
+                    upper = rep(1, length(tmb_pars$par)), 
+        silent = F, chains = 7, iter = 10000)
 
 
+post <- extract(fit)
+max(post$lp__)
 
+fit %>% 
+  spread_draws(par[ctl]) %>%
+  ggplot(aes(x = par, colour = ctl))+
+  geom_histogram()
 
-
-
-
-
-
-
-to_sim <- expand.grid(pbig = pbig, Rbig = Rbig, sdr = sdr, ahv = ahv, iter = iter)
-to_sim <- to_sim %>% distinct()
-glimpse(to_sim)
-
-# set.seed(1)
-out <- purrr::pmap(to_sim, run_om) # testing
-
-
-future::plan(multisession)
-system.time({
-  out <- future_pmap(to_sim, run_om,
-                     .options = furrr_options(seed = TRUE),
-                     .progress = TRUE
-  )
-})
